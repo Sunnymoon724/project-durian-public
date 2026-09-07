@@ -1,0 +1,31 @@
+{
+  "defaultLocale": "ko",
+  "locales": [
+    "ko",
+    "en"
+  ],
+  "path": "i18n",
+  "currentLocale": "ko",
+  "localeConfigs": {
+    "ko": {
+      "label": "한국어",
+      "direction": "ltr",
+      "htmlLang": "ko",
+      "calendar": "gregory",
+      "path": "ko",
+      "translate": false,
+      "url": "https://sunnymoon724.github.io",
+      "baseUrl": "/"
+    },
+    "en": {
+      "label": "English",
+      "direction": "ltr",
+      "htmlLang": "en",
+      "calendar": "gregory",
+      "path": "en",
+      "translate": false,
+      "url": "https://sunnymoon724.github.io",
+      "baseUrl": "/en/"
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "blogBasePath": "/blog",
+  "blogTitle": "개발일지",
+  "authorsListPath": "/blog/authors"
+}

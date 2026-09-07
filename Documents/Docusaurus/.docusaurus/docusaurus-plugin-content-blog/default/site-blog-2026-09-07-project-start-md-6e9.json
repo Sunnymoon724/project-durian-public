@@ -1,0 +1,42 @@
+{
+  "permalink": "/blog/2026/09/07/project-start",
+  "source": "@site/blog/2026-09-07-project-start.md",
+  "title": "Project Durian 개발 문서 시작",
+  "description": "Project Durian 개발 문서 사이트를 구성하기 시작했습니다.",
+  "date": "2026-09-07T00:00:00.000Z",
+  "tags": [
+    {
+      "inline": true,
+      "label": "project-durian",
+      "permalink": "/blog/tags/project-durian"
+    },
+    {
+      "inline": true,
+      "label": "development",
+      "permalink": "/blog/tags/development"
+    }
+  ],
+  "readingTime": 0.08,
+  "hasTruncateMarker": true,
+  "authors": [
+    {
+      "name": "KoZae",
+      "title": "Project Durian Developer",
+      "url": "https://github.com/Sunnymoon724",
+      "imageURL": "https://github.com/Sunnymoon724.png",
+      "key": "kozae",
+      "page": null
+    }
+  ],
+  "frontMatter": {
+    "title": "Project Durian 개발 문서 시작",
+    "authors": [
+      "kozae"
+    ],
+    "tags": [
+      "project-durian",
+      "development"
+    ]
+  },
+  "unlisted": false
+}
