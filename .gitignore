@@ -41,3 +41,7 @@ Saved/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Local service credentials
+.env
+Tools/NotionUpdater/RefreshReport/Config.env
