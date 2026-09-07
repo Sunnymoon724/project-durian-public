@@ -1,0 +1,11 @@
+# Build output and generated Unreal Engine files
+Binaries/
+Intermediate/
+Saved/
+
+# Copyright-sensitive Unreal Engine starter assets
+Content/Characters/Mannequins/
+
+# Custom Directory
+Tools/
+Documents/

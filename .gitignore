@@ -1,0 +1,43 @@
+# Unreal Engine generated directories
+Binaries/
+Build/
+DerivedDataCache/
+Intermediate/
+Saved/
+
+# Unreal Engine generated files
+*.opensdf
+*.sdf
+*.sln
+*.suo
+*.xcodeproj
+*.xcworkspace
+*.xcuserstate
+*.xcodeworkspace
+*.VSCodeCounter
+
+# Visual Studio / Rider / VS Code user settings
+.vs/
+.vscode/
+.idea/
+*.VC.db
+*.VC.opendb
+*.user
+*.userprefs
+*.pidb
+*.ipch
+
+# Build and diagnostic artifacts
+*.dll
+*.exe
+*.pdb
+*.log
+*.tmp
+*.bak
+*.swp
+*.dmp
+
+# macOS and Windows metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
