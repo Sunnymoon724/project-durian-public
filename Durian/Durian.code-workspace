@@ -1,12 +1,16 @@
 {
 	"folders": [
 		{
+			"name": "Documents",
+			"path": "../Documents"
+		},
+		{
 			"name": "Durian",
 			"path": "."
 		},
 		{
 			"name": "UE5",
-			"path": "C:\\Program Files\\Epic Games\\UE_5.8"
+			"path": "../../../../../../Program Files/Epic Games/UE_5.8"
 		}
 	],
 	"settings": {

@@ -16,6 +16,10 @@ Saved/
 *.xcodeworkspace
 *.VSCodeCounter
 
+# Clangd / compilation database
+.cache/
+compile_commands.json
+
 # Visual Studio / Rider / VS Code user settings
 .vs/
 .vscode/
