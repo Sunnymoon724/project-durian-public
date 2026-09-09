@@ -1,2 +1,4 @@
-[mcp_servers.unreal-mcp]
-url = "http://127.0.0.1:8000/mcp"
+[mcp_servers.unreal]
+command = "node"
+args = ["D:/Projects/ClassProject/Project_Durian/Durian/Tools/unreal_mcp_server.js"]
+

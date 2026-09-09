@@ -32,11 +32,11 @@
 			"Enabled": true
 		},
 		{
-			"Name": "ModelContextProtocol",
+			"Name": "RemoteControl",
 			"Enabled": true
 		},
 		{
-			"Name": "AllToolsets",
+			"Name": "RemoteControlWebInterface",
 			"Enabled": true
 		}
 	]
