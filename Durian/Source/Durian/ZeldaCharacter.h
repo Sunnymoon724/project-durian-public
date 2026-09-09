@@ -3,9 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Global/PlayerAbility.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
-#include "DurianCharacter.generated.h"
+#include "ZeldaCharacter.generated.h"
 
 class USpringArmComponent;
 class UCameraComponent;
@@ -19,7 +20,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
  *  Implements a controllable orbiting camera
  */
 UCLASS(abstract)
-class ADurianCharacter : public ACharacter
+class AZeldaCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
@@ -49,10 +50,14 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* MouseLookAction;
 
+	/** Currently selected player ability. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Player|Ability")
+	EPlayerAbility SelectedAbility = EPlayerAbility::None;
+
 public:
 
 	/** Constructor */
-	ADurianCharacter();	
+	AZeldaCharacter();	
 
 protected:
 
@@ -66,6 +71,15 @@ protected:
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
+
+	void SelectMagnetAbility();
+	void SelectIceAbility();
+	void SelectStasisAbility();
+	void SelectRemoteBombAbility();
+	void ClearSelectedAbility();
+	void SetSelectedAbility(EPlayerAbility NewAbility);
+
+	void Interact();
 
 public:
 
@@ -84,6 +98,14 @@ public:
 	/** Handles jump pressed inputs from either controls or UI interfaces */
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoJumpEnd();
+
+	/** Returns the ability currently selected by the player. */
+	UFUNCTION(BlueprintPure, Category="Player|Ability")
+	EPlayerAbility GetSelectedAbility() const { return SelectedAbility; }
+
+	/** Called after the selected shrine ability changes. */
+	UFUNCTION(BlueprintImplementableEvent, Category="Player|Ability")
+	void OnSelectedAbilityChanged(EPlayerAbility NewAbility);
 
 public:
 

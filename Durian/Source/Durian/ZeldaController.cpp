@@ -1,7 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 
-#include "DurianPlayerController.h"
+#include "ZeldaController.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
 #include "InputMappingContext.h"
@@ -9,7 +9,7 @@
 #include "Durian.h"
 #include "Widgets/Input/SVirtualJoystick.h"
 
-void ADurianPlayerController::BeginPlay()
+void AZeldaController::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -33,7 +33,7 @@ void ADurianPlayerController::BeginPlay()
 	}
 }
 
-void ADurianPlayerController::SetupInputComponent()
+void AZeldaController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 
@@ -60,7 +60,7 @@ void ADurianPlayerController::SetupInputComponent()
 	}
 }
 
-bool ADurianPlayerController::ShouldUseTouchControls() const
+bool AZeldaController::ShouldUseTouchControls() const
 {
 	// are we on a mobile platform? Should we force touch?
 	return SVirtualJoystick::ShouldDisplayTouchInterface() || bForceTouchControls;

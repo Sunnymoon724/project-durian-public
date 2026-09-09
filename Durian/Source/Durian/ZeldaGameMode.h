@@ -4,20 +4,20 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
-#include "DurianGameMode.generated.h"
+#include "ZeldaGameMode.generated.h"
 
 /**
  *  Simple GameMode for a third person game
  */
 UCLASS(abstract)
-class ADurianGameMode : public AGameModeBase
+class AZeldaGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 
 public:
 	
 	/** Constructor */
-	ADurianGameMode();
+	AZeldaGameMode();
 };
 
 

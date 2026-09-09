@@ -1,2 +1,5 @@
 Diagnostics:
   UnusedIncludes: None
+  Suppress:
+    # Unreal's GENERATED_BODY() can be misdiagnosed when generated macros are stale.
+    - missing_type_specifier

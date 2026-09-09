@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
-#include "DurianPlayerController.generated.h"
+#include "ZeldaController.generated.h"
 
 class UInputMappingContext;
 class UUserWidget;
@@ -14,7 +14,7 @@ class UUserWidget;
  *  Manages input mappings
  */
 UCLASS(abstract)
-class ADurianPlayerController : public APlayerController
+class AZeldaController : public APlayerController
 {
 	GENERATED_BODY()
 	

@@ -1,6 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "DurianCharacter.h"
+#include "ZeldaCharacter.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -10,9 +10,11 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "InputCoreTypes.h"
+#include "Engine/Engine.h"
 #include "Durian.h"
 
-ADurianCharacter::ADurianCharacter()
+AZeldaCharacter::AZeldaCharacter()
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -50,7 +52,7 @@ ADurianCharacter::ADurianCharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
 
-void ADurianCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void AZeldaCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
@@ -60,19 +62,79 @@ void ADurianCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
 		// Moving
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ADurianCharacter::Move);
-		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &ADurianCharacter::Look);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AZeldaCharacter::Move);
+		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &AZeldaCharacter::Look);
 
 		// Looking
-		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ADurianCharacter::Look);
+		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AZeldaCharacter::Look);
 	}
 	else
 	{
 		UE_LOG(LogDurian, Error, TEXT("'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
 	}
+
+	// Temporary keyboard bindings for the shrine ability prototype. These avoid
+	// requiring new Input Action assets while the selection flow is validated.
+	PlayerInputComponent->BindKey(EKeys::One, IE_Pressed, this, &AZeldaCharacter::SelectMagnetAbility);
+	PlayerInputComponent->BindKey(EKeys::Two, IE_Pressed, this, &AZeldaCharacter::SelectIceAbility);
+	PlayerInputComponent->BindKey(EKeys::Three, IE_Pressed, this, &AZeldaCharacter::SelectStasisAbility);
+	PlayerInputComponent->BindKey(EKeys::Four, IE_Pressed, this, &AZeldaCharacter::SelectRemoteBombAbility);
+	PlayerInputComponent->BindKey(EKeys::Q, IE_Pressed, this, &AZeldaCharacter::ClearSelectedAbility);
 }
 
-void ADurianCharacter::Move(const FInputActionValue& Value)
+void AZeldaCharacter::SelectMagnetAbility()
+{
+	SetSelectedAbility(EPlayerAbility::Magnet);
+}
+
+void AZeldaCharacter::SelectIceAbility()
+{
+	SetSelectedAbility(EPlayerAbility::Ice);
+}
+
+void AZeldaCharacter::SelectStasisAbility()
+{
+	SetSelectedAbility(EPlayerAbility::Stasis);
+}
+
+void AZeldaCharacter::SelectRemoteBombAbility()
+{
+	SetSelectedAbility(EPlayerAbility::RemoteBomb);
+}
+
+void AZeldaCharacter::ClearSelectedAbility()
+{
+	SetSelectedAbility(EPlayerAbility::None);
+}
+
+void AZeldaCharacter::SetSelectedAbility(const EPlayerAbility NewAbility)
+{
+	if (SelectedAbility == NewAbility)
+	{
+		return;
+	}
+
+	SelectedAbility = NewAbility;
+	OnSelectedAbilityChanged(SelectedAbility);
+
+	const UEnum* AbilityEnum = StaticEnum<EPlayerAbility>();
+	const FString AbilityName = AbilityEnum
+		? AbilityEnum->GetDisplayNameTextByValue(static_cast<int64>(SelectedAbility)).ToString()
+		: TEXT("Unknown");
+
+	UE_LOG(LogDurian, Log, TEXT("Selected player ability: %s"), *AbilityName);
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			1,
+			2.0f,
+			FColor::Cyan,
+			FString::Printf(TEXT("Ability: %s"), *AbilityName));
+	}
+}
+
+void AZeldaCharacter::Move(const FInputActionValue& Value)
 {
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
@@ -81,7 +143,7 @@ void ADurianCharacter::Move(const FInputActionValue& Value)
 	DoMove(MovementVector.X, MovementVector.Y);
 }
 
-void ADurianCharacter::Look(const FInputActionValue& Value)
+void AZeldaCharacter::Look(const FInputActionValue& Value)
 {
 	// input is a Vector2D
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
@@ -90,7 +152,7 @@ void ADurianCharacter::Look(const FInputActionValue& Value)
 	DoLook(LookAxisVector.X, LookAxisVector.Y);
 }
 
-void ADurianCharacter::DoMove(float Right, float Forward)
+void AZeldaCharacter::DoMove(float Right, float Forward)
 {
 	if (GetController() != nullptr)
 	{
@@ -110,7 +172,7 @@ void ADurianCharacter::DoMove(float Right, float Forward)
 	}
 }
 
-void ADurianCharacter::DoLook(float Yaw, float Pitch)
+void AZeldaCharacter::DoLook(float Yaw, float Pitch)
 {
 	if (GetController() != nullptr)
 	{
@@ -120,14 +182,41 @@ void ADurianCharacter::DoLook(float Yaw, float Pitch)
 	}
 }
 
-void ADurianCharacter::DoJumpStart()
+void AZeldaCharacter::DoJumpStart()
 {
 	// signal the character to jump
 	Jump();
 }
 
-void ADurianCharacter::DoJumpEnd()
+void AZeldaCharacter::DoJumpEnd()
 {
 	// signal the character to stop jumping
 	StopJumping();
+}
+
+void AZeldaCharacter::Interact()
+{
+	if (SelectedAbility == EPlayerAbility::Magnet)
+	{
+		UE_LOG(LogDurian, Log, TEXT("Magnet ability selected"));
+		return;
+	}
+
+	if (SelectedAbility == EPlayerAbility::Ice)
+	{
+		UE_LOG(LogDurian, Log, TEXT("Ice ability selected"));
+		return;
+	}
+
+	if (SelectedAbility == EPlayerAbility::Stasis)
+	{
+		UE_LOG(LogDurian, Log, TEXT("Stasis ability selected"));
+		return;
+	}
+
+	if (SelectedAbility == EPlayerAbility::RemoteBomb)
+	{
+		UE_LOG(LogDurian, Log, TEXT("RemoteBomb ability selected"));
+		return;
+	}
 }

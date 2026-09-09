@@ -1,8 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "DurianGameMode.h"
+#include "ZeldaGameMode.h"
 
-ADurianGameMode::ADurianGameMode()
+AZeldaGameMode::AZeldaGameMode()
 {
 	// stub
 }
