@@ -11,3 +11,6 @@ Tools/
 
 # Private documents
 Documents/
+
+# Private automation
+.github/workflows/daily-development-log.yml
