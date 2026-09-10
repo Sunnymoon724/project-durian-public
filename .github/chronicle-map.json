@@ -1,0 +1,24 @@
+{
+  "mappings": [
+    {
+      "source": "Documents/Design",
+      "destination": "Chronicle/docs/design",
+      "template": "Chronicle/templates/design.md"
+    },
+    {
+      "source": "Documents/Planning",
+      "destination": "Chronicle/docs/overview",
+      "template": "Chronicle/templates/planning.md"
+    },
+    {
+      "source": "Documents/Production",
+      "destination": "Chronicle/docs/guides",
+      "template": "Chronicle/templates/guide.md"
+    },
+    {
+      "source": "Documents/Operations",
+      "destination": "Chronicle/docs/guides",
+      "template": "Chronicle/templates/guide.md"
+    }
+  ]
+}

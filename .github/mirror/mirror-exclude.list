@@ -11,6 +11,7 @@ Tools/
 
 # Private documents
 Documents/
+Chronicle/
 
 # Private automation
 .github/workflows/
