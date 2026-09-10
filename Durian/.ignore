@@ -1,4 +1,7 @@
+/.codex
 /.vscode
 /Content
+/DerivedDataCache
 /Intermediate
 /Saved
+/Tools

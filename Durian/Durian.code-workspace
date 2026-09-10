@@ -10,7 +10,7 @@
 		},
 		{
 			"name": "UE5",
-			"path": "../../../../../../Program Files/Epic Games/UE_5.8"
+			"path": "C:/Program Files/Epic Games/UE_5.8"
 		}
 	],
 	"settings": {
@@ -571,7 +571,7 @@
 				"program": "C:\\Program Files\\Epic Games\\UE_5.8\\Engine\\Binaries\\Win64\\UnrealEditor-Win64-Debug.exe",
 				"preLaunchTask": "DurianEditor Win64 Debug Build",
 				"args": [
-					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject"
+					"${workspaceFolder:Durian}\\Durian.uproject"
 				],
 				"cwd": "C:\\Program Files\\Epic Games\\UE_5.8",
 				"stopAtEntry": false,
@@ -591,7 +591,7 @@
 				"program": "C:\\Program Files\\Epic Games\\UE_5.8\\Engine\\Binaries\\Win64\\UnrealEditor-Win64-DebugGame.exe",
 				"preLaunchTask": "DurianEditor Win64 DebugGame Build",
 				"args": [
-					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject"
+					"${workspaceFolder:Durian}\\Durian.uproject"
 				],
 				"cwd": "C:\\Program Files\\Epic Games\\UE_5.8",
 				"stopAtEntry": false,
@@ -611,7 +611,7 @@
 				"program": "C:\\Program Files\\Epic Games\\UE_5.8\\Engine\\Binaries\\Win64\\UnrealEditor.exe",
 				"preLaunchTask": "DurianEditor Win64 Development Build",
 				"args": [
-					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject"
+					"${workspaceFolder:Durian}\\Durian.uproject"
 				],
 				"cwd": "C:\\Program Files\\Epic Games\\UE_5.8",
 				"stopAtEntry": false,
@@ -634,7 +634,7 @@
 				"args": [
 					"-projectfiles",
 					"-vscode",
-					"-project=C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
+					"-project=${workspaceFolder:Durian}\\Durian.uproject",
 					"-game",
 					"-engine",
 					"-dotnet"

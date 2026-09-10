@@ -1,9 +1,9 @@
 # Unreal Engine generated directories
-Binaries/
-Build/
-DerivedDataCache/
-Intermediate/
-Saved/
+**/Binaries/
+**/Build/
+**/DerivedDataCache/
+**/Intermediate/
+**/Saved/
 
 # Unreal Engine generated files
 *.opensdf
