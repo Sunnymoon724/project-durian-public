@@ -2,7 +2,7 @@ import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
-  title: 'Project Durian Notebook',
+  title: 'Project Durian Chronicle',
   tagline: 'Project Durian 개발 위키와 개발일지',
 
   url: 'https://sunnymoon724.github.io',
