@@ -4,5 +4,3 @@
 #include "Modules/ModuleManager.h"
 
 IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, Durian, "Durian" );
-
-DEFINE_LOG_CATEGORY(LogDurian)

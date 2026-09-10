@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 public class DurianEditorTarget : TargetRules
 {
-	public DurianEditorTarget(TargetInfo Target) : base(Target)
+	public DurianEditorTarget( TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Editor;
 		DefaultBuildSettings = BuildSettingsVersion.V7;

@@ -9,9 +9,7 @@
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
 			"AdditionalDependencies": [
-				"Engine",
-				"AIModule",
-				"UMG"
+				"Engine"
 			]
 		}
 	],
@@ -22,22 +20,6 @@
 			"TargetAllowList": [
 				"Editor"
 			]
-		},
-		{
-			"Name": "StateTree",
-			"Enabled": true
-		},
-		{
-			"Name": "GameplayStateTree",
-			"Enabled": true
-		},
-		{
-			"Name": "RemoteControl",
-			"Enabled": true
-		},
-		{
-			"Name": "RemoteControlWebInterface",
-			"Enabled": true
 		}
 	]
 }
