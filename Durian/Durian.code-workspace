@@ -1,16 +1,12 @@
 {
 	"folders": [
 		{
-			"name": "Documents",
-			"path": "../Documents"
-		},
-		{
 			"name": "Durian",
 			"path": "."
 		},
 		{
 			"name": "UE5",
-			"path": "C:/Program Files/Epic Games/UE_5.8"
+			"path": "C:\\Program Files\\Epic Games\\UE_5.8"
 		}
 	],
 	"settings": {
@@ -41,7 +37,7 @@
 					"Durian",
 					"Win64",
 					"Debug",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -58,7 +54,7 @@
 					"Durian",
 					"Win64",
 					"Debug",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -78,7 +74,7 @@
 					"Durian",
 					"Win64",
 					"Debug",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -95,7 +91,7 @@
 					"Durian",
 					"Win64",
 					"DebugGame",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -112,7 +108,7 @@
 					"Durian",
 					"Win64",
 					"DebugGame",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -132,7 +128,7 @@
 					"Durian",
 					"Win64",
 					"DebugGame",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -149,7 +145,7 @@
 					"Durian",
 					"Win64",
 					"Development",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -166,7 +162,7 @@
 					"Durian",
 					"Win64",
 					"Development",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -186,7 +182,7 @@
 					"Durian",
 					"Win64",
 					"Development",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -203,7 +199,7 @@
 					"Durian",
 					"Win64",
 					"Test",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -220,7 +216,7 @@
 					"Durian",
 					"Win64",
 					"Test",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -240,7 +236,7 @@
 					"Durian",
 					"Win64",
 					"Test",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -257,7 +253,7 @@
 					"Durian",
 					"Win64",
 					"Shipping",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -274,7 +270,7 @@
 					"Durian",
 					"Win64",
 					"Shipping",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -294,7 +290,7 @@
 					"Durian",
 					"Win64",
 					"Shipping",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -311,7 +307,7 @@
 					"DurianEditor",
 					"Win64",
 					"Debug",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -328,7 +324,7 @@
 					"DurianEditor",
 					"Win64",
 					"Debug",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -348,7 +344,7 @@
 					"DurianEditor",
 					"Win64",
 					"Debug",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -365,7 +361,7 @@
 					"DurianEditor",
 					"Win64",
 					"DebugGame",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -382,7 +378,7 @@
 					"DurianEditor",
 					"Win64",
 					"DebugGame",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -402,7 +398,7 @@
 					"DurianEditor",
 					"Win64",
 					"DebugGame",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -419,7 +415,7 @@
 					"DurianEditor",
 					"Win64",
 					"Development",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -436,7 +432,7 @@
 					"DurianEditor",
 					"Win64",
 					"Development",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -456,7 +452,7 @@
 					"DurianEditor",
 					"Win64",
 					"Development",
-					"${workspaceFolder:Durian}\\Durian.uproject",
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -473,7 +469,7 @@
 			{
 				"name": "Launch Durian (Debug)",
 				"request": "launch",
-				"program": "${workspaceFolder:Durian}\\Binaries\\Win64\\UnrealGame-Win64-Debug.exe",
+				"program": "C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Binaries\\Win64\\UnrealGame-Win64-Debug.exe",
 				"preLaunchTask": "Durian Win64 Debug Build",
 				"args": [
 				],
@@ -492,7 +488,7 @@
 			{
 				"name": "Launch Durian (DebugGame)",
 				"request": "launch",
-				"program": "${workspaceFolder:Durian}\\Binaries\\Win64\\UnrealGame-Win64-DebugGame.exe",
+				"program": "C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Binaries\\Win64\\UnrealGame-Win64-DebugGame.exe",
 				"preLaunchTask": "Durian Win64 DebugGame Build",
 				"args": [
 				],
@@ -511,7 +507,7 @@
 			{
 				"name": "Launch Durian (Development)",
 				"request": "launch",
-				"program": "${workspaceFolder:Durian}\\Binaries\\Win64\\UnrealGame.exe",
+				"program": "C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Binaries\\Win64\\UnrealGame.exe",
 				"preLaunchTask": "Durian Win64 Development Build",
 				"args": [
 				],
@@ -530,7 +526,7 @@
 			{
 				"name": "Launch Durian (Test)",
 				"request": "launch",
-				"program": "${workspaceFolder:Durian}\\Binaries\\Win64\\UnrealGame-Win64-Test.exe",
+				"program": "C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Binaries\\Win64\\UnrealGame-Win64-Test.exe",
 				"preLaunchTask": "Durian Win64 Test Build",
 				"args": [
 				],
@@ -549,7 +545,7 @@
 			{
 				"name": "Launch Durian (Shipping)",
 				"request": "launch",
-				"program": "${workspaceFolder:Durian}\\Binaries\\Win64\\UnrealGame-Win64-Shipping.exe",
+				"program": "C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Binaries\\Win64\\UnrealGame-Win64-Shipping.exe",
 				"preLaunchTask": "Durian Win64 Shipping Build",
 				"args": [
 				],
@@ -571,7 +567,7 @@
 				"program": "C:\\Program Files\\Epic Games\\UE_5.8\\Engine\\Binaries\\Win64\\UnrealEditor-Win64-Debug.exe",
 				"preLaunchTask": "DurianEditor Win64 Debug Build",
 				"args": [
-					"${workspaceFolder:Durian}\\Durian.uproject"
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject"
 				],
 				"cwd": "C:\\Program Files\\Epic Games\\UE_5.8",
 				"stopAtEntry": false,
@@ -591,7 +587,7 @@
 				"program": "C:\\Program Files\\Epic Games\\UE_5.8\\Engine\\Binaries\\Win64\\UnrealEditor-Win64-DebugGame.exe",
 				"preLaunchTask": "DurianEditor Win64 DebugGame Build",
 				"args": [
-					"${workspaceFolder:Durian}\\Durian.uproject"
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject"
 				],
 				"cwd": "C:\\Program Files\\Epic Games\\UE_5.8",
 				"stopAtEntry": false,
@@ -611,7 +607,7 @@
 				"program": "C:\\Program Files\\Epic Games\\UE_5.8\\Engine\\Binaries\\Win64\\UnrealEditor.exe",
 				"preLaunchTask": "DurianEditor Win64 Development Build",
 				"args": [
-					"${workspaceFolder:Durian}\\Durian.uproject"
+					"C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject"
 				],
 				"cwd": "C:\\Program Files\\Epic Games\\UE_5.8",
 				"stopAtEntry": false,
@@ -634,7 +630,7 @@
 				"args": [
 					"-projectfiles",
 					"-vscode",
-					"-project=${workspaceFolder:Durian}\\Durian.uproject",
+					"-project=C:\\Users\\user\\Desktop\\Workspace\\Project_Durian\\Durian\\Durian.uproject",
 					"-game",
 					"-engine",
 					"-dotnet"
