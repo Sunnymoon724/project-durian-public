@@ -6,6 +6,7 @@
 - Unreal 프로젝트 파일은 `Durian/Durian.uproject`입니다.
 - C++ 게임 모듈은 `Durian/Source/` 아래에 있습니다.
 - 문서와 자동화 도구는 각각 `Documents/`, `Tools/`에서 관리합니다.
+- `Documents/`의 파일이나 폴더 구조를 추가·이동·삭제·변경할 때는 `.github/chronicle-map.json`의 문서 매핑도 함께 검토하고 갱신합니다.
 
 ## Unreal Engine 규칙
 

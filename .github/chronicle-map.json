@@ -11,9 +11,9 @@
       "template": "Chronicle/templates/planning.md"
     },
     {
-      "source": "Documents/Production",
-      "destination": "Chronicle/docs/guides",
-      "template": "Chronicle/templates/guide.md"
+      "source": "Documents/Reference",
+      "destination": "Chronicle/docs/reference",
+      "template": "Chronicle/templates/reference.md"
     }
   ]
 }
