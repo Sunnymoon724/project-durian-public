@@ -26,24 +26,35 @@ public:
 	AMyPlayerController();
 	
 private:
-	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Input",meta=(AllowPrivateAccess=true))
+	UPROPERTY(EditAnywhere,BlueprintReadOnly, Category="Input",meta = (AllowPrivateAccess = true))
 	TObjectPtr<UInputMappingContext> CharacterMappingContext;
 
-	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Input",meta=(AllowPrivateAccess=true))
-	TObjectPtr<UInputAction> JumpAction;
-	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Input",meta=(AllowPrivateAccess=true))
-	TObjectPtr<UInputAction> MoveAction;
-	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="Input",meta=(AllowPrivateAccess=true))
+	UPROPERTY(EditAnywhere,BlueprintReadOnly, Category="Input",meta = (AllowPrivateAccess = true))
 	TObjectPtr<UInputAction> LookAction;
-	
+
+	UPROPERTY(EditAnywhere,BlueprintReadOnly, Category="Input",meta = (AllowPrivateAccess = true))
+	TObjectPtr<UInputAction> JumpAction;
+	UPROPERTY(EditAnywhere,BlueprintReadOnly, Category="Input",meta = (AllowPrivateAccess = true))
+	TObjectPtr<UInputAction> MoveAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input",meta = (AllowPrivateAccess = true))
+	TObjectPtr<UInputAction> AttackAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input",meta = (AllowPrivateAccess = true))
+	TObjectPtr<UInputAction> InteractAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input",meta = (AllowPrivateAccess = true))
+	TObjectPtr<UInputAction> CancelAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input",meta = (AllowPrivateAccess = true))
+	TObjectPtr<UInputAction> RestartLevelAction;
+
 	UPROPERTY();
 	TObjectPtr<AMyPlayerCharacter> CachedCharacter;
-	
+
 	template <typename TType>
-	void setObjectPtr(const FString& AssetName, TObjectPtr<TType>& ObjectPtr)
+	void SetObjectPtrImpl(const FString& AssetName, TObjectPtr<TType>& ObjectPtr)
 	{
 		ConstructorHelpers::FObjectFinder<TType> LoadedAsset(*AssetName);
-	
+
 		if (LoadedAsset.Succeeded())
 		{
 			ObjectPtr = LoadedAsset.Object;
@@ -55,13 +66,21 @@ protected:
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void SetupInputComponent() override;
 	
-	void Move(const FInputActionValue& Value);
-	void Look(const FInputActionValue& Value);
-	void MoveForward(float Value);
-	void MoveRight(float Value);
-	void Turn(float Value);
-	void LookUp(float Value);
+private:
+	void LookImpl(const FInputActionValue& Value);
+	void LookUpImpl(const float Value);
+
+	void MoveImpl(const FInputActionValue& Value);
+	void MoveForwardImpl(const float Value);
+	void MoveRightImpl(const float Value);
+	void TurnImpl(const float Value);
+
+	void JumpImpl();
+	void StopJumpingImpl();
 	
-	void Jump();
-	void StopJumping();
+	void OnInteract();
+	void OnMagnetCancel();
+	void OnMagnetRestart();
+	
+	AMyPlayerCharacter* GetControlledCharacter();
 };

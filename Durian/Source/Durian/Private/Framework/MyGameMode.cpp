@@ -15,7 +15,6 @@ AMyGameMode::AMyGameMode()
         DefaultPawnClass = PlayerClassFinder.Class;
     }
     
-    
     PlayerControllerClass = AMyPlayerController::StaticClass();
 }
 
