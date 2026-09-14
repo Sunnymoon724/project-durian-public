@@ -28,6 +28,7 @@ AMyPlayerController::AMyPlayerController()
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Cancel.IA_Cancel"), CancelAction);
 
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_RestartLevel.IA_RestartLevel"), RestartLevelAction);
+	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_MagnetDistance.IA_MagnetDistance"), MagnetDistanceAction);
 }
 
 void AMyPlayerController::OnPossess(APawn* InPawn)
@@ -88,6 +89,26 @@ void AMyPlayerController::SetupInputComponent()
 		{
 			EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &AMyPlayerController::OnInteract);
 		}
+
+		if (AttackAction)
+		{
+			EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AMyPlayerController::OnMagnetAction);
+		}
+
+		if (CancelAction)
+		{
+			EnhancedInputComponent->BindAction(CancelAction, ETriggerEvent::Started, this, &AMyPlayerController::OnMagnetCancel);
+		}
+
+		if (RestartLevelAction)
+		{
+			EnhancedInputComponent->BindAction(RestartLevelAction, ETriggerEvent::Started, this, &AMyPlayerController::OnMagnetRestart);
+		}
+
+		if (MagnetDistanceAction)
+		{
+			EnhancedInputComponent->BindAction(MagnetDistanceAction, ETriggerEvent::Triggered, this, &AMyPlayerController::OnMagnetDistance);
+		}
 	}
 }
 
@@ -101,13 +122,25 @@ void AMyPlayerController::MoveImpl(const FInputActionValue& Value)
 	}
 
 	const FVector2D MovementVector = Value.Get<FVector2D>();
-	const FRotator Rotation = GetControlRotation();
-	const FRotator YawRotation(0, Rotation.Yaw, 0);
+	
+	FVector CameraLocation;
+	FRotator CameraRotation;
+	
+	GetPlayerViewPoint(CameraLocation, CameraRotation);
+	
+	const FRotator YawRotation(0, CameraRotation.Yaw, 0);
 	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+	const FVector DesiredDirection = (ForwardDirection * MovementVector.Y + RightDirection * MovementVector.X).GetSafeNormal();
 
-	ControlledCharacter->AddMovementInput(ForwardDirection, MovementVector.Y);
-	ControlledCharacter->AddMovementInput(RightDirection, MovementVector.X);
+	if (!DesiredDirection.IsNearlyZero())
+	{
+		ControlledCharacter->AddMovementInput(DesiredDirection, MovementVector.Size());
+		
+		const FRotator MovementRotation(0.f, DesiredDirection.Rotation().Yaw, 0.f);
+		
+		ControlledCharacter->SetActorRotation(MovementRotation);
+	}
 }
 
 void AMyPlayerController::LookImpl(const FInputActionValue& Value)
@@ -203,20 +236,66 @@ void AMyPlayerController::StopJumpingImpl()
 
 void AMyPlayerController::OnInteract()
 {
-	if (AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter())
+	AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter();
+	
+	if (!ControlledCharacter)
 	{
-		ControlledCharacter->HandleInteract();
+		return;
 	}
+	
+	ControlledCharacter->HandleInteract();
 }
 
 void AMyPlayerController::OnMagnetCancel()
 {
+	AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter();
 	
+	if (!ControlledCharacter)
+	{
+		return;
+	}
+	
+	ControlledCharacter->HandleMagnetCancel();
 }
 
 void AMyPlayerController::OnMagnetRestart()
 {
+	AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter();
 	
+	if (!ControlledCharacter)
+	{
+		return;
+	}
+	
+	ControlledCharacter->ReleaseMagnet();
+}
+
+void AMyPlayerController::OnMagnetAction()
+{
+	AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter();
+	
+	if (!ControlledCharacter)
+	{
+		return;
+	}
+	
+	ControlledCharacter->HandleMagnetAction();
+}
+
+void AMyPlayerController::OnMagnetDistance(const FInputActionValue& Value)
+{
+	float ww = Value.Get<float>();
+	
+	UE_LOG(LogTemp, Error, TEXT("Look called but current Pawn is not AMyPlayerCharacter: %f"),ww);
+	
+	AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter();
+	
+	if (!ControlledCharacter)
+	{
+		return;
+	}
+	
+	ControlledCharacter->HandleMagnetDistance(Value.Get<float>());
 }
 
 AMyPlayerCharacter* AMyPlayerController::GetControlledCharacter()

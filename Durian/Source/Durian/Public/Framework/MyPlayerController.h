@@ -46,6 +46,8 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input",meta = (AllowPrivateAccess = true))
 	TObjectPtr<UInputAction> RestartLevelAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UInputAction> MagnetDistanceAction;
 
 	UPROPERTY();
 	TObjectPtr<AMyPlayerCharacter> CachedCharacter;
@@ -79,8 +81,10 @@ private:
 	void StopJumpingImpl();
 	
 	void OnInteract();
+	void OnMagnetAction();
 	void OnMagnetCancel();
 	void OnMagnetRestart();
+	void OnMagnetDistance(const FInputActionValue& Value);
 	
 	AMyPlayerCharacter* GetControlledCharacter();
 };

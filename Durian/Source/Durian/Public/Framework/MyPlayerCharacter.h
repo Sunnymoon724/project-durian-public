@@ -22,6 +22,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	void UpdateMagnetTargeting();
 
 private:
@@ -29,12 +30,28 @@ private:
 	TObjectPtr<class UPhysicsHandleComponent> PhysicsHandle;
 	
 	TWeakObjectPtr<UPrimitiveComponent> TargetedMagnetComponent;
+	FVector TargetedMagnetLocation = FVector::ZeroVector;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", meta = (AllowPrivateAccess = true))
 	EPlayerState CurrentState = EPlayerState::Normal;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Magnet", meta = (ClampMin = "100.0", ClampMax = "3000.0", AllowPrivateAccess = true))
+	float MagnetDistance = 600.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Magnet", meta = (AllowPrivateAccess = true))
+	float MagnetMinDistance = 250.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Magnet", meta = (AllowPrivateAccess = true))
+	float MagnetMaxDistance = 1200.0f;
+
 public:
-	virtual void Tick(float DeltaTime) override;
+	virtual void Tick(const float DeltaTime) override;
 
 	void HandleInteract();
+	void HandleMagnetAction();
+	void HandleMagnetCancel();
+	void HandleMagnetDistance(float AxisValue);
+	void ReleaseMagnet();
+	void UpdateMagnetControl();
+	void SetPlayerState(EPlayerState NewState);
 };
