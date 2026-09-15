@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-set "MESSAGE=%*"
+set "MESSAGE=%~1"
 if not defined MESSAGE set /p "MESSAGE=보낼 텍스트: "
 if not defined MESSAGE (
     echo 보낼 텍스트가 없습니다.
@@ -14,16 +14,7 @@ if not exist "%ENV_FILE%" (
     exit /b 1
 )
 
-set /p "WEBHOOK="<"%ENV_FILE%"
-if not defined WEBHOOK (
-    echo Webhook URL이 비어 있습니다.
-    exit /b 1
-)
-
-curl.exe --fail-with-body --silent --show-error --connect-timeout 3 --max-time 8 ^
-  -H "Content-Type: application/json" ^
-  --data-raw "{\"content\":\"%MESSAGE%\"}" ^
-  "%WEBHOOK%"
+powershell.exe -NoProfile -Command "$message = $env:MESSAGE; $webhook = Get-Content -LiteralPath $env:ENV_FILE -Raw; $webhook = $webhook.Trim(); $body = ConvertTo-Json -InputObject @{ content = $message } -Compress; Invoke-RestMethod -Uri $webhook -Method Post -ContentType 'application/json' -Body $body"
 
 if errorlevel 1 (
     echo 전송 실패.

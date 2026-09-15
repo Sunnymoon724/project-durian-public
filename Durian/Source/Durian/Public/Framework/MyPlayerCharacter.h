@@ -60,6 +60,6 @@ public:
 	void HandleMagnetCancel();
 	void HandleMagnetDistance(float AxisValue);
 	void ReleaseMagnet();
-	void UpdateMagnetControl() const;
+	void UpdateMagnetControl();
 	void SetPlayerState(const EPlayerState NewState);
 };

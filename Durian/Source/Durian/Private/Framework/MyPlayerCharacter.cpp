@@ -94,10 +94,11 @@ void AMyPlayerCharacter::Tick(const float DeltaTime)
 	}
 }
 
-void AMyPlayerCharacter::UpdateMagnetControl() const
+void AMyPlayerCharacter::UpdateMagnetControl()
 {
 	if (!PhysicsHandle || !PhysicsHandle->GetGrabbedComponent() || !GetController())
 	{
+		ReleaseMagnet();
 		return;
 	}
 
@@ -121,6 +122,11 @@ void AMyPlayerCharacter::UpdateMagnetControl() const
 	}
 
 	PhysicsHandle->SetTargetLocation(SafeTargetLocation);
+
+	if (AbilityEffect)
+	{
+		AbilityEffect->UpdateMagnetHoldLink(PhysicsHandle->GetGrabbedComponent(), HoldLocation, SafeTargetLocation);
+	}
 }
 
 void AMyPlayerCharacter::UpdateMagnetTargeting()
@@ -256,6 +262,7 @@ void AMyPlayerCharacter::HandleMagnetSelect()
 		const FVector HoldLocation = GetActorLocation() + FVector(0.0f, 0.0f, 100.0f);
 		MagnetDistance = FMath::Clamp(FVector::DotProduct(TargetedMagnetLocation - HoldLocation, GetActorForwardVector()), MagnetMinDistance, MagnetMaxDistance);
 		CurrentState = EPlayerState::MagnetControl;
+		AbilityEffect->UpdateMagnetHoldLink(PhysicsHandle->GetGrabbedComponent(), HoldLocation, Component->GetComponentLocation());
 	}
 }
 
@@ -288,6 +295,7 @@ void AMyPlayerCharacter::ReleaseMagnet()
 	
 	if (AbilityEffect)
 	{
+		AbilityEffect->ClearMagnetHoldLink();
 		AbilityEffect->ClearVisionEffects();
 	}
 	

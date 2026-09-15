@@ -21,6 +21,7 @@
 
 - Unreal 에디터 작업은 Unreal MCP만 사용한다.
 - Discord 알림은 `SendDiscordText.bat`을 사용한다. 인자를 메시지로 전달하며, webhook URL은 `Webhook.env`에서 읽는다. URL이나 인증 정보는 문서·로그에 남기지 않는다.
+- Discord에는 각 하위 작업의 시작, 의미 있는 검증 단계 도달, 완료 또는 실패를 즉시 영어로 알린다. 사용자가 중간에 확인하지 않아도 현재 진행 항목과 다음 행동을 알 수 있게 짧게 작성한다.
 - Discord 전송 도구가 없거나 전송이 차단되면 그 사실만 결과에 기록하고, 에셋 작업·커밋·다음 TODO 진행은 중단하지 않는다.
 - 사용자 확인을 기다리지 않고 이 절차에 따라 다음 작업을 계속 처리한다.
 
@@ -29,7 +30,7 @@
 1. `DONE`인 항목은 완료된 작업이다. 다시 만들거나 수정하지 않는다.
 2. `DONE` 항목의 에셋·TODO 변경이 아직 커밋되지 않았다면, 그 변경만 먼저 검토·커밋하고 `SendDiscordText.bat`으로 Discord 완료 알림을 보낸다. 그 뒤 다음 `TODO`를 찾는다.
 3. 가장 앞선 미완료 항목이 `TODO`라면, 이전 세션이 그 작업 도중 끝난 것이다. 현재 에셋과 Git 변경을 확인한 뒤, 그 항목의 완료 기준을 만족하도록 이어서 작업한다.
-4. `FAILED` 항목이 있으면 새 작업을 시작하지 않는다. 사용자의 새 지시를 기다린다.
+4. `FAILED` 항목은 사유와 커밋을 확인한 뒤 건너뛰고, 다음 `TODO` 하위 항목을 이어서 처리한다.
 
 ## 하위 작업 하나의 처리
 
@@ -46,8 +47,10 @@
 
 ## Discord 알림 형식
 
-- 완료: `SendDiscordText.bat "[Unreal MCP 완료] 0-1 — <짧은 설명> (commit: <hash>)"`
-- 실패: `SendDiscordText.bat "[Unreal MCP 실패] 0-2 — <짧은 실패 사유> (commit: <hash>)"`
+- 시작: `SendDiscordText.bat "[Unreal MCP Progress] 1-4 - <short current step>"`
+- 검증: `SendDiscordText.bat "[Unreal MCP Progress] 1-4 - <result and next step>"`
+- 완료: `SendDiscordText.bat "[Unreal MCP Complete] 0-1 - <short description> (commit: <hash>)"`
+- 실패: `SendDiscordText.bat "[Unreal MCP Failed] 0-2 - <short failure reason> (commit: <hash>)"`
 
 ## 커밋 형식
 

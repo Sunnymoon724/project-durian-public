@@ -1,8 +1,10 @@
 #include "Abilities/AbilityEffectComponent.h"
 
 #include "Camera/CameraComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
+#include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 
@@ -13,6 +15,7 @@ UAbilityEffectComponent::UAbilityEffectComponent()
 	VisionMaterials.Add(EAbilityType::Magnet, TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnet/PP/MI_PP_MagnetWorldScan.MI_PP_MagnetWorldScan"))));
 	HighlightMaterials.Add(EAbilityType::Magnet, TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnet/PP/MI_PP_MagnetObjectHighlight.MI_PP_MagnetObjectHighlight"))));
 	EnterPulseSystems.Add(EAbilityType::Magnet,TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnet/Niagara/NS_MagnetEnterPulse.NS_MagnetEnterPulse"))));
+	MagnetHoldLinkSystem = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnet/Niagara/NS_MagnetHoldLink.NS_MagnetHoldLink")));
 }
 
 void UAbilityEffectComponent::BeginPlay()
@@ -113,6 +116,45 @@ void UAbilityEffectComponent::PlayEnterPulse(EAbilityType Ability)
 	}
 
 	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(),PulseSystem,GetOwner()->GetActorLocation(),GetOwner()->GetActorRotation(),FVector::OneVector,true,true,ENCPoolMethod::AutoRelease,true);
+}
+
+void UAbilityEffectComponent::UpdateMagnetHoldLink(UPrimitiveComponent* TargetComponent, const FVector& StartLocation, const FVector& EndLocation)
+{
+	if (!IsValid(TargetComponent) || !GetWorld())
+	{
+		ClearMagnetHoldLink();
+		return;
+	}
+
+	if (!IsValid(MagnetHoldLinkComponent))
+	{
+		UNiagaraSystem* LinkSystem = MagnetHoldLinkSystem.LoadSynchronous();
+		if (!LinkSystem)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("AbilityEffectComponent: Could not load magnet hold link system."));
+			return;
+		}
+
+		MagnetHoldLinkComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), LinkSystem, StartLocation, FRotator::ZeroRotator, FVector::OneVector, false, true, ENCPoolMethod::None, true);
+	}
+
+	if (IsValid(MagnetHoldLinkComponent))
+	{
+		MagnetHoldLinkComponent->SetVariablePosition(TEXT("User.BeamStart"), StartLocation);
+		MagnetHoldLinkComponent->SetVariablePosition(TEXT("User.BeamEnd"), EndLocation);
+		MagnetHoldLinkComponent->Activate(true);
+	}
+}
+
+void UAbilityEffectComponent::ClearMagnetHoldLink()
+{
+	if (IsValid(MagnetHoldLinkComponent))
+	{
+		MagnetHoldLinkComponent->DeactivateImmediate();
+		MagnetHoldLinkComponent->DestroyComponent();
+	}
+
+	MagnetHoldLinkComponent = nullptr;
 }
 
 UMaterialInstanceDynamic* UAbilityEffectComponent::GetOrCreateVisionMaterial(EAbilityType Ability)
