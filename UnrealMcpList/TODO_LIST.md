@@ -6,10 +6,10 @@
 
 ## 진행 현황
 
-- 완료: `0-1`, `0-3`, `1-1`, `1-2`, `2-1`, `2-2`
-- 생성·컴파일·저장 완료 자산: `M_PP_AbilityVision`, `MI_PP_MagnetVision`, `M_PP_MagnetWorldScan`, `MI_PP_MagnetWorldScan`, `M_IceSpawnPreview`, `MI_IceSpawnPreview`, `M_IceSpawnRing`
+- 완료: `0-1`, `0-3`, `1-1`, `1-2`, `1-3`, `2-1`, `2-2`
+- 생성·컴파일·저장 완료 자산: `M_PP_AbilityVision`, `MI_PP_MagnetVision`, `M_PP_MagnetWorldScan`, `MI_PP_MagnetWorldScan`, `M_PP_MagnetObjectHighlight`, `MI_PP_MagnetObjectHighlight`, `NS_MagnetEnterPulse`, `M_IceSpawnPreview`, `MI_IceSpawnPreview`, `M_IceSpawnRing`
 - 실패/보류: `0-2`, `2-3` — 각 항목에 원인을 기록했다.
-- 다음 작업: `1-3` `M_PP_MagnetObjectHighlight`, `MI_PP_MagnetObjectHighlight`
+- 다음 작업: `1-4` `NS_MagnetEnterPulse` 실제 재생 검증
 
 ## 0. 공용 기반
 
@@ -58,13 +58,14 @@
 
 ### 1-3. 자석 후보·조준 대상 강조 — `M_PP_MagnetObjectHighlight`, `MI_PP_MagnetObjectHighlight`
 
-- 상태: `TODO`
+- 상태: `DONE`
 - 경로: `/Game/Resources/VFX/Magnet/PP/`
 - 작업: Custom Depth/Stencil을 읽는 대상 전용 Post Process 머티리얼과 인스턴스를 만든다.
   - Stencil `1`: 자석 가능한 후보 전체를 마젠타/빨강 필과 얇은 윤곽으로 표시한다.
   - Stencil `2`: 현재 조준하거나 잡은 하나를 노랑 필과 더 밝은 윤곽으로 표시한다.
   - Stencil `0`과 비대상 화면은 원래 색을 유지한다.
 - 완료: PIE에서 후보는 마젠타/빨강, 조준 대상 하나만 노랑으로 전환된다.
+- 검증: 테스트 액터에서 Stencil `1`의 마젠타 필, Stencil `2`의 노랑 필과 흰색 외곽선 전환을 뷰포트에서 확인했다.
 
 ### 1-4. 자력 모드 진입 펄스 — `NS_MagnetEnterPulse`
 
@@ -73,6 +74,7 @@
 - 작업: 자력 모드 진입 때 플레이어 위치에서 한 번만 재생되는 링 또는 짧은 반구형 스캔을 만든다.
 - 기준: 청록·마젠타 계열, `0.6~1.0초`, 루프 없음.
 - 완료: 진입 시 1회 재생되고 탐색 중에는 반복되지 않는다.
+- 현재: 빈 Niagara System에 System/Emitter/Particle State, 28개 Burst, 원형 Shape Location, 바깥 방향 속도, `0.8초` 수명, 청록 색, Sprite Renderer를 구성하고 컴파일·저장했다. 실제 자력 상태 진입 재생은 `1-6` 상태 연결에서 검증한다.
 
 ### 1-5. 잡기 연결선 — `NS_MagnetHoldLink`
 
