@@ -21,10 +21,13 @@ public:
 	// Sets default values for this character's properties
 	AMyPlayerCharacter();
 
-protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	
+protected:
 	void UpdateMagnetTargeting();
+	void SetTargetedMagnetComponent(UPrimitiveComponent* NewTarget, const FVector& NewTargetLocation);
+	void ClearTargetedMagnetComponent();
 
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Magnet", meta = (AllowPrivateAccess = true))
@@ -56,6 +59,6 @@ public:
 	void HandleMagnetCancel();
 	void HandleMagnetDistance(float AxisValue);
 	void ReleaseMagnet();
-	void UpdateMagnetControl();
-	void SetPlayerState(EPlayerState NewState);
+	void UpdateMagnetControl() const;
+	void SetPlayerState(const EPlayerState NewState);
 };

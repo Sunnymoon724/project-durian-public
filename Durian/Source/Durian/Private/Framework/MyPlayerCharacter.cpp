@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
+// ReSharper disable All
 #include "Framework/MyPlayerCharacter.h"
 
 #include "Abilities/AbilityEffectComponent.h"
@@ -37,6 +38,19 @@ AMyPlayerCharacter::AMyPlayerCharacter()
 void AMyPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// Stencil 3 is reserved for the local player. Magnet world-scan materials
+	// use it to keep the player out of the red structural treatment.
+	TArray<UPrimitiveComponent*> PlayerPrimitiveComponents;
+	GetComponents(PlayerPrimitiveComponents);
+	for (UPrimitiveComponent* PrimitiveComponent : PlayerPrimitiveComponents)
+	{
+		if (IsValid(PrimitiveComponent))
+		{
+			PrimitiveComponent->SetRenderCustomDepth(true);
+			PrimitiveComponent->SetCustomDepthStencilValue(3);
+		}
+	}
 
 	SetActorTickEnabled(true);
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
@@ -80,7 +94,7 @@ void AMyPlayerCharacter::Tick(const float DeltaTime)
 	}
 }
 
-void AMyPlayerCharacter::UpdateMagnetControl()
+void AMyPlayerCharacter::UpdateMagnetControl() const
 {
 	if (!PhysicsHandle || !PhysicsHandle->GetGrabbedComponent() || !GetController())
 	{
@@ -91,16 +105,21 @@ void AMyPlayerCharacter::UpdateMagnetControl()
 	const FVector TargetLocation = HoldLocation + GetActorForwardVector() * MagnetDistance;
 	FVector SafeTargetLocation = TargetLocation;
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(MagnetTargetSweep), false, this);
-	if (AActor* GrabbedActor = PhysicsHandle->GetGrabbedComponent()->GetOwner())
+
+	if (const AActor* GrabbedActor = PhysicsHandle->GetGrabbedComponent()->GetOwner())
 	{
 		QueryParams.AddIgnoredActor(GrabbedActor);
 	}
 	FHitResult SweepHit;
+	
+	// ReSharper disable once CppTooWideScope
 	const bool bBlocked = GetWorld()->SweepSingleByChannel(SweepHit, HoldLocation, TargetLocation, FQuat::Identity, ECC_Visibility, FCollisionShape::MakeSphere(40.0f), QueryParams);
+
 	if (bBlocked)
 	{
 		SafeTargetLocation = SweepHit.Location;
 	}
+
 	PhysicsHandle->SetTargetLocation(SafeTargetLocation);
 }
 
@@ -110,8 +129,7 @@ void AMyPlayerCharacter::UpdateMagnetTargeting()
 	
 	if (!PlayerController)
 	{
-		TargetedMagnetComponent.Reset();
-		
+		ClearTargetedMagnetComponent();
 		return;
 	}
 
@@ -131,8 +149,6 @@ void AMyPlayerCharacter::UpdateMagnetTargeting()
 	UPrimitiveComponent* HitComponent = bHit ? HitResult.GetComponent() : nullptr;
 	const bool bIsValidMagnetTarget = HitResult.GetActor() && HitResult.GetActor()->FindComponentByClass<UMagnetTargetComponent>() && HitComponent && HitComponent->IsSimulatingPhysics();
 
-	DrawDebugLine(GetWorld(), TraceStart, bHit ? HitResult.ImpactPoint : TraceEnd, bIsValidMagnetTarget ? FColor::Green : FColor::Red, false, 0.0f, 0, 1.0f);
-
 	if (bIsValidMagnetTarget)
 	{
 		if (GEngine)
@@ -140,15 +156,36 @@ void AMyPlayerCharacter::UpdateMagnetTargeting()
 			GEngine->AddOnScreenDebugMessage(1, 0.1f, FColor::Green, FString::Printf(TEXT("Magnet Target: %s"), *GetNameSafe(HitResult.GetActor())));
 		}
 
-		if (TargetedMagnetComponent.IsValid() && TargetedMagnetComponent.Get() != HitComponent)
-		{
-			TargetedMagnetComponent.Reset();
-		}
-
-		TargetedMagnetComponent = HitComponent;
-		TargetedMagnetLocation = HitResult.ImpactPoint;
+		SetTargetedMagnetComponent(HitComponent, HitResult.ImpactPoint);
 		
 		return;
+	}
+
+	ClearTargetedMagnetComponent();
+}
+
+void AMyPlayerCharacter::SetTargetedMagnetComponent(UPrimitiveComponent* NewTarget, const FVector& NewTargetLocation)
+{
+	if (TargetedMagnetComponent.IsValid() && TargetedMagnetComponent.Get() != NewTarget)
+	{
+		TargetedMagnetComponent->SetCustomDepthStencilValue(1);
+	}
+
+	TargetedMagnetComponent = NewTarget;
+	TargetedMagnetLocation = NewTargetLocation;
+
+	if (NewTarget)
+	{
+		NewTarget->SetRenderCustomDepth(true);
+		NewTarget->SetCustomDepthStencilValue(2);
+	}
+}
+
+void AMyPlayerCharacter::ClearTargetedMagnetComponent()
+{
+	if (TargetedMagnetComponent.IsValid())
+	{
+		TargetedMagnetComponent->SetCustomDepthStencilValue(1);
 	}
 
 	TargetedMagnetComponent.Reset();
@@ -167,7 +204,6 @@ void AMyPlayerCharacter::HandleInteract()
 			{
 				GEngine->AddOnScreenDebugMessage(0, 2.0f, FColor::Cyan, TEXT("MAGNET MODE: ON"));
 			}
-			
 			
 			CurrentState = EPlayerState::MagnetTargeting;
 			AbilityEffect->SetVisionEnabled(EAbilityType::Magnet, true);
@@ -201,13 +237,16 @@ void AMyPlayerCharacter::HandleMagnetAction()
 	}
 
 	UPrimitiveComponent* Component = TargetedMagnetComponent.Get();
+
 	if (!Component->IsSimulatingPhysics())
 	{
 		ReleaseMagnet();
+		
 		return;
 	}
 
 	PhysicsHandle->GrabComponentAtLocation(Component, NAME_None, TargetedMagnetLocation);
+
 	if (PhysicsHandle->GetGrabbedComponent())
 	{
 		const FVector HoldLocation = GetActorLocation() + FVector(0.0f, 0.0f, 100.0f);
@@ -238,21 +277,28 @@ void AMyPlayerCharacter::ReleaseMagnet()
 		PhysicsHandle->ReleaseComponent();
 	}
 
-	TargetedMagnetComponent.Reset();
-	TargetedMagnetLocation = FVector::ZeroVector;
+	ClearTargetedMagnetComponent();
+
 	MagnetDistance = FMath::Clamp(MagnetDistance, MagnetMinDistance, MagnetMaxDistance);
 	CurrentState = EPlayerState::Normal;
+	
+	if (AbilityEffect)
+	{
+		AbilityEffect->ClearVisionEffects();
+	}
+	
 	if (GEngine)
 	{
 		GEngine->AddOnScreenDebugMessage(0, 2.0f, FColor::Yellow, TEXT("MAGNET MODE: OFF"));
 	}
 }
 
-void AMyPlayerCharacter::SetPlayerState(EPlayerState NewState)
+void AMyPlayerCharacter::SetPlayerState(const EPlayerState NewState)
 {
 	if (NewState != EPlayerState::MagnetTargeting && NewState != EPlayerState::MagnetControl)
 	{
 		ReleaseMagnet();
+
 		return;
 	}
 

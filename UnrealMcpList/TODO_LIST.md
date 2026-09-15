@@ -54,7 +54,7 @@
   - 월드 좌표 기반 대각선 해칭을 만들어 바닥뿐 아니라 벽·기둥·경사면에도 공간에 붙어 보이게 한다.
   - 배경은 약하게 어둡게 하되, 대상 강조 색을 덮지 않게 한다.
 - 완료: PIE에서 기둥 윤곽과 표면 해칭이 화면 고정 패턴처럼 보이지 않고 표면을 따라 보인다.
-- 구현: 기존 시야 PP를 복제해 `Absolute World Position` 기반 해칭으로 바꾸고, `WorldNormal`의 화면 미분값을 더해 붉은 구조물 에지를 만들었다. `MI_PP_MagnetWorldScan`에서 해칭·에지 색과 강도를 조절한다.
+- 구현: 기존 시야 PP를 복제해 `Absolute World Position` 기반 해칭으로 바꾸고, `WorldNormal`의 화면 미분값을 더해 붉은 구조물 에지를 만들었다. 해칭·에지는 Stencil `4` 구조물에만 적용하고, Stencil `3` 플레이어는 원본 화면으로 제외한다. `MI_PP_MagnetWorldScan`에서 해칭·에지 색과 강도를 조절한다.
 
 ### 1-3. 자석 후보·조준 대상 강조 — `M_PP_MagnetObjectHighlight`, `MI_PP_MagnetObjectHighlight`
 
@@ -93,6 +93,8 @@
   - `MagnetTargeting → MagnetControl`: 잡은 대상의 노랑 표시와 연결선을 켠다.
   - 취소·해제·재시작·대상 파괴: PP, Custom Depth/Stencil, 연결선, 펄스를 모두 정리한다.
 - 완료: 상태를 반복 전환해도 이전 효과나 Stencil 값이 남지 않는다.
+- 현재: `UAbilityEffectComponent`가 월드 스캔과 대상 강조 PP를 동시에 켜며, `UMagnetTargetComponent` 소유 물체를 Stencil `1` 후보로 초기화한다. 조준한 컴포넌트만 Stencil `2`로 바꾸고, 조준 해제 시 `1`로 복원한다. 게임 내 반복 전환 검증은 남아 있다.
+- 구조물 지정: `UMagnetScanStructureComponent`를 바닥·벽·기둥·난간·고정 프레임에 추가한다. 이 컴포넌트는 소유 액터의 Primitive를 Stencil `4`로 지정한다. 캐릭터·적·일반 소품·자력 후보에는 붙이지 않는다.
 
 ### 1-7. 자력 모드 통합 확인
 

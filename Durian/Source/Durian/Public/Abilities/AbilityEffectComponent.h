@@ -24,7 +24,7 @@ public:
 
 	/** 지정한 능력의 화면 효과를 켜거나 끈다. 동시에 하나의 능력 시야만 활성화한다. */
 	UFUNCTION(BlueprintCallable, Category = "Ability VFX")
-	void SetVisionEnabled(EAbilityType Ability, bool bEnabled);
+	void SetVisionEnabled(const EAbilityType Ability, const bool bEnabled);
 
 	/** 현재 활성화된 모든 능력 화면 효과를 끈다. */
 	UFUNCTION(BlueprintCallable, Category = "Ability VFX")
@@ -34,18 +34,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Ability VFX")
 	void PlayEnterPulse(EAbilityType Ability);
 
-protected:
 	virtual void BeginPlay() override;
 
 private:
 	UMaterialInstanceDynamic* GetOrCreateVisionMaterial(EAbilityType Ability);
-	void SetBlendableWeight(UMaterialInstanceDynamic* MaterialInstance, float Weight);
+	UMaterialInstanceDynamic* GetOrCreateHighlightMaterial(EAbilityType Ability);
+	void SetBlendableWeight(UMaterialInstanceDynamic* MaterialInstance, const float Weight) const;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Ability VFX|Vision")
 	TMap<EAbilityType, TSoftObjectPtr<UMaterialInterface>> VisionMaterials;
 
 	UPROPERTY(Transient)
 	TMap<EAbilityType, TObjectPtr<UMaterialInstanceDynamic>> VisionMaterialInstances;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Ability VFX|Highlight")
+	TMap<EAbilityType, TSoftObjectPtr<UMaterialInterface>> HighlightMaterials;
+
+	UPROPERTY(Transient)
+	TMap<EAbilityType, TObjectPtr<UMaterialInstanceDynamic>> HighlightMaterialInstances;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Ability VFX|Pulse")
 	TMap<EAbilityType, TSoftObjectPtr<UNiagaraSystem>> EnterPulseSystems;
