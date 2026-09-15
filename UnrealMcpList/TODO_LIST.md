@@ -74,7 +74,7 @@
 - 작업: 자력 모드 진입 때 플레이어 위치에서 한 번만 재생되는 링 또는 짧은 반구형 스캔을 만든다.
 - 기준: 청록·마젠타 계열, `0.6~1.0초`, 루프 없음.
 - 완료: 진입 시 1회 재생되고 탐색 중에는 반복되지 않는다.
-- 현재: 빈 Niagara System에 System/Emitter/Particle State, 28개 Burst, 원형 Shape Location, 바깥 방향 속도, `0.8초` 수명, 청록 색, Sprite Renderer를 구성하고 컴파일·저장했다. 실제 자력 상태 진입 재생은 `1-6` 상태 연결에서 검증한다.
+- 현재: 빈 Niagara System에 System/Emitter/Particle State, 28개 Burst, 원형 Shape Location, 바깥 방향 속도, `0.8초` 수명, 청록 색, Sprite Renderer를 구성하고 컴파일·저장했다. `UAbilityEffectComponent`가 `Normal → MagnetTargeting`에서 이 시스템을 한 번 재생하도록 연결했으며, 실제 화면 확인만 남아 있다.
 
 ### 1-5. 잡기 연결선 — `NS_MagnetHoldLink`
 
@@ -84,10 +84,10 @@
 - 기준: 거리 변화에 맞춰 길이가 갱신되고, `MagnetControl`에서만 보인다.
 - 완료: 대상 해제·취소·파괴 시 즉시 사라지고 탐색 상태에는 보이지 않는다.
 
-### 1-6. 자력 VFX 상태 연결 — `UAbilityVFXComponent` 및 자력 대상 코드
+### 1-6. 자력 VFX 상태 연결 — `UAbilityEffectComponent` 및 자력 대상 코드
 
 - 상태: `TODO`
-- 작업: 현재 만든 `UAbilityVFXComponent`를 자력 상태 흐름에 맞춰 완성한다.
+- 작업: 현재 만든 `UAbilityEffectComponent`를 자력 상태 흐름에 맞춰 완성한다.
   - `Normal → MagnetTargeting`: 배경 필터·월드 스캔·후보 표시를 켜고 진입 펄스를 1회 재생한다.
   - 조준 대상 변경: 이전 대상은 Stencil `1`, 현재 대상은 Stencil `2`로 갱신한다.
   - `MagnetTargeting → MagnetControl`: 잡은 대상의 노랑 표시와 연결선을 켠다.

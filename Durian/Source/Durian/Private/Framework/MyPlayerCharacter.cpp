@@ -3,7 +3,7 @@
 
 #include "Framework/MyPlayerCharacter.h"
 
-#include "Abilities/AbilityVFXComponent.h"
+#include "Abilities/AbilityEffectComponent.h"
 #include "Abilities/MagnetTargetComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Constants/GameConstants.h"
@@ -26,7 +26,7 @@ AMyPlayerCharacter::AMyPlayerCharacter()
 	PhysicsHandle->AngularStiffness = 5000.0f;
 	PhysicsHandle->AngularDamping = 500.0f;
 	
-	AbilityVFX = CreateDefaultSubobject<UAbilityVFXComponent>(TEXT("AbilityVFX"));
+	AbilityEffect = CreateDefaultSubobject<UAbilityEffectComponent>(TEXT("AbilityEffect"));
 
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	GetCharacterMovement()->bOrientRotationToMovement = true;
@@ -170,7 +170,8 @@ void AMyPlayerCharacter::HandleInteract()
 			
 			
 			CurrentState = EPlayerState::MagnetTargeting;
-			AbilityVFX->SetVisionEnabled(EAbilityType::Magnet, true);
+			AbilityEffect->SetVisionEnabled(EAbilityType::Magnet, true);
+			AbilityEffect->PlayEnterPulse(EAbilityType::Magnet);
 			break;
 		}
 	case EPlayerState::MagnetTargeting:
