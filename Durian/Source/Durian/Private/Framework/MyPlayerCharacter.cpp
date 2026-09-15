@@ -198,21 +198,11 @@ void AMyPlayerCharacter::HandleInteract()
 	{
 	case EPlayerState::Normal:
 		{
-			SetPlayerState(EPlayerState::MagnetTargeting);
-			
-			if (GEngine)
-			{
-				GEngine->AddOnScreenDebugMessage(0, 2.0f, FColor::Cyan, TEXT("MAGNET MODE: ON"));
-			}
-			
-			CurrentState = EPlayerState::MagnetTargeting;
-			AbilityEffect->SetVisionEnabled(EAbilityType::Magnet, true);
-			AbilityEffect->PlayEnterPulse(EAbilityType::Magnet);
 			break;
 		}
 	case EPlayerState::MagnetTargeting:
 		{
-			// 다음 단계: 유효 대상을 Activate하고 MagnetControl로 전환
+			HandleMagnetSelect();
 			break;
 		}
 	default:
@@ -225,12 +215,26 @@ void AMyPlayerCharacter::HandleInteract()
 
 void AMyPlayerCharacter::HandleMagnetAction()
 {
-	if (CurrentState == EPlayerState::MagnetControl)
+	if (CurrentState == EPlayerState::Normal)
 	{
-		ReleaseMagnet();
+		SetPlayerState(EPlayerState::MagnetTargeting);
+
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(0, 2.0f, FColor::Cyan, TEXT("MAGNET MODE: ON"));
+		}
+
+		AbilityEffect->SetVisionEnabled(EAbilityType::Magnet, true);
+		AbilityEffect->PlayEnterPulse(EAbilityType::Magnet);
 		return;
 	}
 
+	// Pressing the ability-use input again while magnet mode is active cancels it.
+	ReleaseMagnet();
+}
+
+void AMyPlayerCharacter::HandleMagnetSelect()
+{
 	if (CurrentState != EPlayerState::MagnetTargeting || !PhysicsHandle || !TargetedMagnetComponent.IsValid() || !GetController())
 	{
 		return;

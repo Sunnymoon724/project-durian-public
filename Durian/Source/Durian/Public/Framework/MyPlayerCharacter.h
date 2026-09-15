@@ -56,6 +56,7 @@ public:
 
 	void HandleInteract();
 	void HandleMagnetAction();
+	void HandleMagnetSelect();
 	void HandleMagnetCancel();
 	void HandleMagnetDistance(float AxisValue);
 	void ReleaseMagnet();

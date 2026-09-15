@@ -8,6 +8,7 @@
 #include "InputMappingContext.h"
 #include "InputAction.h"
 #include "Framework/MyPlayerCharacter.h"
+#include "Kismet/GameplayStatics.h"
 
 AMyPlayerController::AMyPlayerController()
 {
@@ -24,10 +25,12 @@ AMyPlayerController::AMyPlayerController()
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Move.IA_Move"), MoveAction);
 
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Attack.IA_Attack"), AttackAction);
+	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_AbilityUse.IA_AbilityUse"), AbilityUseAction);
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Interact.IA_Interact"),InteractAction);
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Cancel.IA_Cancel"), CancelAction);
+	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Menu.IA_Menu"), MenuAction);
+	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_AbilityWheel.IA_AbilityWheel"), AbilityWheelAction);
 
-	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_RestartLevel.IA_RestartLevel"), RestartLevelAction);
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_MagnetDistance.IA_MagnetDistance"), MagnetDistanceAction);
 }
 
@@ -92,7 +95,12 @@ void AMyPlayerController::SetupInputComponent()
 
 		if (AttackAction)
 		{
-			EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AMyPlayerController::OnMagnetAction);
+			EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AMyPlayerController::OnAttack);
+		}
+
+		if (AbilityUseAction)
+		{
+			EnhancedInputComponent->BindAction(AbilityUseAction, ETriggerEvent::Started, this, &AMyPlayerController::OnAbilityUse);
 		}
 
 		if (CancelAction)
@@ -100,9 +108,14 @@ void AMyPlayerController::SetupInputComponent()
 			EnhancedInputComponent->BindAction(CancelAction, ETriggerEvent::Started, this, &AMyPlayerController::OnMagnetCancel);
 		}
 
-		if (RestartLevelAction)
+		if (MenuAction)
 		{
-			EnhancedInputComponent->BindAction(RestartLevelAction, ETriggerEvent::Started, this, &AMyPlayerController::OnMagnetRestart);
+			EnhancedInputComponent->BindAction(MenuAction, ETriggerEvent::Started, this, &AMyPlayerController::OnMenu);
+		}
+
+		if (AbilityWheelAction)
+		{
+			EnhancedInputComponent->BindAction(AbilityWheelAction, ETriggerEvent::Started, this, &AMyPlayerController::OnAbilityWheel);
 		}
 
 		if (MagnetDistanceAction)
@@ -258,19 +271,25 @@ void AMyPlayerController::OnMagnetCancel()
 	ControlledCharacter->HandleMagnetCancel();
 }
 
-void AMyPlayerController::OnMagnetRestart()
+void AMyPlayerController::OnMenu()
 {
-	AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter();
-	
-	if (!ControlledCharacter)
-	{
-		return;
-	}
-	
-	ControlledCharacter->ReleaseMagnet();
+	MenuRequested();
 }
 
-void AMyPlayerController::OnMagnetAction()
+void AMyPlayerController::OnAbilityWheel()
+{
+	AbilitySelectionRequested();
+}
+
+void AMyPlayerController::RestartCurrentLevel()
+{
+	if (UWorld* World = GetWorld())
+	{
+		UGameplayStatics::OpenLevel(World, FName(*World->GetName()));
+	}
+}
+
+void AMyPlayerController::OnAbilityUse()
 {
 	AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter();
 	
@@ -280,6 +299,11 @@ void AMyPlayerController::OnMagnetAction()
 	}
 	
 	ControlledCharacter->HandleMagnetAction();
+}
+
+void AMyPlayerController::OnAttack()
+{
+	AttackRequested();
 }
 
 void AMyPlayerController::OnMagnetDistance(const FInputActionValue& Value)

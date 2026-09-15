@@ -24,6 +24,18 @@ class DURIAN_API AMyPlayerController : public APlayerController
 	
 public:
 	AMyPlayerController();
+
+	UFUNCTION(BlueprintCallable, Category = "Level")
+	void RestartCurrentLevel();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Menu")
+	void MenuRequested();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Ability")
+	void AbilitySelectionRequested();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Combat")
+	void AttackRequested();
 	
 private:
 	UPROPERTY(EditAnywhere,BlueprintReadOnly, Category="Input",meta = (AllowPrivateAccess = true))
@@ -43,9 +55,13 @@ private:
 	TObjectPtr<UInputAction> InteractAction;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input",meta = (AllowPrivateAccess = true))
 	TObjectPtr<UInputAction> CancelAction;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input",meta = (AllowPrivateAccess = true))
-	TObjectPtr<UInputAction> RestartLevelAction;
+	TObjectPtr<UInputAction> AbilityUseAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input",meta = (AllowPrivateAccess = true))
+	TObjectPtr<UInputAction> MenuAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input",meta = (AllowPrivateAccess = true))
+	TObjectPtr<UInputAction> AbilityWheelAction;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UInputAction> MagnetDistanceAction;
 
@@ -81,10 +97,12 @@ private:
 	void StopJumpingImpl();
 	
 	void OnInteract();
-	void OnMagnetAction();
+	void OnAbilityUse();
+	void OnAttack();
 	void OnMagnetCancel();
-	void OnMagnetRestart();
+	void OnMenu();
+	void OnAbilityWheel();
 	void OnMagnetDistance(const FInputActionValue& Value);
-	
+
 	AMyPlayerCharacter* GetControlledCharacter();
 };
