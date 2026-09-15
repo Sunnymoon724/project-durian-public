@@ -8,15 +8,16 @@
 
 ### 0-1. Project Settings — Custom Depth-Stencil
 
-- 상태: `TODO`
+- 상태: `DONE`
 - 작업: `Custom Depth-Stencil Pass`를 `Enabled with Stencil`로 설정한다.
 - 완료: 재시작 후 Custom Stencil 값을 읽을 수 있다.
 
 ### 0-2. `/Game/Resources/VFX/_Shared/PP/M_PP_AbilityHighlight`
 
-- 상태: `TODO`
+- 상태: `FAILED`
 - 작업: `ActiveStencilValue`로 대상을 고르는 공용 필·1~2 px 외곽선 포스트 프로세스 머티리얼을 만든다. 비대상은 `PostProcessInput0`를 유지한다.
 - 완료: 선택한 Stencil 대상만 강조된다.
+- 실패 사유: Unreal MCP만으로는 포스트 프로세스 적용 상태에서 선택 Stencil 대상의 외곽선 결과를 검증할 수 없음.
 
 ### 0-3. `/Game/Resources/VFX/_Shared/PP/M_PP_AbilityVision`
 

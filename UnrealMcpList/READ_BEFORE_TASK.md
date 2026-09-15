@@ -17,10 +17,16 @@
 3. `codex` 브랜치가 없으면 생성·전환하고, 이미 있으면 해당 브랜치로 전환한다.
 4. `TODO_LIST.md`를 읽고, 아래의 재개 규칙을 먼저 적용한다.
 
+## 도구와 진행 원칙
+
+- Unreal 에디터 작업은 Unreal MCP만 사용한다.
+- Discord 알림은 `SendDiscordText.bat`을 사용한다. 인자를 메시지로 전달하며, webhook URL은 `Webhook.env`에서 읽는다. URL이나 인증 정보는 문서·로그에 남기지 않는다.
+- 사용자 확인을 기다리지 않고 이 절차에 따라 다음 작업을 계속 처리한다.
+
 ## 중단된 세션 재개
 
 1. `DONE`인 항목은 완료된 작업이다. 다시 만들거나 수정하지 않는다.
-2. `DONE` 항목의 에셋·TODO 변경이 아직 커밋되지 않았다면, 그 변경만 먼저 검토·커밋하고 Discord 완료 알림을 보낸다. 그 뒤 다음 `TODO`를 찾는다.
+2. `DONE` 항목의 에셋·TODO 변경이 아직 커밋되지 않았다면, 그 변경만 먼저 검토·커밋하고 `SendDiscordText.bat`으로 Discord 완료 알림을 보낸다. 그 뒤 다음 `TODO`를 찾는다.
 3. 가장 앞선 미완료 항목이 `TODO`라면, 이전 세션이 그 작업 도중 끝난 것이다. 현재 에셋과 Git 변경을 확인한 뒤, 그 항목의 완료 기준을 만족하도록 이어서 작업한다.
 4. `FAILED` 항목이 있으면 새 작업을 시작하지 않는다. 사용자의 새 지시를 기다린다.
 
@@ -30,19 +36,17 @@
 2. 그 항목에 적힌 작업과 완료 기준만 수행한다.
 3. 완료 기준을 확인한 뒤 해당 항목의 상태를 `DONE`으로 바꾼다.
 4. 해당 작업의 에셋·관련 코드·TODO 변경만 명시적으로 stage하여 하나의 커밋으로 만든다.
-5. 커밋 후 Discord에 해당 작업의 완료를 알린다.
-6. `TODO_LIST.md`를 다시 처음부터 읽어 다음 첫 `TODO` 하위 항목을 처리한다.
+5. 커밋 후 `SendDiscordText.bat`으로 해당 작업의 완료 알림을 보내고 다음 첫 `TODO` 하위 항목을 처리한다.
 
 ## 실패·전체 완료
 
-- 작업을 끝낼 수 없으면 해당 항목의 상태를 `FAILED`로 바꾸고 실패 사유를 남긴다. 이 변경을 커밋한 뒤 Discord에 실패를 알리고 세션을 종료한다.
-- 모든 하위 항목이 `DONE`이면 Discord에 전체 완료를 알리고 세션을 종료한다.
+- 작업을 끝낼 수 없거나 Unreal MCP만으로 완료 기준을 검증할 수 없으면 해당 항목의 상태를 `FAILED`로 바꾸고 실패 사유를 남긴다. 이 변경을 커밋하고 `SendDiscordText.bat`으로 실패 알림을 보낸 뒤 다음 첫 `TODO` 하위 항목을 처리한다.
+- 모든 하위 항목이 `DONE` 또는 `FAILED`이면 세션을 종료한다.
 
-## Discord 알림
+## Discord 알림 형식
 
-- 완료: `[Unreal MCP 완료] 0-1 — Custom Depth-Stencil 설정 완료 (commit: <hash>)`
-- 실패: `[Unreal MCP 실패] 0-1 — <짧은 실패 사유>`
-- 전체 완료: `[Unreal MCP 완료] TODO_LIST의 모든 작업 완료`
+- 완료: `SendDiscordText.bat "[Unreal MCP 완료] 0-1 — <짧은 설명> (commit: <hash>)"`
+- 실패: `SendDiscordText.bat "[Unreal MCP 실패] 0-2 — <짧은 실패 사유> (commit: <hash>)"`
 
 ## 커밋 형식
 
