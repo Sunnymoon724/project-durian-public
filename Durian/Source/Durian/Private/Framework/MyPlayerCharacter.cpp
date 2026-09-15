@@ -3,6 +3,8 @@
 
 #include "Framework/MyPlayerCharacter.h"
 
+#include "Abilities/AbilityVFXComponent.h"
+#include "Abilities/MagnetTargetComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Constants/GameConstants.h"
 #include "CollisionShape.h"
@@ -23,6 +25,8 @@ AMyPlayerCharacter::AMyPlayerCharacter()
 	PhysicsHandle->LinearDamping = 1000.0f;
 	PhysicsHandle->AngularStiffness = 5000.0f;
 	PhysicsHandle->AngularDamping = 500.0f;
+	
+	AbilityVFX = CreateDefaultSubobject<UAbilityVFXComponent>(TEXT("AbilityVFX"));
 
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	GetCharacterMovement()->bOrientRotationToMovement = true;
@@ -124,10 +128,11 @@ void AMyPlayerCharacter::UpdateMagnetTargeting()
 	QueryParams.AddIgnoredActor(this);
 
 	const bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
-	
 	UPrimitiveComponent* HitComponent = bHit ? HitResult.GetComponent() : nullptr;
-	
-	const bool bIsValidMagnetTarget = HitResult.GetActor() &&HitResult.GetActor()->ActorHasTag(TEXT("Magnetizable")) && HitComponent && HitComponent->IsSimulatingPhysics();
+	const bool bIsValidMagnetTarget = HitResult.GetActor() && HitResult.GetActor()->FindComponentByClass<UMagnetTargetComponent>() && HitComponent && HitComponent->IsSimulatingPhysics();
+
+	DrawDebugLine(GetWorld(), TraceStart, bHit ? HitResult.ImpactPoint : TraceEnd, bIsValidMagnetTarget ? FColor::Green : FColor::Red, false, 0.0f, 0, 1.0f);
+
 	if (bIsValidMagnetTarget)
 	{
 		if (GEngine)
@@ -163,6 +168,9 @@ void AMyPlayerCharacter::HandleInteract()
 				GEngine->AddOnScreenDebugMessage(0, 2.0f, FColor::Cyan, TEXT("MAGNET MODE: ON"));
 			}
 			
+			
+			CurrentState = EPlayerState::MagnetTargeting;
+			AbilityVFX->SetVisionEnabled(EAbilityType::Magnet, true);
 			break;
 		}
 	case EPlayerState::MagnetTargeting:

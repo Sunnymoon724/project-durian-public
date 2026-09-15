@@ -3,6 +3,7 @@
 #pragma once
 
 class UPrimitiveComponent;
+class UAbilityVFXComponent;
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
@@ -28,6 +29,9 @@ protected:
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Magnet", meta = (AllowPrivateAccess = true))
 	TObjectPtr<class UPhysicsHandleComponent> PhysicsHandle;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability VFX", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAbilityVFXComponent> AbilityVFX;
 	
 	TWeakObjectPtr<UPrimitiveComponent> TargetedMagnetComponent;
 	FVector TargetedMagnetLocation = FVector::ZeroVector;
