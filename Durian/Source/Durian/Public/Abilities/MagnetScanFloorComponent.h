@@ -5,8 +5,9 @@
 #include "MagnetScanFloorComponent.generated.h"
 
 /**
- * Marks a floor actor for the Magnesis floor scan. The stencil value is kept
- * internal so level authors only need to attach this component.
+ * Marks a floor actor for the Magnesis floor scan. The final scan is applied
+ * by the world post-process; this marker intentionally does not write a
+ * floor-only custom stencil.
  */
 UCLASS(ClassGroup=(Ability), meta=(BlueprintSpawnableComponent))
 class DURIAN_API UMagnetScanFloorComponent : public UActorComponent
@@ -16,12 +17,4 @@ class DURIAN_API UMagnetScanFloorComponent : public UActorComponent
 public:
 	UMagnetScanFloorComponent();
 
-protected:
-	virtual void OnRegister() override;
-	virtual void BeginPlay() override;
-
-private:
-	void ApplyFloorStencil();
-
-	static constexpr int32 FloorStencilValue = 5;
 };
