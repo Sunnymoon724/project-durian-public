@@ -204,6 +204,7 @@ void AMyPlayerCharacter::HandleInteract()
 	{
 	case EPlayerState::Normal:
 		{
+			HandleMagnetAction();
 			break;
 		}
 	case EPlayerState::MagnetTargeting:

@@ -6,10 +6,11 @@ void UMagnetScanStructureComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (AActor* Owner = GetOwner())
+	if (const AActor* Owner = GetOwner())
 	{
 		TArray<UPrimitiveComponent*> PrimitiveComponents;
 		Owner->GetComponents(PrimitiveComponents);
+
 		for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
 		{
 			if (IsValid(PrimitiveComponent))

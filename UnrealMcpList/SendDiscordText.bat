@@ -1,5 +1,6 @@
 @echo off
 setlocal
+chcp 65001 >nul
 
 set "MESSAGE=%~1"
 if not defined MESSAGE set /p "MESSAGE=보낼 텍스트: "
@@ -14,7 +15,7 @@ if not exist "%ENV_FILE%" (
     exit /b 1
 )
 
-powershell.exe -NoProfile -Command "$message = $env:MESSAGE; $webhook = Get-Content -LiteralPath $env:ENV_FILE -Raw; $webhook = $webhook.Trim(); $body = ConvertTo-Json -InputObject @{ content = $message } -Compress; Invoke-RestMethod -Uri $webhook -Method Post -ContentType 'application/json' -Body $body"
+powershell.exe -NoProfile -Command "$message = $env:MESSAGE; $webhook = Get-Content -LiteralPath $env:ENV_FILE -Raw; $webhook = $webhook.Trim(); $body = ConvertTo-Json -InputObject @{ content = $message } -Compress; $bytes = [System.Text.Encoding]::UTF8.GetBytes($body); Invoke-RestMethod -Uri $webhook -Method Post -ContentType 'application/json; charset=utf-8' -Body $bytes"
 
 if errorlevel 1 (
     echo 전송 실패.

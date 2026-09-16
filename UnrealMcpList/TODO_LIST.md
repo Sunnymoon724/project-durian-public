@@ -4,13 +4,15 @@
 
 상태: `TODO` / `DONE` / `FAILED`
 
-## 진행 현황
+## 진행 현황 (2026-09-16 기준)
 
 - 완료: `0-1`, `0-3`, `1-1`, `1-2`, `1-3`, `2-1`, `2-2`
 - 생성·컴파일·저장 완료 자산: `M_PP_AbilityVision`, `MI_PP_MagnetVision`, `M_PP_MagnetWorldScan`, `MI_PP_MagnetWorldScan`, `M_PP_MagnetObjectHighlight`, `MI_PP_MagnetObjectHighlight`, `NS_MagnetEnterPulse`, `M_IceSpawnPreview`, `MI_IceSpawnPreview`, `M_IceSpawnRing`
 - 생성 후 검증 실패 자산: `M_PP_AbilityHighlight` (`0-2`)
-- 실패/보류: `0-2` — 실패 사유와 커밋을 기록했다. `2-3`은 재시도 대상으로 `TODO`다.
-- 현재 작업: `1-4` `NS_MagnetEnterPulse` 실제 재생 검증
+- 재시도 대기: `0-2`, `1-7`, `2-3`~`2-6`, `2-8`~`2-9`, `3-1`, `3-3`~`3-9` — 기존 실패 사유와 검증 한계를 참고해 보강 후 재시도한다.
+- 현재 작업: `1-7` 자력 모드 통합 확인 및 오늘의 대상 판별 예외 검증
+- 자력 기능 코드 상태: `UPhysicsHandleComponent` 기반 잡기·놓기, 카메라 중앙 `ECC_Visibility` Trace, `UMagnetTargetComponent`와 물리 시뮬레이션 검사, 장애물 Sweep, 거리 조절, 취소·재시작 초기화가 구현되어 있다.
+- 자력 기능 미검증: 실제 플레이에서 조준 대상 판별, 범위·시야·비대상 제외, 이전 대상 정보 정리, 잡기→이동→놓기 반복 동작을 아직 확인하지 않았다.
 
 ## 0. 공용 기반
 
@@ -22,10 +24,12 @@
 
 ### 0-2. `/Game/Resources/VFX/_Shared/PP/M_PP_AbilityHighlight`
 
-- 상태: `FAILED`
+- 상태: `TODO`
 - 작업: `ActiveStencilValue`로 대상을 고르는 공용 필·1~2 px 외곽선 포스트 프로세스 머티리얼을 만든다. 비대상은 `PostProcessInput0`를 유지한다.
 - 완료: 선택한 Stencil 대상만 강조된다.
-- 실패 사유: 공용 Post Process 머티리얼을 생성·컴파일·저장했으나, 현재 Unreal MCP 머티리얼 API로는 `ActiveStencilValue` 파라미터를 Stencil 비교값에 연결하거나 선택 대상의 1~2 px 외곽선 결과를 화면에서 검증할 수 없음.
+- 기존 실패 사유: 공용 Post Process 머티리얼을 생성·컴파일·저장했으나, `ActiveStencilValue` 파라미터가 Stencil 비교값에 연결되지 않았고 선택 대상의 1~2 px 외곽선 결과를 화면에서 검증할 수 없었음.
+- 재시도 보강: `CustomStencil == ActiveStencilValue` 비교용 `If` 그래프를 추가하고, 비대상은 `PostProcessInput0`, 일치 대상은 강조 색을 출력하도록 연결했다. MCP 재컴파일·저장까지 완료했으며 PIE에서 Stencil 대상과 외곽선 결과를 확인해야 `DONE`으로 전환한다.
+- 재검증 결과: MCP로 대상 블록이 보이는 위치에서 `TestMap` PIE를 재실행하고 `E` 입력까지 수행했다. 자력 대상 강조 화면은 확인했지만, 게임에서 직접 사용하는 인스턴스가 `MI_PP_MagnetObjectHighlight`이므로 공용 `M_PP_AbilityHighlight`의 단독 Stencil 강조·외곽선 결과는 아직 판정하지 못했다.
 
 ### 0-3. `/Game/Resources/VFX/_Shared/PP/M_PP_AbilityVision`
 
@@ -104,7 +108,7 @@
 
 ### 1-7. 자력 모드 통합 확인
 
-- 상태: `FAILED`
+- 상태: `TODO`
 - 작업: `TestMap`에서 일반·탐색·조준·조작·취소를 순서대로 확인한다.
 - 완료: 후보/조준/조작 상태가 색과 연결선으로 구분되고, 벽 뒤·비대상·모드 종료 뒤에 잘못된 효과가 남지 않는다.
 - 실패 사유: Unreal MCP PIE에서 후보(마젠타)·조준/잡기(노랑)·취소 후 정리는 확인했으나, 현재 고정 3인칭 카메라에서 연결선이 플레이어와 대상에 가려 독립적으로 보이는지 검증할 수 없었다. 런타임 Niagara 컴포넌트 조회 도구도 제공되지 않는다.
@@ -127,7 +131,7 @@
 
 ### 2-3. `/Game/Resources/VFX/Ice/Materials/M_IceSpawnRing`
 
-- 상태: `FAILED`
+- 상태: `TODO`
 - 작업: 생성 확정 때 0.4~0.6초 동안 확장·감쇠하는 원형 파동 머티리얼을 만든다.
 - 완료: 수면에서 자연스럽게 사라지고 벽 뒤에 보이지 않는다.
 - 실패 사유: 원형 링 머티리얼은 생성·컴파일·저장했으나, 시간 제한 확장·감쇠와 실제 수면/벽 깊이 테스트는 연결할 Niagara 또는 테스트 액터가 없어 Unreal MCP만으로 검증할 수 없음.
@@ -135,21 +139,21 @@
 
 ### 2-4. `/Game/Resources/VFX/Ice/Materials/MI_IceSpawnRing`
 
-- 상태: `FAILED`
+- 상태: `TODO`
 - 작업: 링의 색, 폭, 속도를 조절하는 인스턴스를 만든다.
 - 완료: 인스턴스 값으로 연출을 바꿀 수 있다.
 - 실패 사유: 부모 `M_IceSpawnRing`에는 `OuterRadius`, `InnerRadius`, `RingColor`만 있고 시간·속도 파라미터가 없어, 속도 조절 인스턴스 기준을 충족할 수 없음.
 
 ### 2-5. `/Game/Resources/VFX/Ice/Niagara/NS_IceSpawnSplash`
 
-- 상태: `FAILED`
+- 상태: `TODO`
 - 작업: 기둥 네 모서리의 물 튐·안개 단발 효과를 만든다.
 - 완료: 생성 시 한 번 재생한 뒤 종료된다.
 - 구현·실패 사유: `Fountain` 기반 스프라이트 이미터를 24개 단발·0.6~0.9초 수명으로 구성하고 컴파일·저장했으나, 얼음 기둥 네 모서리에 배치·재생할 블루프린트가 없어 위치별 물 튐·안개와 실제 종료를 검증할 수 없음.
 
 ### 2-6. `/Game/Resources/VFX/Ice/Blueprints/BP_IcePlacementPreview`
 
-- 상태: `FAILED`
+- 상태: `TODO`
 - 작업: 수면 Trace 위치와 유효 상태에 프리뷰·링·물 튐을 연결한다.
 - 완료: 취소·재시작 시 프리뷰·링·입자가 남지 않는다.
 - 실패 사유: 필수 `MI_IceSpawnRing`이 부모 머티리얼의 속도 파라미터 부재로 실패 상태이며, 현재 프로젝트에는 수면 Trace와 생성 상태를 제공하는 배치 프리뷰 블루프린트도 없음.
@@ -162,14 +166,14 @@
 
 ### 2-8. `/Game/Resources/VFX/Ice/Materials/M_IceOldestPillarIndicator`
 
-- 상태: `FAILED`
+- 상태: `TODO`
 - 작업: 다음 생성으로 제거될 가장 오래된 얼음 기둥을 약하게 표시하는 머티리얼 또는 강조 효과를 만든다.
 - 완료: 최대 개수일 때 가장 오래된 기둥 하나만 표시된다.
 - 실패 사유: 프로젝트 C++·설정에 얼음 기둥 생성, 최대 개수, 생성 순서 또는 가장 오래된 기둥을 식별하는 런타임 상태가 없어 강조 대상을 한 개로 제한하거나 Unreal MCP로 검증할 수 없음.
 
 ### 2-9. `/Game/Resources/VFX/Ice/Blueprints/BP_IcePillarVFX`
 
-- 상태: `FAILED`
+- 상태: `TODO`
 - 작업: 해체 효과와 가장 오래된 기둥 표시를 얼음 기둥의 제거·교체 상태에 연결한다.
 - 완료: 제거 사유와 관계없이 해체 효과가 한 번만 재생되고 강조가 갱신된다.
 - 실패 사유: `BP_IcePillarVFX` 래퍼와 해체 Niagara 시스템은 생성·컴파일했으나, 프로젝트에 얼음 기둥의 생성·제거·교체 이벤트와 최대 개수/순서를 관리하는 런타임 구현이 없어 효과 재생 및 강조 갱신을 연결·검증할 수 없음.
@@ -178,7 +182,7 @@
 
 ### 3-1. `/Game/Resources/VFX/Stasis/PP/MI_PP_StasisHighlight`
 
-- 상태: `FAILED`
+- 상태: `TODO`
 - 작업: 공용 강조 머티리얼의 시간 정지 인스턴스를 만든다. Stencil `2`(조준)와 `3`(정지)을 금색 계열로 구분한다.
 - 완료: 조준 대상과 정지 대상이 구분된다.
 - 실패 사유: 금색 `MI_PP_StasisHighlight` 인스턴스는 생성·저장했으나, 부모 `M_PP_AbilityVision`에는 Stencil 2/3 분기 파라미터가 없고 시간 정지 대상 상태도 없어 두 대상을 구분해 연결·검증할 수 없음.
@@ -191,49 +195,49 @@
 
 ### 3-3. `/Game/Resources/VFX/Stasis/Materials/M_StasisTargetMarker`
 
-- 상태: `FAILED`
+- 상태: `TODO`
 - 작업: 청록/금색 삼각 마커의 알파 마스크·Emissive 머티리얼을 만든다.
 - 완료: 거리와 가림 상태에서도 읽을 수 있다.
 - 실패 사유: 청록 Emissive·투명도와 UV 기반 삼각 알파 마스크 머티리얼은 생성·재컴파일했으나, 프로젝트에 시간 정지 대상/마커 배치 구현이 없어 거리·가림 상태에서의 가독성을 Unreal MCP로 검증할 수 없음.
 
 ### 3-4. `/Game/Resources/VFX/Stasis/Materials/MI_StasisTargetMarker`
 
-- 상태: `FAILED`
+- 상태: `TODO`
 - 작업: 마커의 색, 발광, 회전값을 조절하는 인스턴스를 만든다.
 - 완료: 조준은 청록 회전, 정지는 금색 고정으로 구분된다.
 - 실패 사유: 금색 `MI_StasisTargetMarker` 인스턴스는 생성·저장했으나, 부모 머티리얼에는 색·투명도만 노출되어 있고 발광 강도·회전 파라미터 및 조준/정지 상태 연결이 없어 요구한 두 상태를 구분·검증할 수 없음.
 
 ### 3-5. `/Game/Resources/VFX/Stasis/Niagara/NS_StasisLockPulse`
 
-- 상태: `FAILED`
+- 상태: `TODO`
 - 작업: 정지 확정·해제 때 재생할 금색 링·방사형 입자 단발 효과를 만든다.
 - 완료: 이벤트마다 한 번만 재생된다.
 - 실패 사유: 금색 단발 Niagara 시스템은 생성·컴파일했으나, 현재 시스템에는 정지 확정·해제 이벤트와 링 메시/렌더러 구성이 없어 이벤트별 링·방사형 효과를 연결·검증할 수 없음.
 
 ### 3-6. `/Game/Resources/VFX/Stasis/Blueprints/BP_StasisTargetVFX`
 
-- 상태: `FAILED`
+- 상태: `TODO`
 - 작업: 대상 Bounding Box 위의 삼각 마커 3개, 펄스, Stencil 상태를 연결한다.
 - 완료: 대상 제거·취소·재시작 때 마커·Stencil·Niagara가 정리된다.
 - 실패 사유: `BP_StasisTargetVFX` Niagara 래퍼는 생성·컴파일했으나, 프로젝트에 시간 정지 대상, Bounding Box, Stencil 2/3 상태 및 취소·재시작 이벤트가 없어 마커·펄스·정리 동작을 연결·검증할 수 없음.
 
 ### 3-7. `/Game/Resources/VFX/Stasis/Niagara/NS_StasisChargeFeedback`
 
-- 상태: `FAILED`
+- 상태: `TODO`
 - 작업: 축적된 힘의 방향·강도를 보여주는 월드 공간 화살표, 누적 링 또는 잔상 효과를 만든다.
 - 완료: 축적 벡터에 따라 갱신되고 해제·취소 시 사라진다.
 - 실패 사유: 프로젝트에 시간 정지 축적 벡터·강도 데이터와 해제·취소 이벤트가 없어 Niagara 사용자 변수를 갱신하거나 해제 시 정리하는 런타임 경로를 만들고 Unreal MCP로 검증할 수 없음.
 
 ### 3-8. `/Game/Resources/VFX/Stasis/Niagara/NS_StasisHoldAmbient`
 
-- 상태: `FAILED`
+- 상태: `TODO`
 - 작업: 정지 중 대상 주변에 유지되는 적은 수의 금색 점 입자 효과를 만든다.
 - 완료: 정지 상태에서만 유지되고 해제·취소·대상 제거 시 종료된다.
 - 실패 사유: 저밀도 금색 유지 Niagara 시스템은 생성·컴파일했으나, 프로젝트에 시간 정지 시작·해제·취소·대상 제거 이벤트가 없어 상태 한정 재생과 종료를 연결·검증할 수 없음.
 
 ### 3-9. `/Game/Resources/VFX/Stasis/Niagara/NS_StasisExpiryWarning`
 
-- 상태: `FAILED`
+- 상태: `TODO`
 - 작업: 종료 직전 마커 점멸과 짧은 금색 펄스를 재생하는 경고 효과를 만든다.
 - 완료: 종료 직전에만 재생되고 남지 않는다.
 - 실패 사유: 단발 금색 경고 Niagara 시스템은 생성·컴파일했으나, 시간 정지 종료 시점·마커 점멸 상태가 없어 종료 직전에만 실행되는지 연결·검증할 수 없음.

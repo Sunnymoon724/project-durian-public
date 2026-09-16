@@ -6,6 +6,7 @@
 #include "AbilityEffectComponent.generated.h"
 
 class UCameraComponent;
+class APlayerCameraManager;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
 class UNiagaraComponent;
@@ -43,11 +44,13 @@ public:
 	void ClearMagnetHoldLink();
 
 	virtual void BeginPlay() override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 private:
 	UMaterialInstanceDynamic* GetOrCreateVisionMaterial(EAbilityType Ability);
 	UMaterialInstanceDynamic* GetOrCreateHighlightMaterial(EAbilityType Ability);
 	void SetBlendableWeight(UMaterialInstanceDynamic* MaterialInstance, const float Weight) const;
+	void ApplyCameraManagerBlendables();
 
 	UPROPERTY(EditDefaultsOnly, Category = "Ability VFX|Vision")
 	TMap<EAbilityType, TSoftObjectPtr<UMaterialInterface>> VisionMaterials;
@@ -71,4 +74,8 @@ private:
 	TObjectPtr<UNiagaraComponent> MagnetHoldLinkComponent;
 
 	TWeakObjectPtr<UCameraComponent> CameraComponent;
+	TWeakObjectPtr<APlayerCameraManager> PlayerCameraManager;
+
+	TMap<EAbilityType, float> VisionWeights;
+	TMap<EAbilityType, float> HighlightWeights;
 };

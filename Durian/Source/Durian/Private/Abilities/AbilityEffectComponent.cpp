@@ -1,7 +1,9 @@
 #include "Abilities/AbilityEffectComponent.h"
 
 #include "Camera/CameraComponent.h"
+#include "Camera/PlayerCameraManager.h"
 #include "Components/PrimitiveComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
 #include "NiagaraComponent.h"
@@ -10,8 +12,10 @@
 
 UAbilityEffectComponent::UAbilityEffectComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
 
+	// WorldScan uses custom-depth stencils: floor receives the scanline pattern,
+	// while magnet structures receive only its red edge treatment.
 	VisionMaterials.Add(EAbilityType::Magnet, TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnet/PP/MI_PP_MagnetWorldScan.MI_PP_MagnetWorldScan"))));
 	HighlightMaterials.Add(EAbilityType::Magnet, TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnet/PP/MI_PP_MagnetObjectHighlight.MI_PP_MagnetObjectHighlight"))));
 	EnterPulseSystems.Add(EAbilityType::Magnet,TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnet/Niagara/NS_MagnetEnterPulse.NS_MagnetEnterPulse"))));
@@ -23,10 +27,11 @@ void UAbilityEffectComponent::BeginPlay()
 	Super::BeginPlay();
 
 	CameraComponent = GetOwner() ? GetOwner()->FindComponentByClass<UCameraComponent>() : nullptr;
+	PlayerCameraManager = GetWorld() ? UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0) : nullptr;
 
-	if (!CameraComponent.IsValid())
+	if (!CameraComponent.IsValid() && !PlayerCameraManager.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AbilityEffectComponent: Owner '%s' has no CameraComponent."), *GetNameSafe(GetOwner()));
+		UE_LOG(LogTemp, Warning, TEXT("AbilityEffectComponent: No camera or PlayerCameraManager for '%s'."), *GetNameSafe(GetOwner()));
 
 		return;
 	}
@@ -35,6 +40,7 @@ void UAbilityEffectComponent::BeginPlay()
 	{
 		if (UMaterialInstanceDynamic* MaterialInstance = GetOrCreateVisionMaterial(VisionMaterial.Key))
 		{
+			VisionWeights.Add(VisionMaterial.Key, 0.0f);
 			SetBlendableWeight(MaterialInstance, 0.0f);
 		}
 	}
@@ -43,16 +49,33 @@ void UAbilityEffectComponent::BeginPlay()
 	{
 		if (UMaterialInstanceDynamic* MaterialInstance = GetOrCreateHighlightMaterial(HighlightMaterial.Key))
 		{
+			HighlightWeights.Add(HighlightMaterial.Key, 0.0f);
 			SetBlendableWeight(MaterialInstance, 0.0f);
 		}
 	}
+
+}
+
+void UAbilityEffectComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	if (!CameraComponent.IsValid() && !PlayerCameraManager.IsValid() && GetWorld())
+	{
+		PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
+	}
+
+	ApplyCameraManagerBlendables();
 }
 
 void UAbilityEffectComponent::SetVisionEnabled(const EAbilityType Ability, const bool bEnabled)
 {
 	if (!CameraComponent.IsValid())
 	{
-		return;
+		if (!PlayerCameraManager.IsValid())
+		{
+			return;
+		}
 	}
 
 	if (bEnabled)
@@ -76,13 +99,16 @@ void UAbilityEffectComponent::SetVisionEnabled(const EAbilityType Ability, const
 
 	if (UMaterialInstanceDynamic* MaterialInstance = GetOrCreateVisionMaterial(Ability))
 	{
+		VisionWeights.Add(Ability, bEnabled ? 1.0f : 0.0f);
 		SetBlendableWeight(MaterialInstance, bEnabled ? 1.0f : 0.0f);
 	}
 
 	if (UMaterialInstanceDynamic* MaterialInstance = GetOrCreateHighlightMaterial(Ability))
 	{
+		HighlightWeights.Add(Ability, bEnabled ? 1.0f : 0.0f);
 		SetBlendableWeight(MaterialInstance, bEnabled ? 1.0f : 0.0f);
 	}
+
 }
 
 void UAbilityEffectComponent::ClearVisionEffects()
@@ -90,11 +116,14 @@ void UAbilityEffectComponent::ClearVisionEffects()
 	for (const TPair<EAbilityType, TObjectPtr<UMaterialInstanceDynamic>>& VisionMaterial : VisionMaterialInstances)
 	{
 		SetBlendableWeight(VisionMaterial.Value, 0.0f);
+		VisionWeights.Add(VisionMaterial.Key, 0.0f);
 	}
+
 
 	for (const TPair<EAbilityType, TObjectPtr<UMaterialInstanceDynamic>>& HighlightMaterial : HighlightMaterialInstances)
 	{
 		SetBlendableWeight(HighlightMaterial.Value, 0.0f);
+		HighlightWeights.Add(HighlightMaterial.Key, 0.0f);
 	}
 }
 
@@ -218,5 +247,33 @@ void UAbilityEffectComponent::SetBlendableWeight(UMaterialInstanceDynamic* Mater
 	if (CameraComponent.IsValid() && MaterialInstance)
 	{
 		CameraComponent->AddOrUpdateBlendable(MaterialInstance, Weight);
+	}
+}
+
+void UAbilityEffectComponent::ApplyCameraManagerBlendables()
+{
+	if (CameraComponent.IsValid() || !PlayerCameraManager.IsValid())
+	{
+		return;
+	}
+
+	for (const TPair<EAbilityType, TObjectPtr<UMaterialInstanceDynamic>>& VisionMaterial : VisionMaterialInstances)
+	{
+		if (const float* Weight = VisionWeights.Find(VisionMaterial.Key); Weight && *Weight > 0.0f)
+		{
+			FPostProcessSettings Settings;
+			Settings.AddBlendable(VisionMaterial.Value, *Weight);
+			PlayerCameraManager->AddCachedPPBlend(Settings, 1.0f);
+		}
+	}
+
+	for (const TPair<EAbilityType, TObjectPtr<UMaterialInstanceDynamic>>& HighlightMaterial : HighlightMaterialInstances)
+	{
+		if (const float* Weight = HighlightWeights.Find(HighlightMaterial.Key); Weight && *Weight > 0.0f)
+		{
+			FPostProcessSettings Settings;
+			Settings.AddBlendable(HighlightMaterial.Value, *Weight);
+			PlayerCameraManager->AddCachedPPBlend(Settings, 1.0f);
+		}
 	}
 }

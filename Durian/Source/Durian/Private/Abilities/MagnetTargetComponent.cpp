@@ -24,6 +24,7 @@ void UMagnetTargetComponent::BeginPlay()
 
 	TArray<UPrimitiveComponent*> PrimitiveComponents;
 	GetOwner()->GetComponents(PrimitiveComponents);
+
 	for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
 	{
 		if (PrimitiveComponent)
