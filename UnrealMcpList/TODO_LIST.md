@@ -50,16 +50,16 @@
 - 범위: 후보·조준 대상 색, 구조물 윤곽, 표면 스캔은 이 에셋에 억지로 추가하지 않는다.
 - 확인: 자력 모드 on/off에서 카메라 Blendable 가중치를 조절할 수 있다.
 
-### 1-2. 월드 구조물 스캔 — `M_PP_MagnetWorldScan`, `MI_PP_MagnetWorldScan`
+### 1-2. 월드 표면 스캔 — `M_PP_MagnetWorldScan`, `MI_PP_MagnetWorldScan`
 
 - 상태: `DONE`
 - 경로: `/Game/Resources/VFX/Magnet/PP/`
 - 작업: 자력 모드에만 적용되는 별도 Post Process 머티리얼과 인스턴스를 만든다.
-  - `SceneDepth`와 `WorldNormal` 변화로 벽·기둥·바닥의 모서리에 붉은 윤곽을 만든다.
-  - 월드 좌표 기반 대각선 해칭을 만들어 바닥뿐 아니라 벽·기둥·경사면에도 공간에 붙어 보이게 한다.
+  - `SceneDepth` 기반으로 벽·기둥·바닥을 동일한 월드 표면으로 처리한다.
+  - 화면 전체 월드 표면에 대각선 스캔 패턴을 적용해 바닥·벽·기둥·경사면을 동일하게 처리한다.
   - 배경은 약하게 어둡게 하되, 대상 강조 색을 덮지 않게 한다.
 - 완료: PIE에서 기둥 윤곽과 표면 해칭이 화면 고정 패턴처럼 보이지 않고 표면을 따라 보인다.
-- 구현: 기존 시야 PP를 복제해 `Absolute World Position` 기반 해칭으로 바꾸고, `WorldNormal`의 화면 미분값을 더해 붉은 구조물 에지를 만들었다. 해칭·에지는 Stencil `4` 구조물에만 적용하고, Stencil `3` 플레이어는 원본 화면으로 제외한다. `MI_PP_MagnetWorldScan`에서 해칭·에지 색과 강도를 조절한다.
+- 구현: 화면의 월드 표면에 붉은 틴트와 사선 스캔을 적용하고, Stencil `3` 플레이어는 원본 화면으로 제외한다. Stencil `1`/`2` 자력 대상은 별도 강조 분기로 처리한다.
 
 ### 1-3. 자석 후보·조준 대상 강조 — `M_PP_MagnetObjectHighlight`, `MI_PP_MagnetObjectHighlight`
 
@@ -102,7 +102,7 @@
   - 취소·해제·재시작·대상 파괴: PP, Custom Depth/Stencil, 연결선, 펄스를 모두 정리한다.
 - 완료: 상태를 반복 전환해도 이전 효과나 Stencil 값이 남지 않는다.
 - 현재: `UAbilityEffectComponent`가 월드 스캔과 대상 강조 PP를 동시에 켜며, `UMagnetTargetComponent` 소유 물체를 Stencil `1` 후보로 초기화한다. 조준한 컴포넌트만 Stencil `2`로 바꾸고, 조준 해제 시 `1`로 복원한다. 게임 내 반복 전환 검증은 남아 있다.
-- 구조물 지정: `UMagnetScanStructureComponent`를 바닥·벽·기둥·난간·고정 프레임에 추가한다. 이 컴포넌트는 소유 액터의 Primitive를 Stencil `4`로 지정한다. 캐릭터·적·일반 소품·자력 후보에는 붙이지 않는다.
+- 구조물/바닥 별도 스텐실 분류는 사용하지 않는다. 바닥과 일반 월드는 `SceneDepth` 기반으로 동일하게 처리하고, 자력 후보만 `MagnetTargetComponent`로 등록한다.
 - 구현: `UAbilityEffectComponent`가 `NS_MagnetHoldLink`를 관리하도록 확장했다. 잡기 성공 시 연결선을 생성하고 매 프레임 플레이어 유지 위치와 잡은 대상 위치를 `User.BeamStart`/`User.BeamEnd`에 갱신한다. 해제·대상 컴포넌트 소실·EndPlay에서는 연결선과 화면 효과를 즉시 정리한다.
 - 검증: `DurianEditor Win64 Development` UnrealBuildTool 빌드가 오류 없이 완료됐다. 실제 상태 반복·가림 확인은 통합 확인 항목 `1-7`에서 수행한다.
 

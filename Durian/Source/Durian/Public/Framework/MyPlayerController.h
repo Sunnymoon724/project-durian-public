@@ -61,6 +61,14 @@ private:
 	TObjectPtr<UInputAction> MenuAction;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input",meta = (AllowPrivateAccess = true))
 	TObjectPtr<UInputAction> AbilityWheelAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UInputAction> GuardAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UInputAction> IceTargetAtFeetAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UInputAction> BombThrowAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UInputAction> RestartLevelAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UInputAction> MagnetDistanceAction;
@@ -85,23 +93,28 @@ protected:
 	virtual void SetupInputComponent() override;
 	
 private:
-	void LookImpl(const FInputActionValue& Value);
-	void LookUpImpl(const float Value);
+	void OnLook(const FInputActionValue& Value);
+	void OnLookUp(const float Value);
 
-	void MoveImpl(const FInputActionValue& Value);
-	void MoveForwardImpl(const float Value);
-	void MoveRightImpl(const float Value);
-	void TurnImpl(const float Value);
+	void OnMove(const FInputActionValue& Value);
+	void OnMoveForward(const float Value);
+	void OnMoveRight(const float Value);
+	void OnTurn(const float Value);
 
-	void JumpImpl();
-	void StopJumpingImpl();
+	void OnJumpStarted();
+	void OnJumpCompleted();
 	
 	void OnInteract();
 	void OnAbilityUse();
 	void OnAttack();
-	void OnMagnetCancel();
+	void OnGuard();
+	void OnCancel();
 	void OnMenu();
 	void OnAbilityWheel();
+	void OnAbilityWheelCompleted();
+	void OnIceTargetAtFeet();
+	void OnBombThrow();
+	void OnRestartLevel();
 	void OnMagnetDistance(const FInputActionValue& Value);
 
 	AMyPlayerCharacter* GetControlledCharacter();

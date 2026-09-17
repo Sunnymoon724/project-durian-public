@@ -10,7 +10,7 @@ enum class EPlayerState : uint8
 {
 	Normal,
 	MagnetTargeting,
-	MagnetControl,
+	MagnetHolding,
 	Attack
 };
 

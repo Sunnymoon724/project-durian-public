@@ -14,11 +14,9 @@ UAbilityEffectComponent::UAbilityEffectComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
-	// WorldScan uses custom-depth stencils: floor receives the scanline pattern,
-	// while magnet structures receive only its red edge treatment.
+	// WorldScan treats all visible world surfaces uniformly; only player and
+	// magnet-target stencil values alter the result.
 	VisionMaterials.Add(EAbilityType::Magnet, TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnet/PP/MI_PP_MagnetWorldScan.MI_PP_MagnetWorldScan"))));
-	HighlightMaterials.Add(EAbilityType::Magnet, TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnet/PP/MI_PP_MagnetObjectHighlight.MI_PP_MagnetObjectHighlight"))));
-	EnterPulseSystems.Add(EAbilityType::Magnet,TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnet/Niagara/NS_MagnetEnterPulse.NS_MagnetEnterPulse"))));
 	MagnetHoldLinkSystem = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnet/Niagara/NS_MagnetHoldLink.NS_MagnetHoldLink")));
 }
 

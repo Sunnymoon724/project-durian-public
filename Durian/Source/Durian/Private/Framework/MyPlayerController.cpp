@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
+// ReSharper disable All
 #include "Framework/MyPlayerController.h"
 
 #include "EnhancedInputSubsystems.h"
@@ -30,6 +31,10 @@ AMyPlayerController::AMyPlayerController()
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Cancel.IA_Cancel"), CancelAction);
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Menu.IA_Menu"), MenuAction);
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_AbilityWheel.IA_AbilityWheel"), AbilityWheelAction);
+	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Guard.IA_Guard"), GuardAction);
+	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_IceTargetAtFeet.IA_IceTargetAtFeet"), IceTargetAtFeetAction);
+	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_BombThrow.IA_BombThrow"), BombThrowAction);
+	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_RestartLevel.IA_RestartLevel"), RestartLevelAction);
 
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_MagnetDistance.IA_MagnetDistance"), MagnetDistanceAction);
 }
@@ -74,18 +79,18 @@ void AMyPlayerController::SetupInputComponent()
 	{
 		if (LookAction)
 		{
-			EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AMyPlayerController::LookImpl);
+			EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AMyPlayerController::OnLook);
 		}
 
 		if (JumpAction)
 		{
-			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AMyPlayerController::JumpImpl);
-			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &AMyPlayerController::StopJumpingImpl);
+			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AMyPlayerController::OnJumpStarted);
+			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &AMyPlayerController::OnJumpCompleted);
 		}
 
 		if (MoveAction)
 		{
-			EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AMyPlayerController::MoveImpl);
+			EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AMyPlayerController::OnMove);
 		}
 
 		if (InteractAction)
@@ -105,7 +110,7 @@ void AMyPlayerController::SetupInputComponent()
 
 		if (CancelAction)
 		{
-			EnhancedInputComponent->BindAction(CancelAction, ETriggerEvent::Started, this, &AMyPlayerController::OnMagnetCancel);
+			EnhancedInputComponent->BindAction(CancelAction, ETriggerEvent::Started, this, &AMyPlayerController::OnCancel);
 		}
 
 		if (MenuAction)
@@ -116,6 +121,27 @@ void AMyPlayerController::SetupInputComponent()
 		if (AbilityWheelAction)
 		{
 			EnhancedInputComponent->BindAction(AbilityWheelAction, ETriggerEvent::Started, this, &AMyPlayerController::OnAbilityWheel);
+			EnhancedInputComponent->BindAction(AbilityWheelAction, ETriggerEvent::Completed, this, &AMyPlayerController::OnAbilityWheelCompleted);
+		}
+
+		if (GuardAction)
+		{
+			EnhancedInputComponent->BindAction(GuardAction, ETriggerEvent::Started, this, &AMyPlayerController::OnGuard);
+		}
+
+		if (IceTargetAtFeetAction)
+		{
+			EnhancedInputComponent->BindAction(IceTargetAtFeetAction, ETriggerEvent::Started, this, &AMyPlayerController::OnIceTargetAtFeet);
+		}
+
+		if (BombThrowAction)
+		{
+			EnhancedInputComponent->BindAction(BombThrowAction, ETriggerEvent::Started, this, &AMyPlayerController::OnBombThrow);
+		}
+
+		if (RestartLevelAction)
+		{
+			EnhancedInputComponent->BindAction(RestartLevelAction, ETriggerEvent::Started, this, &AMyPlayerController::OnRestartLevel);
 		}
 
 		if (MagnetDistanceAction)
@@ -125,7 +151,7 @@ void AMyPlayerController::SetupInputComponent()
 	}
 }
 
-void AMyPlayerController::MoveImpl(const FInputActionValue& Value)
+void AMyPlayerController::OnMove(const FInputActionValue& Value)
 {
 	AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter();
 
@@ -156,7 +182,7 @@ void AMyPlayerController::MoveImpl(const FInputActionValue& Value)
 	}
 }
 
-void AMyPlayerController::LookImpl(const FInputActionValue& Value)
+void AMyPlayerController::OnLook(const FInputActionValue& Value)
 {
 	AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter();
 
@@ -171,7 +197,7 @@ void AMyPlayerController::LookImpl(const FInputActionValue& Value)
 	ControlledCharacter->AddControllerPitchInput(LookAxisVector.Y);
 }
 
-void AMyPlayerController::MoveForwardImpl(const float Value)
+void AMyPlayerController::OnMoveForward(const float Value)
 {
 	AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter();
 
@@ -185,7 +211,7 @@ void AMyPlayerController::MoveForwardImpl(const float Value)
 	ControlledCharacter->AddMovementInput(FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X), Value);
 }
 
-void AMyPlayerController::MoveRightImpl(const float Value)
+void AMyPlayerController::OnMoveRight(const float Value)
 {
 	AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter();
 
@@ -199,7 +225,7 @@ void AMyPlayerController::MoveRightImpl(const float Value)
 	ControlledCharacter->AddMovementInput(FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y), Value);
 }
 
-void AMyPlayerController::TurnImpl(const float Value)
+void AMyPlayerController::OnTurn(const float Value)
 {
 	AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter();
 
@@ -211,7 +237,7 @@ void AMyPlayerController::TurnImpl(const float Value)
 	ControlledCharacter->AddControllerYawInput(Value);
 }
 
-void AMyPlayerController::LookUpImpl(const float Value)
+void AMyPlayerController::OnLookUp(const float Value)
 {
 	AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter();
 
@@ -223,7 +249,7 @@ void AMyPlayerController::LookUpImpl(const float Value)
 	ControlledCharacter->AddControllerPitchInput(Value);
 }
 
-void AMyPlayerController::JumpImpl()
+void AMyPlayerController::OnJumpStarted()
 {
 	AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter();
 
@@ -235,7 +261,7 @@ void AMyPlayerController::JumpImpl()
 	ControlledCharacter->Jump();
 }
 
-void AMyPlayerController::StopJumpingImpl()
+void AMyPlayerController::OnJumpCompleted()
 {
 	AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter();
 
@@ -249,26 +275,18 @@ void AMyPlayerController::StopJumpingImpl()
 
 void AMyPlayerController::OnInteract()
 {
-	AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter();
-	
-	if (!ControlledCharacter)
+	if (AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter())
 	{
-		return;
+		ControlledCharacter->HandleInteract();
 	}
-	
-	ControlledCharacter->HandleInteract();
 }
 
-void AMyPlayerController::OnMagnetCancel()
+void AMyPlayerController::OnCancel()
 {
-	AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter();
-	
-	if (!ControlledCharacter)
+	if (AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter())
 	{
-		return;
+		ControlledCharacter->HandleCancel();
 	}
-	
-	ControlledCharacter->HandleMagnetCancel();
 }
 
 void AMyPlayerController::OnMenu()
@@ -281,9 +299,15 @@ void AMyPlayerController::OnAbilityWheel()
 	AbilitySelectionRequested();
 }
 
+void AMyPlayerController::OnAbilityWheelCompleted()
+{
+	// TODO: 강조된 능력을 CurrentAbility로 확정한다.
+	UE_LOG(LogTemp, Log, TEXT("IA_AbilityWheel completed: ability selection apply is not implemented yet."));
+}
+
 void AMyPlayerController::RestartCurrentLevel()
 {
-	if (UWorld* World = GetWorld())
+	if (const UWorld* World = GetWorld())
 	{
 		UGameplayStatics::OpenLevel(World, FName(*World->GetName()));
 	}
@@ -291,19 +315,45 @@ void AMyPlayerController::RestartCurrentLevel()
 
 void AMyPlayerController::OnAbilityUse()
 {
-	AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter();
-	
-	if (!ControlledCharacter)
+	if (AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter())
 	{
-		return;
+		ControlledCharacter->HandleAbilityUse();
 	}
-	
-	ControlledCharacter->HandleMagnetAction();
 }
 
 void AMyPlayerController::OnAttack()
 {
 	AttackRequested();
+}
+
+void AMyPlayerController::OnGuard()
+{
+	if (AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter())
+	{
+		ControlledCharacter->HandleGuard();
+	}
+}
+
+void AMyPlayerController::OnIceTargetAtFeet()
+{
+	if (AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter())
+	{
+		ControlledCharacter->HandleIceTargetAtFeet();
+	}
+}
+
+void AMyPlayerController::OnBombThrow()
+{
+	if (AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter())
+	{
+		ControlledCharacter->HandleBombThrow();
+	}
+}
+
+void AMyPlayerController::OnRestartLevel()
+{
+	UE_LOG(LogTemp, Log, TEXT("IA_RestartLevel pressed."));
+	RestartCurrentLevel();
 }
 
 void AMyPlayerController::OnMagnetDistance(const FInputActionValue& Value)
@@ -319,7 +369,7 @@ void AMyPlayerController::OnMagnetDistance(const FInputActionValue& Value)
 		return;
 	}
 	
-	ControlledCharacter->HandleMagnetDistance(Value.Get<float>());
+	ControlledCharacter->HandleMagnetDistanceInput(Value.Get<float>());
 }
 
 AMyPlayerCharacter* AMyPlayerController::GetControlledCharacter()

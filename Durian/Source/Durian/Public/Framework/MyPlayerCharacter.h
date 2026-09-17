@@ -2,12 +2,17 @@
 
 #pragma once
 
+#include "Abilities/IceMakerAbility.h"
+#include "Abilities/MagnetAbility.h"
+#include "Abilities/RemoteBombAbility.h"
+#include "Abilities/TimeLockAbility.h"
+#include "CoreMinimal.h"
+#include "Enums/PlayerEnums.h"
+#include "GameFramework/Character.h"
+
 class UPrimitiveComponent;
 class UAbilityEffectComponent;
-
-#include "CoreMinimal.h"
-#include "GameFramework/Character.h"
-#include "Enums/PlayerEnums.h"
+class UPhysicsHandleComponent;
 #include "MyPlayerCharacter.generated.h"
 
 UCLASS()
@@ -20,46 +25,42 @@ class DURIAN_API AMyPlayerCharacter : public ACharacter
 public:
 	// Sets default values for this character's properties
 	AMyPlayerCharacter();
+	virtual ~AMyPlayerCharacter() override;
 
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 protected:
-	void UpdateMagnetTargeting();
-	void SetTargetedMagnetComponent(UPrimitiveComponent* NewTarget, const FVector& NewTargetLocation);
-	void ClearTargetedMagnetComponent();
-
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Magnet", meta = (AllowPrivateAccess = true))
 	TObjectPtr<class UPhysicsHandleComponent> PhysicsHandle;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability VFX", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UAbilityEffectComponent> AbilityEffect;
-	
-	TWeakObjectPtr<UPrimitiveComponent> TargetedMagnetComponent;
-	FVector TargetedMagnetLocation = FVector::ZeroVector;
 
+	TUniquePtr<FMagnetAbility> MagnetAbility;
+	TUniquePtr<FTimeLockAbility> TimeLockAbility;
+	TUniquePtr<FRemoteBombAbility> RemoteBombAbility;
+	TUniquePtr<FIceMakerAbility> IceMakerAbility;
+	FAbility* CurrentAbility = nullptr;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", meta = (AllowPrivateAccess = true))
 	EPlayerState CurrentState = EPlayerState::Normal;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Magnet", meta = (ClampMin = "100.0", ClampMax = "3000.0", AllowPrivateAccess = true))
-	float MagnetDistance = 600.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Magnet", meta = (AllowPrivateAccess = true))
-	float MagnetMinDistance = 250.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Magnet", meta = (AllowPrivateAccess = true))
-	float MagnetMaxDistance = 1200.0f;
 
 public:
 	virtual void Tick(const float DeltaTime) override;
 
-	void HandleInteract();
-	void HandleMagnetAction();
-	void HandleMagnetSelect();
-	void HandleMagnetCancel();
-	void HandleMagnetDistance(float AxisValue);
-	void ReleaseMagnet();
-	void UpdateMagnetControl();
+	void HandleInteract() const;
+	void HandleCancel() const;
+	void HandleAbilityUse() const;
+	void HandleMagnetDistanceInput(float AxisValue) const;
+	void HandleGuard() const;
+	void HandleIceTargetAtFeet() const;
+	void HandleBombThrow() const;
+	void SetAbility(EAbilityType NewAbility);
+
+	UPhysicsHandleComponent* GetPhysicsHandle() const { return PhysicsHandle; }
+	UAbilityEffectComponent* GetAbilityEffect() const { return AbilityEffect; }
+	EPlayerState GetCurrentState() const { return CurrentState; }
 	void SetPlayerState(const EPlayerState NewState);
 };
