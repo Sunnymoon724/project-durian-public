@@ -1,0 +1,38 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+#include "IcePlacementPreview.generated.h"
+
+class UMaterialInstanceDynamic;
+class UStaticMeshComponent;
+
+UCLASS()
+class DURIAN_API AIcePlacementPreview : public AActor
+{
+	GENERATED_BODY()
+
+public:
+	AIcePlacementPreview();
+
+	void SetPreviewState(const FVector& Location, bool bVisible, bool bCanSpawn);
+	void PlaySpawnEffect();
+	void ClearPreview();
+
+private:
+	void HideSpawnRing();
+
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UStaticMeshComponent> PreviewPlane;
+
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UStaticMeshComponent> SpawnRing;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> PreviewMaterial;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> RingMaterial;
+
+	FTimerHandle SpawnRingTimer;
+};

@@ -26,17 +26,21 @@ AMyPlayerController::AMyPlayerController()
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Move.IA_Move"), MoveAction);
 
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Attack.IA_Attack"), AttackAction);
+	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Guard.IA_Guard"), GuardAction);
+	
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_AbilityUse.IA_AbilityUse"), AbilityUseAction);
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Interact.IA_Interact"),InteractAction);
+	
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Cancel.IA_Cancel"), CancelAction);
+
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Menu.IA_Menu"), MenuAction);
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_AbilityWheel.IA_AbilityWheel"), AbilityWheelAction);
-	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Guard.IA_Guard"), GuardAction);
+
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_IceTargetAtFeet.IA_IceTargetAtFeet"), IceTargetAtFeetAction);
-	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_BombThrow.IA_BombThrow"), BombThrowAction);
+	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_BombThrow.IA_BombThrow"), RemoteBombThrowAction);
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_RestartLevel.IA_RestartLevel"), RestartLevelAction);
 
-	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_MagnetDistance.IA_MagnetDistance"), MagnetDistanceAction);
+	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_MagnesisDistance.IA_MagnesisDistance"), MagnesisDistanceAction);
 }
 
 void AMyPlayerController::OnPossess(APawn* InPawn)
@@ -134,9 +138,9 @@ void AMyPlayerController::SetupInputComponent()
 			EnhancedInputComponent->BindAction(IceTargetAtFeetAction, ETriggerEvent::Started, this, &AMyPlayerController::OnIceTargetAtFeet);
 		}
 
-		if (BombThrowAction)
+		if (RemoteBombThrowAction)
 		{
-			EnhancedInputComponent->BindAction(BombThrowAction, ETriggerEvent::Started, this, &AMyPlayerController::OnBombThrow);
+			EnhancedInputComponent->BindAction(RemoteBombThrowAction, ETriggerEvent::Started, this, &AMyPlayerController::OnRemoteBombThrow);
 		}
 
 		if (RestartLevelAction)
@@ -144,9 +148,9 @@ void AMyPlayerController::SetupInputComponent()
 			EnhancedInputComponent->BindAction(RestartLevelAction, ETriggerEvent::Started, this, &AMyPlayerController::OnRestartLevel);
 		}
 
-		if (MagnetDistanceAction)
+		if (MagnesisDistanceAction)
 		{
-			EnhancedInputComponent->BindAction(MagnetDistanceAction, ETriggerEvent::Triggered, this, &AMyPlayerController::OnMagnetDistance);
+			EnhancedInputComponent->BindAction(MagnesisDistanceAction, ETriggerEvent::Triggered, this, &AMyPlayerController::OnMagnesisDistance);
 		}
 	}
 }
@@ -342,11 +346,11 @@ void AMyPlayerController::OnIceTargetAtFeet()
 	}
 }
 
-void AMyPlayerController::OnBombThrow()
+void AMyPlayerController::OnRemoteBombThrow()
 {
 	if (AMyPlayerCharacter* ControlledCharacter = GetControlledCharacter())
 	{
-		ControlledCharacter->HandleBombThrow();
+		ControlledCharacter->HandleRemoteBombThrow();
 	}
 }
 
@@ -356,7 +360,7 @@ void AMyPlayerController::OnRestartLevel()
 	RestartCurrentLevel();
 }
 
-void AMyPlayerController::OnMagnetDistance(const FInputActionValue& Value)
+void AMyPlayerController::OnMagnesisDistance(const FInputActionValue& Value)
 {
 	float ww = Value.Get<float>();
 	
@@ -369,7 +373,7 @@ void AMyPlayerController::OnMagnetDistance(const FInputActionValue& Value)
 		return;
 	}
 	
-	ControlledCharacter->HandleMagnetDistanceInput(Value.Get<float>());
+	ControlledCharacter->HandleMagnesisDistanceInput(Value.Get<float>());
 }
 
 AMyPlayerCharacter* AMyPlayerController::GetControlledCharacter()

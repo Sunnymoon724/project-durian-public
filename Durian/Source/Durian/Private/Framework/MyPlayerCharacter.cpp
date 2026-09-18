@@ -2,11 +2,11 @@
 
 #include "Framework/MyPlayerCharacter.h"
 
-#include "Abilities/AbilityEffectComponent.h"
-#include "Abilities/MagnetAbility.h"
-#include "Abilities/TimeLockAbility.h"
-#include "Abilities/RemoteBombAbility.h"
-#include "Abilities/IceMakerAbility.h"
+#include "Abilities/Components/AbilityEffectComponent.h"
+#include "Abilities/Magnesis/MagnesisAbility.h"
+#include "Abilities/Stasis/StasisAbility.h"
+#include "Abilities/RemoteBomb/RemoteBombAbility.h"
+#include "Abilities/Cryonis/CryonisAbility.h"
 #include "Components/PrimitiveComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
@@ -23,11 +23,13 @@ AMyPlayerCharacter::AMyPlayerCharacter()
 	PhysicsHandle->AngularDamping = 500.0f;
 
 	AbilityEffect = CreateDefaultSubobject<UAbilityEffectComponent>(TEXT("AbilityEffect"));
-	MagnetAbility = MakeUnique<FMagnetAbility>(this);
-	TimeLockAbility = MakeUnique<FTimeLockAbility>(this);
+
+	MagnesisAbility = MakeUnique<FMagnesisAbility>(this);
+	StasisAbility = MakeUnique<FStasisAbility>(this);
 	RemoteBombAbility = MakeUnique<FRemoteBombAbility>(this);
-	IceMakerAbility = MakeUnique<FIceMakerAbility>(this);
-	CurrentAbility = MagnetAbility.Get();
+	CryonisAbility = MakeUnique<FCryonisAbility>(this);
+
+	CurrentAbility = MagnesisAbility.Get();
 
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	GetCharacterMovement()->bOrientRotationToMovement = true;
@@ -40,6 +42,7 @@ void AMyPlayerCharacter::BeginPlay()
 
 	TArray<UPrimitiveComponent*> PlayerPrimitiveComponents;
 	GetComponents(PlayerPrimitiveComponents);
+
 	for (UPrimitiveComponent* PrimitiveComponent : PlayerPrimitiveComponents)
 	{
 		if (IsValid(PrimitiveComponent))
@@ -93,13 +96,18 @@ void AMyPlayerCharacter::HandleCancel() const
 
 void AMyPlayerCharacter::HandleAbilityUse() const
 {
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, FString::Printf(TEXT("Ability Use : %s"), *UEnum::GetValueAsString(CurrentAbilityType)));
+	}
+
 	if (CurrentAbility)
 	{
 		CurrentAbility->HandleAbilityUse();
 	}
 }
 
-void AMyPlayerCharacter::HandleMagnetDistanceInput(const float AxisValue) const
+void AMyPlayerCharacter::HandleMagnesisDistanceInput(const float AxisValue) const
 {
 	if (CurrentAbility)
 	{
@@ -115,40 +123,48 @@ void AMyPlayerCharacter::HandleGuard() const
 
 void AMyPlayerCharacter::HandleIceTargetAtFeet() const
 {
-	if (IceMakerAbility)
+	if (CryonisAbility)
 	{
-		IceMakerAbility->HandleTargetAtFeet();
+		CryonisAbility->HandleTargetAtFeet();
 	}
 }
 
-void AMyPlayerCharacter::HandleBombThrow() const
+void AMyPlayerCharacter::HandleRemoteBombThrow() const
 {
 	if (RemoteBombAbility)
 	{
-		RemoteBombAbility->HandleBombThrow();
+		RemoteBombAbility->HandleRemoteBombThrow();
 	}
 }
 
 void AMyPlayerCharacter::SetAbility(const EAbilityType NewAbility)
 {
+	FAbility* PreviousAbility = CurrentAbility;
+	CurrentAbilityType = NewAbility;
+
 	switch (NewAbility)
 	{
-	case EAbilityType::Magnet:
-		CurrentAbility = MagnetAbility.Get();
+	case EAbilityType::Magnesis:
+		CurrentAbility = MagnesisAbility.Get();
 		break;
-	case EAbilityType::Ice:
-		CurrentAbility = IceMakerAbility.Get();
+	case EAbilityType::Cryonis:
+		CurrentAbility = CryonisAbility.Get();
 		break;
 	case EAbilityType::Stasis:
-		CurrentAbility = TimeLockAbility.Get();
+		CurrentAbility = StasisAbility.Get();
 		break;
-	case EAbilityType::Bomb:
+	case EAbilityType::RemoteBomb:
 		CurrentAbility = RemoteBombAbility.Get();
 		break;
 	default:
 		CurrentAbility = nullptr;
 		UE_LOG(LogTemp, Log, TEXT("Not Supported in %s."), *UEnum::GetValueAsString(NewAbility));
 		break;
+	}
+
+	if (PreviousAbility && PreviousAbility != CurrentAbility)
+	{
+		PreviousAbility->HandleCancel();
 	}
 }
 

@@ -1,12 +1,13 @@
-#include "Abilities/AbilityModeSubsystem.h"
+#include "Abilities/Core/AbilityModeSubsystem.h"
 
-#include "Abilities/AbilityModeListener.h"
+#include "Abilities/Core/AbilityModeListener.h"
 
 bool UAbilityModeSubsystem::RegisterAbilityModeListener(UObject* Listener)
 {
 	if (!IsValid(Listener) || !Listener->GetClass()->ImplementsInterface(UAbilityModeListener::StaticClass()))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AbilityModeSubsystem: '%s' does not implement AbilityModeListener."), *GetNameSafe(Listener));
+
 		return false;
 	}
 
@@ -48,6 +49,7 @@ void UAbilityModeSubsystem::SetAbilityModeActive(const EAbilityMode Mode, const 
 	}
 
 	const bool bWasActive = ActiveModes.Contains(Mode);
+
 	if (bWasActive == bEnabled)
 	{
 		return;
@@ -78,10 +80,22 @@ bool UAbilityModeSubsystem::IsAbilityModeActive(const EAbilityMode Mode) const
 	return ActiveModes.Contains(Mode);
 }
 
+void UAbilityModeSubsystem::SetModeScanDirection(const FVector2D& Direction)
+{
+	ModeScanDirection = Direction.GetSafeNormal();
+
+	if (ModeScanDirection.IsNearlyZero())
+	{
+		ModeScanDirection = FVector2D(1.0f, 0.0f);
+	}
+}
+
 void UAbilityModeSubsystem::Deinitialize()
 {
 	RegisteredListeners.Empty();
 	ActiveModes.Empty();
+	ModeScanDirection = FVector2D(1.0f, 0.0f);
+
 	Super::Deinitialize();
 }
 
@@ -92,11 +106,11 @@ void UAbilityModeSubsystem::NotifyListener(UObject* Listener, const EAbilityMode
 
 void UAbilityModeSubsystem::RemoveInvalidListeners()
 {
-	for (auto It = RegisteredListeners.CreateIterator(); It; ++It)
+	for (auto Iterator = RegisteredListeners.CreateIterator(); Iterator; ++Iterator)
 	{
-		if (!It.Key().IsValid())
+		if (!Iterator.Key().IsValid())
 		{
-			It.RemoveCurrent();
+			Iterator.RemoveCurrent();
 		}
 	}
 }

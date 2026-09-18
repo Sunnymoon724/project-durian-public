@@ -7,10 +7,7 @@ class AMyPlayerCharacter;
 class FAbility
 {
 public:
-	explicit FAbility(AMyPlayerCharacter* InCharacter)
-		: Character(InCharacter)
-	{
-	}
+	explicit FAbility(AMyPlayerCharacter* InCharacter) : Character(InCharacter) { }
 
 	virtual ~FAbility() = default;
 

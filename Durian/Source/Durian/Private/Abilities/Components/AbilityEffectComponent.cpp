@@ -1,5 +1,6 @@
-#include "Abilities/AbilityEffectComponent.h"
+#include "Abilities/Components/AbilityEffectComponent.h"
 
+#include "Abilities/Core/AbilityModeVisualProfile.h"
 #include "Camera/CameraComponent.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Components/PrimitiveComponent.h"
@@ -14,10 +15,12 @@ UAbilityEffectComponent::UAbilityEffectComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
-	// WorldScan treats all visible world surfaces uniformly; only player and
-	// magnet-target stencil values alter the result.
-	VisionMaterials.Add(EAbilityType::Magnet, TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnet/PP/MI_PP_MagnetWorldScan.MI_PP_MagnetWorldScan"))));
-	MagnetHoldLinkSystem = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnet/Niagara/NS_MagnetHoldLink.NS_MagnetHoldLink")));
+	// All vision instances share M_PP_AbilityModeWorldScan. Each ability instance
+	// supplies only its own tint and target-emphasis parameters.
+	VisionMaterials.Add(EAbilityType::Magnesis, TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnesis/PP/MI_PP_MagnesisWorldScan.MI_PP_MagnesisWorldScan"))));
+	VisionMaterials.Add(EAbilityType::Cryonis, TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Resources/VFX/AbilityMode/PP/MI_PP_IceWorldScan.MI_PP_IceWorldScan"))));
+	VisionMaterials.Add(EAbilityType::Stasis, TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Resources/VFX/AbilityMode/PP/MI_PP_TimeLockWorldScan.MI_PP_TimeLockWorldScan"))));
+	MagnesisHoldLinkSystem = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnesis/Niagara/NS_MagnesisHoldLink.NS_MagnesisHoldLink")));
 }
 
 void UAbilityEffectComponent::BeginPlay()
@@ -97,6 +100,7 @@ void UAbilityEffectComponent::SetVisionEnabled(const EAbilityType Ability, const
 
 	if (UMaterialInstanceDynamic* MaterialInstance = GetOrCreateVisionMaterial(Ability))
 	{
+		ApplyVisionProfile(MaterialInstance, Ability);
 		VisionWeights.Add(Ability, bEnabled ? 1.0f : 0.0f);
 		SetBlendableWeight(MaterialInstance, bEnabled ? 1.0f : 0.0f);
 	}
@@ -107,6 +111,36 @@ void UAbilityEffectComponent::SetVisionEnabled(const EAbilityType Ability, const
 		SetBlendableWeight(MaterialInstance, bEnabled ? 1.0f : 0.0f);
 	}
 
+}
+
+void UAbilityEffectComponent::ApplyVisionProfile(UMaterialInstanceDynamic* MaterialInstance, const EAbilityType Ability) const
+{
+	if (!MaterialInstance)
+	{
+		return;
+	}
+
+	EAbilityMode Mode = EAbilityMode::None;
+	switch (Ability)
+	{
+	case EAbilityType::Magnesis: Mode = EAbilityMode::Magnesis; break;
+	case EAbilityType::Cryonis: Mode = EAbilityMode::Cryonis; break;
+	case EAbilityType::Stasis: Mode = EAbilityMode::Stasis; break;
+	case EAbilityType::RemoteBomb: Mode = EAbilityMode::RemoteBomb; break;
+	case EAbilityType::None:
+	default: return;
+	}
+
+	const FAbilityModeVisualProfile& Profile = FAbilityModeVisualProfiles::Get(Mode);
+	const FAbilityModeVisualCommonProfile& Common = FAbilityModeVisualProfiles::GetCommon();
+	MaterialInstance->SetVectorParameterValue(TEXT("WorldGradeColor"), Profile.WorldGradeColor);
+	MaterialInstance->SetScalarParameterValue(TEXT("WorldBlend"), Common.WorldBlend);
+	MaterialInstance->SetVectorParameterValue(TEXT("CandidateGradeColor"), Profile.CandidateGradeColor);
+	MaterialInstance->SetVectorParameterValue(TEXT("CandidateGlowColor"), Profile.CandidateGlowColor);
+	MaterialInstance->SetScalarParameterValue(TEXT("CandidateBlend"), Common.CandidateBlend);
+	MaterialInstance->SetVectorParameterValue(TEXT("TargetGradeColor"), Profile.TargetGradeColor);
+	MaterialInstance->SetVectorParameterValue(TEXT("TargetGlowColor"), Profile.TargetGlowColor);
+	MaterialInstance->SetScalarParameterValue(TEXT("TargetBlend"), Common.TargetBlend);
 }
 
 void UAbilityEffectComponent::ClearVisionEffects()
@@ -145,43 +179,43 @@ void UAbilityEffectComponent::PlayEnterPulse(EAbilityType Ability)
 	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(),PulseSystem,GetOwner()->GetActorLocation(),GetOwner()->GetActorRotation(),FVector::OneVector,true,true,ENCPoolMethod::AutoRelease,true);
 }
 
-void UAbilityEffectComponent::UpdateMagnetHoldLink(UPrimitiveComponent* TargetComponent, const FVector& StartLocation, const FVector& EndLocation)
+void UAbilityEffectComponent::UpdateMagnesisHoldLink(UPrimitiveComponent* TargetComponent, const FVector& StartLocation, const FVector& EndLocation)
 {
 	if (!IsValid(TargetComponent) || !GetWorld())
 	{
-		ClearMagnetHoldLink();
+		ClearMagnesisHoldLink();
 		return;
 	}
 
-	if (!IsValid(MagnetHoldLinkComponent))
+	if (!IsValid(MagnesisHoldLinkComponent))
 	{
-		UNiagaraSystem* LinkSystem = MagnetHoldLinkSystem.LoadSynchronous();
+		UNiagaraSystem* LinkSystem = MagnesisHoldLinkSystem.LoadSynchronous();
 		if (!LinkSystem)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("AbilityEffectComponent: Could not load magnet hold link system."));
+			UE_LOG(LogTemp, Warning, TEXT("AbilityEffectComponent: Could not load Magnesis hold link system."));
 			return;
 		}
 
-		MagnetHoldLinkComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), LinkSystem, StartLocation, FRotator::ZeroRotator, FVector::OneVector, false, true, ENCPoolMethod::None, true);
+		MagnesisHoldLinkComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), LinkSystem, StartLocation, FRotator::ZeroRotator, FVector::OneVector, false, true, ENCPoolMethod::None, true);
 	}
 
-	if (IsValid(MagnetHoldLinkComponent))
+	if (IsValid(MagnesisHoldLinkComponent))
 	{
-		MagnetHoldLinkComponent->SetVariablePosition(TEXT("User.BeamStart"), StartLocation);
-		MagnetHoldLinkComponent->SetVariablePosition(TEXT("User.BeamEnd"), EndLocation);
-		MagnetHoldLinkComponent->Activate(true);
+		MagnesisHoldLinkComponent->SetVariablePosition(TEXT("User.BeamStart"), StartLocation);
+		MagnesisHoldLinkComponent->SetVariablePosition(TEXT("User.BeamEnd"), EndLocation);
+		MagnesisHoldLinkComponent->Activate(true);
 	}
 }
 
-void UAbilityEffectComponent::ClearMagnetHoldLink()
+void UAbilityEffectComponent::ClearMagnesisHoldLink()
 {
-	if (IsValid(MagnetHoldLinkComponent))
+	if (IsValid(MagnesisHoldLinkComponent))
 	{
-		MagnetHoldLinkComponent->DeactivateImmediate();
-		MagnetHoldLinkComponent->DestroyComponent();
+		MagnesisHoldLinkComponent->DeactivateImmediate();
+		MagnesisHoldLinkComponent->DestroyComponent();
 	}
 
-	MagnetHoldLinkComponent = nullptr;
+	MagnesisHoldLinkComponent = nullptr;
 }
 
 UMaterialInstanceDynamic* UAbilityEffectComponent::GetOrCreateVisionMaterial(EAbilityType Ability)

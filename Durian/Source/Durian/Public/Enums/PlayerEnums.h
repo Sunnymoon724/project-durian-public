@@ -9,8 +9,9 @@ UENUM(BlueprintType)
 enum class EPlayerState : uint8
 {
 	Normal,
-	MagnetTargeting,
-	MagnetHolding,
+	MagnesisTargeting,
+	MagnesisHolding,
+	IceTargeting,
 	Attack
 };
 
@@ -18,8 +19,8 @@ UENUM(BlueprintType)
 enum class EAbilityType : uint8
 {
 	None,
-	Magnet,
-	Ice,
+	Magnesis,
+	Cryonis,
 	Stasis,
-	Bomb
+	RemoteBomb
 };

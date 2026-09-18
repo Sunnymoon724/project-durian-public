@@ -1,14 +1,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Abilities/Ability.h"
+#include "Abilities/Core/Ability.h"
 
 class UPrimitiveComponent;
 
-class FMagnetAbility final : public FAbility
+class FMagnesisAbility final : public FAbility
 {
 public:
-	explicit FMagnetAbility(AMyPlayerCharacter* InCharacter);
+	explicit FMagnesisAbility(AMyPlayerCharacter* InCharacter);
 
 	virtual void Tick(float DeltaTime) override;
 	virtual void HandleInteract() override;
@@ -31,8 +31,8 @@ private:
 	FVector TargetedLocation = FVector::ZeroVector;
 	FVector CurrentHoldLocation = FVector::ZeroVector;
 
-	float MagnetDistance = 600.0f;
-	float MagnetMinDistance = 250.0f;
-	float MagnetMaxDistance = 1200.0f;
-	float MagnetFollowSpeed = 5.0f;
+	float MagnesisDistance = 600.0f;
+	float MagnesisMinDistance = 250.0f;
+	float MagnesisMaxDistance = 1200.0f;
+	float MagnesisFollowSpeed = 5.0f;
 };

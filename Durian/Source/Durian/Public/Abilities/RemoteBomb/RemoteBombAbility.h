@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Abilities/Ability.h"
+#include "Abilities/Core/Ability.h"
 
-class FIceMakerAbility final : public FAbility
+class FRemoteBombAbility final : public FAbility
 {
 public:
-	explicit FIceMakerAbility(AMyPlayerCharacter* InCharacter)
+	explicit FRemoteBombAbility(AMyPlayerCharacter* InCharacter)
 		: FAbility(InCharacter)
 	{
 	}
@@ -14,5 +14,5 @@ public:
 	void HandleInteract() override;
 	void HandleCancel() override;
 	void HandleAbilityUse() override;
-	void HandleTargetAtFeet();
+	void HandleRemoteBombThrow();
 };

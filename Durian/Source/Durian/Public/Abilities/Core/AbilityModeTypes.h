@@ -8,17 +8,17 @@ UENUM(BlueprintType)
 enum class EAbilityMode : uint8
 {
 	None,
-	Magnet,
-	Ice,
-	TimeLock,
-	Bomb
+	Magnesis,
+	Cryonis,
+	Stasis,
+	RemoteBomb
 };
 
 UENUM(BlueprintType)
 enum class EAbilityReactionType : uint8
 {
 	Normal,
-	MagnetTarget,
-	TimeLockTarget,
+	MagnesisTarget,
+	StasisTarget,
 	Water
 };

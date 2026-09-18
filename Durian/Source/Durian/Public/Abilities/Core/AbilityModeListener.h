@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Abilities/AbilityModeTypes.h"
+#include "Abilities/Core/AbilityModeTypes.h"
 #include "UObject/Interface.h"
 #include "AbilityModeListener.generated.h"
 

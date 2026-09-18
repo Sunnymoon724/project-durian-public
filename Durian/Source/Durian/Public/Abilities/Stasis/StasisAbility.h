@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Abilities/Ability.h"
+#include "Abilities/Core/Ability.h"
 
-class FRemoteBombAbility final : public FAbility
+class FStasisAbility final : public FAbility
 {
 public:
-	explicit FRemoteBombAbility(AMyPlayerCharacter* InCharacter)
+	explicit FStasisAbility(AMyPlayerCharacter* InCharacter)
 		: FAbility(InCharacter)
 	{
 	}
@@ -14,5 +14,4 @@ public:
 	void HandleInteract() override;
 	void HandleCancel() override;
 	void HandleAbilityUse() override;
-	void HandleBombThrow();
 };

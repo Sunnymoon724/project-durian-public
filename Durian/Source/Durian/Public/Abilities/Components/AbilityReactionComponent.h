@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Abilities/AbilityModeListener.h"
+#include "Abilities/Core/AbilityModeListener.h"
 #include "Components/ActorComponent.h"
 #include "AbilityReactionComponent.generated.h"
 
@@ -18,6 +18,8 @@ class DURIAN_API UAbilityReactionComponent : public UActorComponent, public IAbi
 public:
 	UAbilityReactionComponent();
 	EAbilityReactionType GetReactionType() const { return ReactionType; }
+	void SetReactionType(const EAbilityReactionType NewReactionType) { ReactionType = NewReactionType; }
+	void SetAimedTarget(bool bAimed);
 
 protected:
 	virtual void BeginPlay() override;
@@ -26,10 +28,12 @@ protected:
 	virtual void OnAbilityModeChanged_Implementation(EAbilityMode Mode, bool bEnabled) override;
 
 private:
-	void SetMagnetStencilEnabled(bool bEnabled) const;
+	bool IsTargetReaction() const;
+	void SetTargetStencilEnabled(bool bEnabled) const;
 	void SetTopScanEnabled(bool bEnabled, EAbilityMode Mode);
+	void SetTargetSurfaceHighlightEnabled(bool bEnabled, EAbilityMode Mode);
 	void CreateTopScanOverlays();
-	FLinearColor GetModeColor(EAbilityMode Mode) const;
+	void CreateTargetSurfaceHighlightOverlays();
 
 	UPROPERTY(EditAnywhere, Category = "Ability Reaction")
 	EAbilityReactionType ReactionType = EAbilityReactionType::Normal;
@@ -37,9 +41,21 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Ability Reaction|VFX")
 	TSoftObjectPtr<UMaterialInterface> TopScanOverlayMaterial;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Ability Reaction|VFX")
+	TSoftObjectPtr<UMaterialInterface> TargetSurfaceHighlightMaterial;
+
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UStaticMeshComponent>> TopScanOverlays;
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> TopScanMaterials;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UStaticMeshComponent>> TargetSurfaceHighlightOverlays;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMaterialInstanceDynamic>> TargetSurfaceHighlightMaterials;
+
+	bool bAimedTarget = false;
+	EAbilityMode ActiveMode = EAbilityMode::None;
 };

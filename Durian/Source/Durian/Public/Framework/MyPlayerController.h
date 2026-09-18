@@ -66,12 +66,12 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UInputAction> IceTargetAtFeetAction;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
-	TObjectPtr<UInputAction> BombThrowAction;
+	TObjectPtr<UInputAction> RemoteBombThrowAction;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UInputAction> RestartLevelAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
-	TObjectPtr<UInputAction> MagnetDistanceAction;
+	TObjectPtr<UInputAction> MagnesisDistanceAction;
 
 	UPROPERTY();
 	TObjectPtr<AMyPlayerCharacter> CachedCharacter;
@@ -113,9 +113,9 @@ private:
 	void OnAbilityWheel();
 	void OnAbilityWheelCompleted();
 	void OnIceTargetAtFeet();
-	void OnBombThrow();
+	void OnRemoteBombThrow();
 	void OnRestartLevel();
-	void OnMagnetDistance(const FInputActionValue& Value);
+	void OnMagnesisDistance(const FInputActionValue& Value);
 
 	AMyPlayerCharacter* GetControlledCharacter();
 };

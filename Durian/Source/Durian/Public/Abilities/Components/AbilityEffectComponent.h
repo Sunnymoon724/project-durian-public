@@ -38,10 +38,10 @@ public:
 	void PlayEnterPulse(EAbilityType Ability);
 
 	/** 잡은 자력 대상까지의 연결선을 생성하거나 위치를 갱신한다. */
-	void UpdateMagnetHoldLink(UPrimitiveComponent* TargetComponent, const FVector& StartLocation, const FVector& EndLocation);
+	void UpdateMagnesisHoldLink(UPrimitiveComponent* TargetComponent, const FVector& StartLocation, const FVector& EndLocation);
 
 	/** 현재 자력 연결선을 즉시 정리한다. */
-	void ClearMagnetHoldLink();
+	void ClearMagnesisHoldLink();
 
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
@@ -49,6 +49,7 @@ public:
 private:
 	UMaterialInstanceDynamic* GetOrCreateVisionMaterial(EAbilityType Ability);
 	UMaterialInstanceDynamic* GetOrCreateHighlightMaterial(EAbilityType Ability);
+	void ApplyVisionProfile(UMaterialInstanceDynamic* MaterialInstance, EAbilityType Ability) const;
 	void SetBlendableWeight(UMaterialInstanceDynamic* MaterialInstance, const float Weight) const;
 	void ApplyCameraManagerBlendables();
 
@@ -67,11 +68,11 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Ability VFX|Pulse")
 	TMap<EAbilityType, TSoftObjectPtr<UNiagaraSystem>> EnterPulseSystems;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Ability VFX|Magnet")
-	TSoftObjectPtr<UNiagaraSystem> MagnetHoldLinkSystem;
+	UPROPERTY(EditDefaultsOnly, Category = "Ability VFX|Magnesis")
+	TSoftObjectPtr<UNiagaraSystem> MagnesisHoldLinkSystem;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UNiagaraComponent> MagnetHoldLinkComponent;
+	TObjectPtr<UNiagaraComponent> MagnesisHoldLinkComponent;
 
 	TWeakObjectPtr<UCameraComponent> CameraComponent;
 	TWeakObjectPtr<APlayerCameraManager> PlayerCameraManager;

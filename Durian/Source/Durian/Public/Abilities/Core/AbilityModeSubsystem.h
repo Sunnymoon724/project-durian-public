@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Abilities/AbilityModeTypes.h"
+#include "Abilities/Core/AbilityModeTypes.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "AbilityModeSubsystem.generated.h"
 
@@ -29,6 +29,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Ability Mode")
 	bool IsAbilityModeActive(EAbilityMode Mode) const;
 
+	/** 모드를 켠 순간의 수평 시선 방향. 모드가 끝날 때까지 변경하지 않는다. */
+	void SetModeScanDirection(const FVector2D& Direction);
+	FVector2D GetModeScanDirection() const { return ModeScanDirection; }
+
 	virtual void Deinitialize() override;
 
 private:
@@ -37,4 +41,5 @@ private:
 
 	TMap<TWeakObjectPtr<UObject>, TSet<EAbilityMode>> RegisteredListeners;
 	TSet<EAbilityMode> ActiveModes;
+	FVector2D ModeScanDirection = FVector2D(1.0f, 0.0f);
 };
