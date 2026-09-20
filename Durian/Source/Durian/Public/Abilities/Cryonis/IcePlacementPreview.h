@@ -14,6 +14,7 @@ class DURIAN_API AIcePlacementPreview : public AActor
 
 public:
 	AIcePlacementPreview();
+	virtual void Tick(float DeltaSeconds) override;
 
 	void SetPreviewState(const FVector& Location, bool bVisible, bool bCanSpawn);
 	void PlaySpawnEffect();
@@ -35,4 +36,7 @@ private:
 	TObjectPtr<UMaterialInstanceDynamic> RingMaterial;
 
 	FTimerHandle SpawnRingTimer;
+	float SpawnRingElapsed = 0.0f;
+
+	float SpawnRingDuration = 0.5f;
 };

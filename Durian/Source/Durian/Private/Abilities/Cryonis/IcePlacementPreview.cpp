@@ -10,7 +10,8 @@
 
 AIcePlacementPreview::AIcePlacementPreview()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
+	SetActorTickEnabled(false);
 
 	PreviewPlane = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewPlane"));
 	RootComponent = PreviewPlane;
@@ -41,7 +42,7 @@ AIcePlacementPreview::AIcePlacementPreview()
 		PreviewPlane->SetMaterial(0, PreviewMaterial);
 	}
 
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> RingMaterialAsset(TEXT("/Game/Resources/VFX/Ice/Materials/M_IceSpawnRing.M_IceSpawnRing"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> RingMaterialAsset(TEXT("/Game/Resources/VFX/Cryonis/Materials/MI_IceSpawnRing.MI_IceSpawnRing"));
 	if (RingMaterialAsset.Succeeded())
 	{
 		RingMaterial = UMaterialInstanceDynamic::Create(RingMaterialAsset.Object, this);
@@ -49,6 +50,24 @@ AIcePlacementPreview::AIcePlacementPreview()
 	}
 
 	SetActorHiddenInGame(true);
+}
+
+void AIcePlacementPreview::Tick(const float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (!RingMaterial || !SpawnRing->IsVisible())
+	{
+		return;
+	}
+
+	SpawnRingElapsed += DeltaSeconds;
+	const float Progress = FMath::Clamp(SpawnRingElapsed / SpawnRingDuration, 0.0f, 1.0f);
+	const float OuterRadius = FMath::Lerp(0.16f, 0.48f, Progress);
+	const float RingWidth = RingMaterial->K2_GetScalarParameterValue(TEXT("RingWidth"));
+	RingMaterial->SetScalarParameterValue(TEXT("OuterRadius"), OuterRadius);
+	RingMaterial->SetScalarParameterValue(TEXT("InnerRadius"), FMath::Max(0.0f, OuterRadius - RingWidth));
+	RingMaterial->SetScalarParameterValue(TEXT("RingOpacity"), FMath::Square(1.0f - Progress));
 }
 
 void AIcePlacementPreview::SetPreviewState(const FVector& Location, const bool bVisible, const bool bCanSpawn)
@@ -70,8 +89,11 @@ void AIcePlacementPreview::SetPreviewState(const FVector& Location, const bool b
 
 void AIcePlacementPreview::PlaySpawnEffect()
 {
+	SpawnRingElapsed = 0.0f;
+	SpawnRingDuration = 0.5f / FMath::Max(0.01f, RingMaterial ? RingMaterial->K2_GetScalarParameterValue(TEXT("RingSpeed")) : 1.0f);
 	SpawnRing->SetVisibility(true, true);
 	SpawnRing->SetRelativeScale3D(FVector(0.8f));
+	SetActorTickEnabled(true);
 
 	if (GetWorld())
 	{
@@ -90,6 +112,7 @@ void AIcePlacementPreview::PlaySpawnEffect()
 void AIcePlacementPreview::HideSpawnRing()
 {
 	SpawnRing->SetVisibility(false, true);
+	SetActorTickEnabled(false);
 }
 
 void AIcePlacementPreview::ClearPreview()
@@ -99,6 +122,7 @@ void AIcePlacementPreview::ClearPreview()
 		GetWorld()->GetTimerManager().ClearTimer(SpawnRingTimer);
 	}
 	SpawnRing->SetVisibility(false, true);
+	SetActorTickEnabled(false);
 	PreviewPlane->SetVisibility(false, true);
 	SetActorHiddenInGame(true);
 }
