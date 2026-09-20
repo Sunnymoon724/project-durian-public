@@ -2,12 +2,12 @@
 
 #include "CoreMinimal.h"
 
-class AMyPlayerCharacter;
+class AKzPlayerCharacter;
 
 class FAbility
 {
 public:
-	explicit FAbility(AMyPlayerCharacter* InCharacter) : Character(InCharacter) { }
+	explicit FAbility(AKzPlayerCharacter* InCharacter) : Character(InCharacter) { }
 
 	virtual ~FAbility() = default;
 
@@ -18,5 +18,5 @@ public:
 	virtual void HandleDistance(float AxisValue) {}
 
 protected:
-	AMyPlayerCharacter* Character = nullptr;
+	AKzPlayerCharacter* Character = nullptr;
 };

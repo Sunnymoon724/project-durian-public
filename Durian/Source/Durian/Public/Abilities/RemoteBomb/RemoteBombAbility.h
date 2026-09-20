@@ -5,7 +5,7 @@
 class FRemoteBombAbility final : public FAbility
 {
 public:
-	explicit FRemoteBombAbility(AMyPlayerCharacter* InCharacter)
+	explicit FRemoteBombAbility(AKzPlayerCharacter* InCharacter)
 		: FAbility(InCharacter)
 	{
 	}

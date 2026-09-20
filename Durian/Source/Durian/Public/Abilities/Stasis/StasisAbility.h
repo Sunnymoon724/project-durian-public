@@ -5,7 +5,7 @@
 class FStasisAbility final : public FAbility
 {
 public:
-	explicit FStasisAbility(AMyPlayerCharacter* InCharacter)
+	explicit FStasisAbility(AKzPlayerCharacter* InCharacter)
 		: FAbility(InCharacter)
 	{
 	}

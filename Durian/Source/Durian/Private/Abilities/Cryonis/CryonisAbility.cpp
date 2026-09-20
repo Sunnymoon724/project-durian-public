@@ -8,7 +8,7 @@
 #include "Engine/GameInstance.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
-#include "Framework/MyPlayerCharacter.h"
+#include "Framework/Player/KzPlayerCharacter.h"
 #include "GameFramework/Controller.h"
 #include "CollisionQueryParams.h"
 #include "CollisionShape.h"

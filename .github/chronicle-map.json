@@ -6,19 +6,14 @@
       "template": "Chronicle/templates/design.md"
     },
     {
+      "source": "Documents/Shrines",
+      "destination": "Chronicle/docs/shrines",
+      "template": "Chronicle/templates/design.md"
+    },
+    {
       "source": "Documents/Technical",
       "destination": "Chronicle/docs/technical",
       "template": "Chronicle/templates/technical.md"
-    },
-    {
-      "source": "Documents/Planning",
-      "destination": "Chronicle/docs/overview",
-      "template": "Chronicle/templates/planning.md"
-    },
-    {
-      "source": "Documents/Reference",
-      "destination": "Chronicle/docs/reference",
-      "template": "Chronicle/templates/reference.md"
     }
   ]
 }

@@ -31,8 +31,20 @@ void UAbilityReactionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason
 		GameInstance->GetSubsystem<UAbilityModeSubsystem>()->UnregisterAbilityModeListener(this);
 	}
 	SetTargetStencilEnabled(false);
-	for (UStaticMeshComponent* Overlay : TopScanOverlays) if (IsValid(Overlay)) Overlay->DestroyComponent();
-	for (UStaticMeshComponent* Overlay : TargetSurfaceHighlightOverlays) if (IsValid(Overlay)) Overlay->DestroyComponent();
+	for (UStaticMeshComponent* Overlay : TopScanOverlays)
+	{
+		if (IsValid(Overlay))
+		{
+			Overlay->DestroyComponent();
+		}
+	}
+	for (UStaticMeshComponent* Overlay : TargetSurfaceHighlightOverlays)
+	{
+		if (IsValid(Overlay))
+		{
+			Overlay->DestroyComponent();
+		}
+	}
 	TopScanOverlays.Empty();
 	TopScanMaterials.Empty();
 	TargetSurfaceHighlightOverlays.Empty();
@@ -78,7 +90,10 @@ void UAbilityReactionComponent::OnAbilityModeChanged_Implementation(const EAbili
 			const FAbilityModeVisualProfile& VisualProfile = FAbilityModeVisualProfiles::Get(Mode);
 			for (UMaterialInstanceDynamic* Material : TopScanMaterials)
 			{
-				if (Material) Material->SetVectorParameterValue(TEXT("ScanColor"), VisualProfile.TargetScanColor);
+				if (Material)
+				{
+					Material->SetVectorParameterValue(TEXT("ScanColor"), VisualProfile.TargetScanColor);
+				}
 			}
 		}
 	}
@@ -127,7 +142,10 @@ void UAbilityReactionComponent::SetTargetStencilEnabled(const bool bEnabled) con
 
 void UAbilityReactionComponent::SetTopScanEnabled(const bool bEnabled, const EAbilityMode Mode)
 {
-	if (bEnabled) CreateTopScanOverlays();
+	if (bEnabled)
+	{
+		CreateTopScanOverlays();
+	}
 	const FLinearColor Color = FAbilityModeVisualProfiles::Get(Mode).ScanColor;
 	FVector2D ScanDirection(1.0f, 0.0f);
 	if (UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr)
@@ -188,20 +206,32 @@ void UAbilityReactionComponent::SetTargetSurfaceHighlightEnabled(const bool bEna
 
 void UAbilityReactionComponent::CreateTopScanOverlays()
 {
-	if (TopScanOverlays.Num() || !GetOwner()) return;
+	if (TopScanOverlays.Num() || !GetOwner())
+	{
+		return;
+	}
 	UMaterialInterface* Material = TopScanOverlayMaterial.LoadSynchronous();
-	if (!Material) return;
+	if (!Material)
+	{
+		return;
+	}
 	TArray<UStaticMeshComponent*> Sources; GetOwner()->GetComponents(Sources);
 	for (UStaticMeshComponent* Source : Sources)
 	{
-		if (!Source || !Source->GetStaticMesh() || TopScanOverlays.Contains(Source) || TargetSurfaceHighlightOverlays.Contains(Source)) continue;
+		if (!Source || !Source->GetStaticMesh() || TopScanOverlays.Contains(Source) || TargetSurfaceHighlightOverlays.Contains(Source))
+		{
+			continue;
+		}
 		UStaticMeshComponent* Overlay = NewObject<UStaticMeshComponent>(GetOwner(), NAME_None, RF_Transient);
 		GetOwner()->AddInstanceComponent(Overlay); Overlay->SetStaticMesh(Source->GetStaticMesh()); Overlay->SetupAttachment(Source);
 		// This is a separate translucent shell. Keep it far enough from the source
 		// mesh to avoid depth-buffer Z-fighting while the camera moves.
 		Overlay->SetRelativeScale3D(FVector(1.005f)); Overlay->SetRelativeLocation(FVector(0.0f, 0.0f, 0.5f)); Overlay->SetCollisionEnabled(ECollisionEnabled::NoCollision); Overlay->SetCastShadow(false); Overlay->SetRenderCustomDepth(false);
 		UMaterialInstanceDynamic* DynamicMaterial = UMaterialInstanceDynamic::Create(Material, this);
-		for (int32 Slot = 0; Slot < Source->GetNumMaterials(); ++Slot) Overlay->SetMaterial(Slot, DynamicMaterial);
+		for (int32 Slot = 0; Slot < Source->GetNumMaterials(); ++Slot)
+		{
+			Overlay->SetMaterial(Slot, DynamicMaterial);
+		}
 		Overlay->SetHiddenInGame(true, true); Overlay->RegisterComponent();
 		TopScanOverlays.Add(Overlay); TopScanMaterials.Add(DynamicMaterial);
 	}
@@ -209,18 +239,30 @@ void UAbilityReactionComponent::CreateTopScanOverlays()
 
 void UAbilityReactionComponent::CreateTargetSurfaceHighlightOverlays()
 {
-	if (TargetSurfaceHighlightOverlays.Num() || !GetOwner()) return;
+	if (TargetSurfaceHighlightOverlays.Num() || !GetOwner())
+	{
+		return;
+	}
 	UMaterialInterface* Material = TargetSurfaceHighlightMaterial.LoadSynchronous();
-	if (!Material) return;
+	if (!Material)
+	{
+		return;
+	}
 	TArray<UStaticMeshComponent*> Sources; GetOwner()->GetComponents(Sources);
 	for (UStaticMeshComponent* Source : Sources)
 	{
-		if (!Source || !Source->GetStaticMesh() || TopScanOverlays.Contains(Source) || TargetSurfaceHighlightOverlays.Contains(Source)) continue;
+		if (!Source || !Source->GetStaticMesh() || TopScanOverlays.Contains(Source) || TargetSurfaceHighlightOverlays.Contains(Source))
+		{
+			continue;
+		}
 		UStaticMeshComponent* Overlay = NewObject<UStaticMeshComponent>(GetOwner(), NAME_None, RF_Transient);
 		GetOwner()->AddInstanceComponent(Overlay); Overlay->SetStaticMesh(Source->GetStaticMesh()); Overlay->SetupAttachment(Source);
 		Overlay->SetRelativeScale3D(FVector(1.012f)); Overlay->SetCollisionEnabled(ECollisionEnabled::NoCollision); Overlay->SetCastShadow(false); Overlay->SetRenderCustomDepth(false);
 		UMaterialInstanceDynamic* DynamicMaterial = UMaterialInstanceDynamic::Create(Material, this);
-		for (int32 Slot = 0; Slot < Source->GetNumMaterials(); ++Slot) Overlay->SetMaterial(Slot, DynamicMaterial);
+		for (int32 Slot = 0; Slot < Source->GetNumMaterials(); ++Slot)
+		{
+			Overlay->SetMaterial(Slot, DynamicMaterial);
+		}
 		Overlay->SetHiddenInGame(true, true); Overlay->RegisterComponent();
 		TargetSurfaceHighlightOverlays.Add(Overlay); TargetSurfaceHighlightMaterials.Add(DynamicMaterial);
 	}

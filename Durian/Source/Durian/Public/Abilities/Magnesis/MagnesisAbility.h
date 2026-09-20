@@ -8,7 +8,7 @@ class UPrimitiveComponent;
 class FMagnesisAbility final : public FAbility
 {
 public:
-	explicit FMagnesisAbility(AMyPlayerCharacter* InCharacter);
+	explicit FMagnesisAbility(AKzPlayerCharacter* InCharacter);
 
 	virtual void Tick(float DeltaTime) override;
 	virtual void HandleInteract() override;

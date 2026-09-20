@@ -7,12 +7,12 @@
 #include "CollisionShape.h"
 #include "Constants/GameConstants.h"
 #include "DrawDebugHelpers.h"
-#include "Framework/MyPlayerCharacter.h"
+#include "Framework/Player/KzPlayerCharacter.h"
 #include "GameFramework/Controller.h"
 #include "Engine/GameInstance.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
 
-FMagnesisAbility::FMagnesisAbility(AMyPlayerCharacter* InCharacter) : FAbility(InCharacter)
+FMagnesisAbility::FMagnesisAbility(AKzPlayerCharacter* InCharacter) : FAbility(InCharacter)
 {
 }
 

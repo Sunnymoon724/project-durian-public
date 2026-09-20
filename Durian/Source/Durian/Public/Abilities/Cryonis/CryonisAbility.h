@@ -10,7 +10,7 @@ class AIcePlacementPreview;
 class FCryonisAbility final : public FAbility
 {
 public:
-	explicit FCryonisAbility(AMyPlayerCharacter* InCharacter)
+	explicit FCryonisAbility(AKzPlayerCharacter* InCharacter)
 		: FAbility(InCharacter)
 	{
 	}
