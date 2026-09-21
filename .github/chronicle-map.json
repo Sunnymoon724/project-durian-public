@@ -6,8 +6,8 @@
       "template": "Chronicle/templates/design.md"
     },
     {
-      "source": "Documents/Shrines",
-      "destination": "Chronicle/docs/shrines",
+      "source": "Documents/Challenges",
+      "destination": "Chronicle/docs/challenges",
       "template": "Chronicle/templates/design.md"
     },
     {

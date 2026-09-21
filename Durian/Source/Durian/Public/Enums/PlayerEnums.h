@@ -22,5 +22,6 @@ enum class EAbilityType : uint8
 	Magnesis,
 	Cryonis,
 	Stasis,
-	RemoteBomb
+	RemoteBombSphere,
+	RemoteBombCube
 };

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Enums/PlayerEnums.h"
 #include "GameFramework/PlayerController.h"
 #include "InputActionValue.h"
 #include "KzPlayerController.generated.h"
@@ -11,6 +12,8 @@ class UInputMappingContext;
 class UInputAction;
 struct FInputActionDescriptor;
 class AKzPlayerCharacter;
+class UKzAbilityWheelWidget;
+class UKzHudWidget;
 
 /**
  * 
@@ -24,9 +27,6 @@ class DURIAN_API AKzPlayerController : public APlayerController
 	
 public:
 	AKzPlayerController();
-
-	UFUNCTION(BlueprintCallable, Category = "Level")
-	void RestartCurrentLevel();
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Menu")
 	void MenuRequested();
@@ -67,9 +67,6 @@ private:
 	TObjectPtr<UInputAction> IceTargetAtFeetAction;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UInputAction> RemoteBombThrowAction;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
-	TObjectPtr<UInputAction> RestartLevelAction;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UInputAction> MagnesisDistanceAction;
 
@@ -112,10 +109,21 @@ private:
 	void OnMenu();
 	void OnAbilityWheel();
 	void OnAbilityWheelCompleted();
+	UFUNCTION()
+	void HandleAbilityWheelConfirmed(EAbilityType AbilityType);
 	void OnIceTargetAtFeet();
 	void OnRemoteBombThrow();
-	void OnRestartLevel();
 	void OnMagnesisDistance(const FInputActionValue& Value);
 
 	AKzPlayerCharacter* GetControlledCharacter();
+
+	UPROPERTY(Transient)
+	TObjectPtr<UKzAbilityWheelWidget> AbilityWheelWidget;
+
+	TSubclassOf<UKzAbilityWheelWidget> AbilityWheelWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UKzHudWidget> HudWidget;
+
+	TSubclassOf<UKzHudWidget> HudWidgetClass;
 };

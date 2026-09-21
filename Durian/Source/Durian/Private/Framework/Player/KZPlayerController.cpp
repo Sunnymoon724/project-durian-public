@@ -9,7 +9,9 @@
 #include "InputMappingContext.h"
 #include "InputAction.h"
 #include "Framework/Player/KzPlayerCharacter.h"
-#include "Kismet/GameplayStatics.h"
+#include "UI/KzAbilityWheelWidget.h"
+#include "UI/KzHudWidget.h"
+#include "Engine/Engine.h"
 
 AKzPlayerController::AKzPlayerController()
 {
@@ -38,9 +40,23 @@ AKzPlayerController::AKzPlayerController()
 
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_IceTargetAtFeet.IA_IceTargetAtFeet"), IceTargetAtFeetAction);
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_BombThrow.IA_BombThrow"), RemoteBombThrowAction);
-	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_RestartLevel.IA_RestartLevel"), RestartLevelAction);
-
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_MagnesisDistance.IA_MagnesisDistance"), MagnesisDistanceAction);
+
+	static ConstructorHelpers::FClassFinder<UKzAbilityWheelWidget> AbilityWheelWidgetAsset(TEXT("/Game/_BP/Widgets/WBP_AbilityWheel"));
+
+	if (AbilityWheelWidgetAsset.Succeeded())
+	{
+		AbilityWheelWidgetClass = AbilityWheelWidgetAsset.Class;
+	}
+
+	static ConstructorHelpers::FClassFinder<UKzHudWidget> HudWidgetAsset(TEXT("/Game/_BP/Widgets/WBP_Hud"));
+
+	if (HudWidgetAsset.Succeeded())
+	{
+		HudWidgetClass = HudWidgetAsset.Class;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Ability Wheel class load: %s"), *GetNameSafe(AbilityWheelWidgetClass));
 }
 
 void AKzPlayerController::OnPossess(APawn* InPawn)
@@ -65,6 +81,35 @@ void AKzPlayerController::BeginPlay()
 	}
 
 	bShowMouseCursor = false;
+
+	if (AbilityWheelWidgetClass)
+	{
+		AbilityWheelWidget = CreateWidget<UKzAbilityWheelWidget>(this, AbilityWheelWidgetClass);
+
+		if (AbilityWheelWidget)
+		{
+			AbilityWheelWidget->OnAbilityConfirmed.AddDynamic(this, &AKzPlayerController::HandleAbilityWheelConfirmed);
+			AbilityWheelWidget->AddToPlayerScreen();
+		}
+	}
+
+	if (HudWidgetClass)
+	{
+		HudWidget = CreateWidget<UKzHudWidget>(this, HudWidgetClass);
+
+		if (HudWidget)
+		{
+			HudWidget->AddToPlayerScreen();
+			HudWidget->SetCurrentAbility(CachedCharacter ? CachedCharacter->GetCurrentAbilityType() : EAbilityType::Magnesis);
+		}
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("PlayerController BeginPlay: AbilityWheelAction=%s LookAction=%s MappingContext=%s WidgetClass=%s Widget=%s"),
+		*GetNameSafe(AbilityWheelAction),
+		*GetNameSafe(LookAction),
+		*GetNameSafe(CharacterMappingContext),
+		*GetNameSafe(AbilityWheelWidgetClass),
+		*GetNameSafe(AbilityWheelWidget));
 
 	if (CharacterMappingContext)
 	{
@@ -143,11 +188,6 @@ void AKzPlayerController::SetupInputComponent()
 			EnhancedInputComponent->BindAction(RemoteBombThrowAction, ETriggerEvent::Started, this, &AKzPlayerController::OnRemoteBombThrow);
 		}
 
-		if (RestartLevelAction)
-		{
-			EnhancedInputComponent->BindAction(RestartLevelAction, ETriggerEvent::Started, this, &AKzPlayerController::OnRestartLevel);
-		}
-
 		if (MagnesisDistanceAction)
 		{
 			EnhancedInputComponent->BindAction(MagnesisDistanceAction, ETriggerEvent::Triggered, this, &AKzPlayerController::OnMagnesisDistance);
@@ -188,6 +228,22 @@ void AKzPlayerController::OnMove(const FInputActionValue& Value)
 
 void AKzPlayerController::OnLook(const FInputActionValue& Value)
 {
+	if (AbilityWheelWidget && AbilityWheelWidget->IsWheelOpen())
+	{
+		const FVector2D LookInput = Value.Get<FVector2D>();
+
+		UE_LOG(LogTemp, Warning, TEXT("Ability Wheel Look input: X=%.3f Y=%.3f"), LookInput.X, LookInput.Y);
+
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(200, 0.25f, FColor::Cyan,
+				FString::Printf(TEXT("Ability Wheel Look: X %.2f Y %.2f"), LookInput.X, LookInput.Y));
+		}
+
+		AbilityWheelWidget->AddSelectionDirection(LookInput);
+		return;
+	}
+
 	AKzPlayerCharacter* ControlledCharacter = GetControlledCharacter();
 
 	if (!ControlledCharacter)
@@ -300,20 +356,50 @@ void AKzPlayerController::OnMenu()
 
 void AKzPlayerController::OnAbilityWheel()
 {
-	AbilitySelectionRequested();
+	UE_LOG(LogTemp, Warning, TEXT("Ability Wheel started"));
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(201, 1.0f, FColor::Yellow, TEXT("Ability Wheel Started"));
+	}
+
+	AKzPlayerCharacter* ControlledCharacter = GetControlledCharacter();
+
+	if (!AbilityWheelWidget || !ControlledCharacter)
+	{
+		AbilitySelectionRequested();
+		return;
+	}
+
+	AbilityWheelWidget->SetHighlightedAbility(ControlledCharacter->GetCurrentAbilityType());
+	AbilityWheelWidget->OpenWheel();
 }
 
 void AKzPlayerController::OnAbilityWheelCompleted()
 {
-	// TODO: 강조된 능력을 CurrentAbility로 확정한다.
-	UE_LOG(LogTemp, Log, TEXT("IA_AbilityWheel completed: ability selection apply is not implemented yet."));
+	UE_LOG(LogTemp, Warning, TEXT("Ability Wheel completed"));
+
+	if (AbilityWheelWidget)
+	{
+		AbilityWheelWidget->ConfirmSelection();
+	}
 }
 
-void AKzPlayerController::RestartCurrentLevel()
+void AKzPlayerController::HandleAbilityWheelConfirmed(const EAbilityType AbilityType)
 {
-	if (const UWorld* World = GetWorld())
+	if (AbilityType == EAbilityType::None)
 	{
-		UGameplayStatics::OpenLevel(World, FName(*World->GetName()));
+		return;
+	}
+
+	if (AKzPlayerCharacter* ControlledCharacter = GetControlledCharacter())
+	{
+		ControlledCharacter->SetAbility(AbilityType);
+
+		if (HudWidget)
+		{
+			HudWidget->SetCurrentAbility(AbilityType);
+		}
 	}
 }
 
@@ -352,12 +438,6 @@ void AKzPlayerController::OnRemoteBombThrow()
 	{
 		ControlledCharacter->HandleRemoteBombThrow();
 	}
-}
-
-void AKzPlayerController::OnRestartLevel()
-{
-	UE_LOG(LogTemp, Log, TEXT("IA_RestartLevel pressed."));
-	RestartCurrentLevel();
 }
 
 void AKzPlayerController::OnMagnesisDistance(const FInputActionValue& Value)

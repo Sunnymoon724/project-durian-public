@@ -126,7 +126,10 @@ void UAbilityEffectComponent::ApplyVisionProfile(UMaterialInstanceDynamic* Mater
 	case EAbilityType::Magnesis: Mode = EAbilityMode::Magnesis; break;
 	case EAbilityType::Cryonis: Mode = EAbilityMode::Cryonis; break;
 	case EAbilityType::Stasis: Mode = EAbilityMode::Stasis; break;
-	case EAbilityType::RemoteBomb: Mode = EAbilityMode::RemoteBomb; break;
+	case EAbilityType::RemoteBombSphere:
+	case EAbilityType::RemoteBombCube:
+		Mode = EAbilityMode::RemoteBomb;
+		break;
 	case EAbilityType::None:
 	default: return;
 	}

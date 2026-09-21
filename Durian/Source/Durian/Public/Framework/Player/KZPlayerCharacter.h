@@ -65,6 +65,7 @@ public:
 	UPhysicsHandleComponent* GetPhysicsHandle() const { return PhysicsHandle; }
 	UAbilityEffectComponent* GetAbilityEffect() const { return AbilityEffect; }
 	EPlayerState GetCurrentState() const { return CurrentState; }
+	EAbilityType GetCurrentAbilityType() const { return CurrentAbilityType; }
 	void SetPlayerState(const EPlayerState NewState);
 
 };

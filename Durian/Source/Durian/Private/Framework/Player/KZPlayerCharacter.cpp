@@ -153,7 +153,8 @@ void AKzPlayerCharacter::SetAbility(const EAbilityType NewAbility)
 	case EAbilityType::Stasis:
 		CurrentAbility = StasisAbility.Get();
 		break;
-	case EAbilityType::RemoteBomb:
+	case EAbilityType::RemoteBombSphere:
+	case EAbilityType::RemoteBombCube:
 		CurrentAbility = RemoteBombAbility.Get();
 		break;
 	default:
