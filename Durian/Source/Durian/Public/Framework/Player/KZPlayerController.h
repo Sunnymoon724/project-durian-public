@@ -117,13 +117,12 @@ private:
 
 	AKzPlayerCharacter* GetControlledCharacter();
 
-	UPROPERTY(Transient)
-	TObjectPtr<UKzAbilityWheelWidget> AbilityWheelWidget;
-
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = true))
 	TSubclassOf<UKzAbilityWheelWidget> AbilityWheelWidgetClass;
 
-	UPROPERTY(Transient)
-	TObjectPtr<UKzHudWidget> HudWidget;
-
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = true))
 	TSubclassOf<UKzHudWidget> HudWidgetClass;
+
+	UKzAbilityWheelWidget* GetAbilityWheelWidget() const;
+	UKzHudWidget* GetHudWidget() const;
 };

@@ -11,6 +11,7 @@
 #include "Framework/Player/KzPlayerCharacter.h"
 #include "UI/KzAbilityWheelWidget.h"
 #include "UI/KzHudWidget.h"
+#include "UI/KzUISubsystem.h"
 #include "Engine/Engine.h"
 
 AKzPlayerController::AKzPlayerController()
@@ -82,34 +83,12 @@ void AKzPlayerController::BeginPlay()
 
 	bShowMouseCursor = false;
 
-	if (AbilityWheelWidgetClass)
-	{
-		AbilityWheelWidget = CreateWidget<UKzAbilityWheelWidget>(this, AbilityWheelWidgetClass);
-
-		if (AbilityWheelWidget)
-		{
-			AbilityWheelWidget->OnAbilityConfirmed.AddDynamic(this, &AKzPlayerController::HandleAbilityWheelConfirmed);
-			AbilityWheelWidget->AddToPlayerScreen();
-		}
-	}
-
-	if (HudWidgetClass)
-	{
-		HudWidget = CreateWidget<UKzHudWidget>(this, HudWidgetClass);
-
-		if (HudWidget)
-		{
-			HudWidget->AddToPlayerScreen();
-			HudWidget->SetCurrentAbility(CachedCharacter ? CachedCharacter->GetCurrentAbilityType() : EAbilityType::Magnesis);
-		}
-	}
-
 	UE_LOG(LogTemp, Warning, TEXT("PlayerController BeginPlay: AbilityWheelAction=%s LookAction=%s MappingContext=%s WidgetClass=%s Widget=%s"),
 		*GetNameSafe(AbilityWheelAction),
 		*GetNameSafe(LookAction),
 		*GetNameSafe(CharacterMappingContext),
 		*GetNameSafe(AbilityWheelWidgetClass),
-		*GetNameSafe(AbilityWheelWidget));
+		*GetNameSafe(GetAbilityWheelWidget()));
 
 	if (CharacterMappingContext)
 	{
@@ -228,7 +207,7 @@ void AKzPlayerController::OnMove(const FInputActionValue& Value)
 
 void AKzPlayerController::OnLook(const FInputActionValue& Value)
 {
-	if (AbilityWheelWidget && AbilityWheelWidget->IsWheelOpen())
+	if (UKzAbilityWheelWidget* AbilityWheelWidget = GetAbilityWheelWidget(); AbilityWheelWidget && AbilityWheelWidget->IsWheelOpen())
 	{
 		const FVector2D LookInput = Value.Get<FVector2D>();
 
@@ -365,12 +344,27 @@ void AKzPlayerController::OnAbilityWheel()
 
 	AKzPlayerCharacter* ControlledCharacter = GetControlledCharacter();
 
-	if (!AbilityWheelWidget || !ControlledCharacter)
+	if (!AbilityWheelWidgetClass || !ControlledCharacter)
 	{
 		AbilitySelectionRequested();
 		return;
 	}
 
+	UKzUISubsystem* UISubsystem = GetGameInstance()->GetSubsystem<UKzUISubsystem>();
+
+	if (!UISubsystem)
+	{
+		return;
+	}
+
+	UKzAbilityWheelWidget* AbilityWheelWidget = Cast<UKzAbilityWheelWidget>(UISubsystem->Open(AbilityWheelWidgetClass));
+
+	if (!AbilityWheelWidget)
+	{
+		return;
+	}
+
+	AbilityWheelWidget->OnAbilityConfirmed.AddUniqueDynamic(this, &AKzPlayerController::HandleAbilityWheelConfirmed);
 	AbilityWheelWidget->SetHighlightedAbility(ControlledCharacter->GetCurrentAbilityType());
 	AbilityWheelWidget->OpenWheel();
 }
@@ -379,7 +373,7 @@ void AKzPlayerController::OnAbilityWheelCompleted()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Ability Wheel completed"));
 
-	if (AbilityWheelWidget)
+	if (UKzAbilityWheelWidget* AbilityWheelWidget = GetAbilityWheelWidget())
 	{
 		AbilityWheelWidget->ConfirmSelection();
 	}
@@ -396,7 +390,7 @@ void AKzPlayerController::HandleAbilityWheelConfirmed(const EAbilityType Ability
 	{
 		ControlledCharacter->SetAbility(AbilityType);
 
-		if (HudWidget)
+		if (UKzHudWidget* HudWidget = GetHudWidget())
 		{
 			HudWidget->SetCurrentAbility(AbilityType);
 		}
@@ -450,6 +444,33 @@ void AKzPlayerController::OnMagnesisDistance(const FInputActionValue& Value)
 	}
 
 	ControlledCharacter->HandleMagnesisDistanceInput(Value.Get<float>());
+}
+
+void AKzPlayerController::OnAbilityWheelPressed()
+{
+	
+}
+
+UKzAbilityWheelWidget* AKzPlayerController::GetAbilityWheelWidget() const
+{
+	if (!AbilityWheelWidgetClass || !GetGameInstance())
+	{
+		return nullptr;
+	}
+
+	UKzUISubsystem* UISubsystem = GetGameInstance()->GetSubsystem<UKzUISubsystem>();
+	return UISubsystem ? Cast<UKzAbilityWheelWidget>(UISubsystem->Get(AbilityWheelWidgetClass)) : nullptr;
+}
+
+UKzHudWidget* AKzPlayerController::GetHudWidget() const
+{
+	if (!HudWidgetClass || !GetGameInstance())
+	{
+		return nullptr;
+	}
+
+	UKzUISubsystem* UISubsystem = GetGameInstance()->GetSubsystem<UKzUISubsystem>();
+	return UISubsystem ? Cast<UKzHudWidget>(UISubsystem->Get(HudWidgetClass)) : nullptr;
 }
 
 AKzPlayerCharacter* AKzPlayerController::GetControlledCharacter()

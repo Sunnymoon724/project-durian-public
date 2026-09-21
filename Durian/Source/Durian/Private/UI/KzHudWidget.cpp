@@ -35,6 +35,7 @@ void UKzHudWidget::SetCurrentAbility(const EAbilityType AbilityType)
 	}
 
 	UMaterialInterface* IconMaterial = LoadObject<UMaterialInterface>(nullptr, MaterialPath);
+
 	if (!IconMaterial)
 	{
 		CurrentAbilityIcon->SetVisibility(ESlateVisibility::Collapsed);
