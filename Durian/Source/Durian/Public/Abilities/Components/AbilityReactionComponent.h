@@ -21,7 +21,6 @@ public:
 	void SetReactionType(const EAbilityReactionType NewReactionType) { ReactionType = NewReactionType; }
 	void SetAimedTarget(bool bAimed);
 
-protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual TArray<EAbilityMode> GetSupportedAbilityModes_Implementation() const override;

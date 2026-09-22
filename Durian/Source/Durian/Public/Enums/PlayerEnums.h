@@ -11,6 +11,8 @@ enum class EPlayerState : uint8
 	Normal,
 	MagnesisTargeting,
 	MagnesisHolding,
+	StasisTargeting,
+	StasisActive,
 	IceTargeting,
 	Attack
 };

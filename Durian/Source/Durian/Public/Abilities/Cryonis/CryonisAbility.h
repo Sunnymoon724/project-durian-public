@@ -30,8 +30,8 @@ private:
 	void EnsurePreview();
 	bool TraceTarget(FHitResult& OutHit) const;
 	bool CanSpawnAt(const FVector& SpawnLocation, AActor* SurfaceActor) const;
-	FVector GetSpawnLocation(const FHitResult& Hit) const;
-	void DestroyPillar(AIcePillar* Pillar);
+	static FVector GetSpawnLocation(const FHitResult& Hit);
+	static void DestroyPillar(AIcePillar* Pillar);
 
 	TWeakObjectPtr<AActor> TargetSurface;
 	TWeakObjectPtr<AIcePillar> TargetPillar;

@@ -22,6 +22,7 @@ void FCryonisAbility::Tick(const float DeltaTime)
 	}
 
 	SpawnCooldownRemaining = FMath::Max(0.0f, SpawnCooldownRemaining - DeltaTime);
+
 	UpdateTargeting();
 }
 
@@ -62,8 +63,10 @@ void FCryonisAbility::HandleAbilityUse()
 		Character->SetPlayerState(EPlayerState::IceTargeting);
 		bTargetAtFeet = false;
 		EnsurePreview();
+		
+		const UGameInstance* GameInstance = Character->GetGameInstance();
 
-		if (UGameInstance* GameInstance = Character->GetGameInstance())
+		if (GameInstance)
 		{
 			if (UAbilityModeSubsystem* AbilityModeSubsystem = GameInstance->GetSubsystem<UAbilityModeSubsystem>())
 			{
@@ -96,31 +99,37 @@ void FCryonisAbility::UpdateTargeting()
 {
 	ClearTarget();
 	EnsurePreview();
+
 	if (!PlacementPreview.IsValid())
 	{
 		return;
 	}
 
 	FHitResult Hit;
+
 	if (!TraceTarget(Hit))
 	{
 		PlacementPreview->SetPreviewState(FVector::ZeroVector, false, false);
+
 		return;
 	}
 
 	AActor* HitActor = Hit.GetActor();
+
 	if (HitActor && (HitActor->ActorHasTag(TEXT("IcePillar")) || HitActor->IsA<AIcePillar>()))
 	{
 		TargetPillar = Cast<AIcePillar>(HitActor);
 		PlacementPreview->SetPreviewState(FVector::ZeroVector, false, false);
+
 		return;
 	}
 
 	const UAbilityReactionComponent* Reaction = HitActor ? HitActor->FindComponentByClass<UAbilityReactionComponent>() : nullptr;
-	if (!HitActor || (!HitActor->ActorHasTag(TEXT("IceSpawnSurface"))
-		&& (!Reaction || Reaction->GetReactionType() != EAbilityReactionType::Water)))
+
+	if (!HitActor || (!HitActor->ActorHasTag(TEXT("IceSpawnSurface")) && (!Reaction || Reaction->GetReactionType() != EAbilityReactionType::CryonicTarget)))
 	{
 		PlacementPreview->SetPreviewState(FVector::ZeroVector, false, false);
+
 		return;
 	}
 
@@ -147,6 +156,7 @@ void FCryonisAbility::SpawnIcePillar()
 	SpawnParameters.Owner = Character;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	AIcePillar* NewPillar = Character->GetWorld()->SpawnActor<AIcePillar>(TargetLocation, FRotator::ZeroRotator, SpawnParameters);
+
 	if (!NewPillar)
 	{
 		return;
@@ -154,6 +164,7 @@ void FCryonisAbility::SpawnIcePillar()
 
 	SpawnedPillars.Add(NewPillar);
 	SpawnCooldownRemaining = SpawnCooldown;
+
 	if (PlacementPreview.IsValid())
 	{
 		PlacementPreview->PlaySpawnEffect();
@@ -172,6 +183,7 @@ void FCryonisAbility::SpawnIcePillar()
 void FCryonisAbility::RemoveTargetedPillar()
 {
 	AIcePillar* Pillar = TargetPillar.Get();
+
 	if (!Pillar)
 	{
 		return;
@@ -190,10 +202,12 @@ void FCryonisAbility::ExitTargetingMode()
 	}
 
 	ClearTarget();
+
 	if (PlacementPreview.IsValid())
 	{
 		PlacementPreview->ClearPreview();
 	}
+
 	Character->SetPlayerState(EPlayerState::Normal);
 
 	if (UGameInstance* GameInstance = Character->GetGameInstance())
@@ -237,6 +251,7 @@ bool FCryonisAbility::TraceTarget(FHitResult& OutHit) const
 
 	FVector TraceStart;
 	FVector TraceEnd;
+
 	if (bTargetAtFeet)
 	{
 		TraceStart = Character->GetActorLocation() + FVector(0.0f, 0.0f, 50.0f);
@@ -250,6 +265,7 @@ bool FCryonisAbility::TraceTarget(FHitResult& OutHit) const
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(IceTargetTrace), false, Character);
 	QueryParams.AddIgnoredActor(Character);
+
 	if (PlacementPreview.IsValid())
 	{
 		QueryParams.AddIgnoredActor(PlacementPreview.Get());
@@ -267,30 +283,32 @@ bool FCryonisAbility::CanSpawnAt(const FVector& SpawnLocation, AActor* SurfaceAc
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(IceSpawnOverlap), false, Character);
 	QueryParams.AddIgnoredActor(Character);
+
 	if (SurfaceActor)
 	{
 		QueryParams.AddIgnoredActor(SurfaceActor);
 	}
+
 	if (PlacementPreview.IsValid())
 	{
 		QueryParams.AddIgnoredActor(PlacementPreview.Get());
 	}
 
 	FCollisionObjectQueryParams ObjectParams;
+
 	ObjectParams.AddObjectTypesToQuery(ECC_WorldStatic);
 	ObjectParams.AddObjectTypesToQuery(ECC_WorldDynamic);
 	ObjectParams.AddObjectTypesToQuery(ECC_Pawn);
 	ObjectParams.AddObjectTypesToQuery(ECC_PhysicsBody);
 
 	TArray<FOverlapResult> Overlaps;
-	const bool bHasOverlap = Character->GetWorld()->OverlapMultiByObjectType(
-		Overlaps, SpawnLocation, FQuat::Identity, ObjectParams,
-		FCollisionShape::MakeBox(FVector(75.0f, 75.0f, AIcePillar::HalfHeight)), QueryParams);
+
+	const bool bHasOverlap = Character->GetWorld()->OverlapMultiByObjectType(Overlaps, SpawnLocation, FQuat::Identity, ObjectParams,FCollisionShape::MakeBox(FVector(75.0f, 75.0f, AIcePillar::HalfHeight)), QueryParams);
 
 	return !bHasOverlap;
 }
 
-FVector FCryonisAbility::GetSpawnLocation(const FHitResult& Hit) const
+FVector FCryonisAbility::GetSpawnLocation(const FHitResult& Hit)
 {
 	return Hit.ImpactPoint + FVector(0.0f, 0.0f, AIcePillar::HalfHeight);
 }

@@ -27,7 +27,7 @@ AIcePillar::AIcePillar()
 	}
 
 	ReactionComponent = CreateDefaultSubobject<UAbilityReactionComponent>(TEXT("AbilityReaction"));
-	ReactionComponent->SetReactionType(EAbilityReactionType::Water);
+	ReactionComponent->SetReactionType(EAbilityReactionType::CryonicTarget);
 	Tags.AddUnique(TEXT("IcePillar"));
 }
 

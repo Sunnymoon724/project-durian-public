@@ -33,6 +33,9 @@ struct FAbilityModeVisualProfile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlay")
 	FLinearColor ScanColor;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlay", meta = (ClampMin = "0.01"))
+	float ScanLineSpacing = 1.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlay")
 	FLinearColor TargetScanColor;
 

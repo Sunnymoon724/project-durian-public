@@ -12,9 +12,7 @@
 #include "Engine/GameInstance.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
 
-FMagnesisAbility::FMagnesisAbility(AKzPlayerCharacter* InCharacter) : FAbility(InCharacter)
-{
-}
+FMagnesisAbility::FMagnesisAbility(AKzPlayerCharacter* InCharacter) : FAbility(InCharacter) { }
 
 void FMagnesisAbility::Tick(float DeltaTime)
 {
@@ -88,7 +86,7 @@ void FMagnesisAbility::HandleDistance(const float AxisValue)
 {
 	if (Character && Character->GetCurrentState() == EPlayerState::MagnesisHolding && !FMath::IsNearlyZero(AxisValue))
 	{
-		MagnesisDistance = FMath::Clamp(MagnesisDistance + AxisValue * 100.0f, MagnesisMinDistance, MagnesisMaxDistance);
+		MagnesisDistance = FMath::Clamp(MagnesisDistance + AxisValue * 100.0f, Constants::MagnesisMinDistance, Constants::MagnesisMaxDistance);
 	}
 }
 
@@ -130,19 +128,23 @@ void FMagnesisAbility::UpdateControl(const float DeltaTime)
 	const FVector HoldLocation = Character->GetActorLocation() + FVector(0.0f, 0.0f, 100.0f);
 	// Use the controller view (mouse) direction, not the pawn body's forward
 	// direction, so a held object follows camera yaw and pitch.
+	
 	const FVector TargetLocation = HoldLocation + Character->GetController()->GetControlRotation().Vector() * MagnesisDistance;
 	FVector SafeTargetLocation = TargetLocation;
+
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(MagnesisTargetSweep), false, Character);
+
 	QueryParams.AddIgnoredActor(PhysicsHandle->GetGrabbedComponent()->GetOwner());
 
 	FHitResult SweepHit;
+
 	if (Character->GetWorld()->SweepSingleByChannel(SweepHit, HoldLocation, TargetLocation, FQuat::Identity, ECC_Visibility, FCollisionShape::MakeSphere(40.0f), QueryParams))
 	{
 		SafeTargetLocation = SweepHit.Location;
 	}
 
 	// Move the physics-handle target gradually so the object follows with a soft lag.
-	CurrentHoldLocation = FMath::VInterpTo(CurrentHoldLocation, SafeTargetLocation, DeltaTime, MagnesisFollowSpeed);
+	CurrentHoldLocation = FMath::VInterpTo(CurrentHoldLocation, SafeTargetLocation, DeltaTime, Constants::MagnesisFollowSpeed);
 	PhysicsHandle->SetTargetLocation(CurrentHoldLocation);
 
 	if (UAbilityEffectComponent* AbilityEffect = Character->GetAbilityEffect())
@@ -160,10 +162,12 @@ void FMagnesisAbility::SelectTarget()
 	if (!Character || !PhysicsHandle || !TraceTarget(HitComponent, HitLocation))
 	{
 		ExitTargetingMode();
+
 		if (Character)
 		{
 			Character->SetPlayerState(EPlayerState::Normal);
 		}
+
 		return;
 	}
 
@@ -173,8 +177,11 @@ void FMagnesisAbility::SelectTarget()
 	if (PhysicsHandle->GetGrabbedComponent())
 	{
 		CurrentHoldLocation = HitLocation;
+
 		const FVector HoldLocation = Character->GetActorLocation() + FVector(0.0f, 0.0f, 100.0f);
-		MagnesisDistance = FMath::Clamp(FVector::DotProduct(HitLocation - HoldLocation, Character->GetController()->GetControlRotation().Vector()), MagnesisMinDistance, MagnesisMaxDistance);
+
+		MagnesisDistance = FMath::Clamp(FVector::DotProduct(HitLocation - HoldLocation, Character->GetController()->GetControlRotation().Vector()), Constants::MagnesisMinDistance, Constants::MagnesisMaxDistance);
+
 		Character->SetPlayerState(EPlayerState::MagnesisHolding);
 	}
 	else
@@ -191,10 +198,12 @@ void FMagnesisAbility::ExitTargetingMode()
 	}
 
 	ClearTargetedComponent();
+
 	if (UGameInstance* GameInstance = Character->GetGameInstance())
 	{
 		GameInstance->GetSubsystem<UAbilityModeSubsystem>()->SetAbilityModeActive(EAbilityMode::Magnesis, false);
 	}
+
 	if (UAbilityEffectComponent* AbilityEffect = Character->GetAbilityEffect())
 	{
 		AbilityEffect->ClearVisionEffects();
@@ -225,25 +234,11 @@ bool FMagnesisAbility::TraceTarget(UPrimitiveComponent*& OutComponent, FVector& 
 	const UAbilityReactionComponent* Reaction = bTraceHit && HitResult.GetActor() ? HitResult.GetActor()->FindComponentByClass<UAbilityReactionComponent>() : nullptr;
 	const bool bValidTarget = Reaction && Reaction->GetReactionType() == EAbilityReactionType::MagnesisTarget;
 
-	DrawDebugLine(
-		Character->GetWorld(),
-		TraceStart,
-		bTraceHit ? HitResult.ImpactPoint : TraceEnd,
-		bValidTarget ? FColor::Green : bTraceHit ? FColor::Yellow : FColor::Red,
-		false,
-		0.1f,
-		1,
-		2.0f);
+	DrawDebugLine(Character->GetWorld(),TraceStart,bTraceHit ? HitResult.ImpactPoint : TraceEnd,bValidTarget ? FColor::Green : bTraceHit ? FColor::Yellow : FColor::Red,false,0.1f,1,2.0f);
+
 	if (bTraceHit)
 	{
-		DrawDebugPoint(
-			Character->GetWorld(),
-			HitResult.ImpactPoint,
-			12.0f,
-			bValidTarget ? FColor::Green : FColor::Yellow,
-			false,
-			0.1f,
-			1);
+		DrawDebugPoint(Character->GetWorld(),HitResult.ImpactPoint,12.0f,bValidTarget ? FColor::Green : FColor::Yellow,false,0.1f,1);
 	}
 
 	if (!bTraceHit || !bValidTarget)
@@ -296,9 +291,8 @@ void FMagnesisAbility::SetTargetedComponent(UPrimitiveComponent* NewTarget, cons
 	if (TargetedComponent.IsValid() && TargetedComponent.Get() != NewTarget)
 	{
 		TargetedComponent->SetCustomDepthStencilValue(1);
-		if (UAbilityReactionComponent* PreviousReaction = TargetedComponent->GetOwner()
-			? TargetedComponent->GetOwner()->FindComponentByClass<UAbilityReactionComponent>()
-			: nullptr)
+
+		if (UAbilityReactionComponent* PreviousReaction = TargetedComponent->GetOwner() ? TargetedComponent->GetOwner()->FindComponentByClass<UAbilityReactionComponent>() : nullptr)
 		{
 			PreviousReaction->SetAimedTarget(false);
 		}
@@ -311,9 +305,8 @@ void FMagnesisAbility::SetTargetedComponent(UPrimitiveComponent* NewTarget, cons
 	{
 		NewTarget->SetRenderCustomDepth(true);
 		NewTarget->SetCustomDepthStencilValue(2);
-		if (UAbilityReactionComponent* Reaction = NewTarget->GetOwner()
-			? NewTarget->GetOwner()->FindComponentByClass<UAbilityReactionComponent>()
-			: nullptr)
+
+		if (UAbilityReactionComponent* Reaction = NewTarget->GetOwner() ? NewTarget->GetOwner()->FindComponentByClass<UAbilityReactionComponent>() : nullptr)
 		{
 			Reaction->SetAimedTarget(true);
 		}
@@ -325,9 +318,8 @@ void FMagnesisAbility::ClearTargetedComponent()
 	if (TargetedComponent.IsValid())
 	{
 		TargetedComponent->SetCustomDepthStencilValue(1);
-		if (UAbilityReactionComponent* Reaction = TargetedComponent->GetOwner()
-			? TargetedComponent->GetOwner()->FindComponentByClass<UAbilityReactionComponent>()
-			: nullptr)
+
+		if (UAbilityReactionComponent* Reaction = TargetedComponent->GetOwner()? TargetedComponent->GetOwner()->FindComponentByClass<UAbilityReactionComponent>() : nullptr)
 		{
 			Reaction->SetAimedTarget(false);
 		}

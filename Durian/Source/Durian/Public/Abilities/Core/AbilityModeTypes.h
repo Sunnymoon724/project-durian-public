@@ -20,5 +20,5 @@ enum class EAbilityReactionType : uint8
 	Normal,
 	MagnesisTarget,
 	StasisTarget,
-	Water
+	CryonicTarget
 };

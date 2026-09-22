@@ -111,6 +111,7 @@ private:
 	void OnIceTargetAtFeet();
 	void OnRemoteBombThrow();
 	void OnMagnesisDistance(const FInputActionValue& Value);
+
 	UKzAbilityWheelViewModel* GetAbilityWheelViewModel() const;
 
 	AKzPlayerCharacter* GetControlledCharacter();

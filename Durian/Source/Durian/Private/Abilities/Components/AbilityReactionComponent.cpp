@@ -11,6 +11,8 @@
 UAbilityReactionComponent::UAbilityReactionComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
+
 	TopScanOverlayMaterial = TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Resources/VFX/AbilityMode/Materials/M_AbilityModeTopScanOverlay.M_AbilityModeTopScanOverlay")));
 	TargetSurfaceHighlightMaterial = TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Resources/VFX/AbilityMode/Materials/M_AbilityModeTargetSurface.M_AbilityModeTargetSurface")));
 }
@@ -18,7 +20,10 @@ UAbilityReactionComponent::UAbilityReactionComponent()
 void UAbilityReactionComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	if (UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr)
+
+	const UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+
+	if (GameInstance)
 	{
 		GameInstance->GetSubsystem<UAbilityModeSubsystem>()->RegisterAbilityModeListener(this);
 	}
@@ -26,11 +31,15 @@ void UAbilityReactionComponent::BeginPlay()
 
 void UAbilityReactionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr)
+	const UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+
+	if (GameInstance)
 	{
 		GameInstance->GetSubsystem<UAbilityModeSubsystem>()->UnregisterAbilityModeListener(this);
 	}
+
 	SetTargetStencilEnabled(false);
+
 	for (UStaticMeshComponent* Overlay : TopScanOverlays)
 	{
 		if (IsValid(Overlay))
@@ -38,6 +47,7 @@ void UAbilityReactionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason
 			Overlay->DestroyComponent();
 		}
 	}
+
 	for (UStaticMeshComponent* Overlay : TargetSurfaceHighlightOverlays)
 	{
 		if (IsValid(Overlay))
@@ -45,10 +55,12 @@ void UAbilityReactionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason
 			Overlay->DestroyComponent();
 		}
 	}
+
 	TopScanOverlays.Empty();
 	TopScanMaterials.Empty();
 	TargetSurfaceHighlightOverlays.Empty();
 	TargetSurfaceHighlightMaterials.Empty();
+
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -56,10 +68,11 @@ TArray<EAbilityMode> UAbilityReactionComponent::GetSupportedAbilityModes_Impleme
 {
 	switch (ReactionType)
 	{
-	case EAbilityReactionType::Normal: return { EAbilityMode::Magnesis, EAbilityMode::Cryonis, EAbilityMode::Stasis, EAbilityMode::RemoteBomb };
-	case EAbilityReactionType::MagnesisTarget: return { EAbilityMode::Magnesis };
-	case EAbilityReactionType::StasisTarget: return { EAbilityMode::Stasis };
-	case EAbilityReactionType::Water: return { EAbilityMode::Cryonis };
+	case EAbilityReactionType::Normal: return { EAbilityMode::Magnesis, EAbilityMode::Cryonis, EAbilityMode::Stasis };
+	case EAbilityReactionType::MagnesisTarget:
+	case EAbilityReactionType::StasisTarget:
+	case EAbilityReactionType::CryonicTarget:
+		return { EAbilityMode::Magnesis, EAbilityMode::Cryonis, EAbilityMode::Stasis };
 	default: return {};
 	}
 }
@@ -67,48 +80,47 @@ TArray<EAbilityMode> UAbilityReactionComponent::GetSupportedAbilityModes_Impleme
 void UAbilityReactionComponent::OnAbilityModeChanged_Implementation(const EAbilityMode Mode, const bool bEnabled)
 {
 	ActiveMode = bEnabled ? Mode : EAbilityMode::None;
+
 	if (!bEnabled)
 	{
 		bAimedTarget = false;
 	}
 
-	if (ReactionType == EAbilityReactionType::Normal)
+	const bool bIsMatchingTarget =
+		(ReactionType == EAbilityReactionType::MagnesisTarget && Mode == EAbilityMode::Magnesis) ||
+		(ReactionType == EAbilityReactionType::StasisTarget && Mode == EAbilityMode::Stasis) ||
+		(ReactionType == EAbilityReactionType::CryonicTarget && Mode == EAbilityMode::Cryonis);
+
+	if (bIsMatchingTarget)
 	{
-		SetTopScanEnabled(bEnabled, Mode);
-	}
-	else if (IsTargetReaction())
-	{
-		// This callback only fires for a mode returned by GetSupportedAbilityModes.
-		// Therefore every non-normal reaction here is the current mode's target.
 		SetTargetStencilEnabled(bEnabled && bAimedTarget);
-		// Target-capable actors use their grade/edge highlight only. The top-scan
-		// stripe overlay is reserved for normal world surfaces.
 		SetTopScanEnabled(false, Mode);
 		SetTargetSurfaceHighlightEnabled(bEnabled, Mode);
-		if (bEnabled)
-		{
-			const FAbilityModeVisualProfile& VisualProfile = FAbilityModeVisualProfiles::Get(Mode);
-			for (UMaterialInstanceDynamic* Material : TopScanMaterials)
-			{
-				if (Material)
-				{
-					Material->SetVectorParameterValue(TEXT("ScanColor"), VisualProfile.TargetScanColor);
-				}
-			}
-		}
+		return;
 	}
+
+	// Only the target matching the active ability gets the special target look.
+	// All other reaction types use the normal scan appearance.
+	SetTargetStencilEnabled(false);
+	SetTargetSurfaceHighlightEnabled(false, Mode);
+	SetTopScanEnabled(bEnabled, Mode);
 }
 
 void UAbilityReactionComponent::SetAimedTarget(const bool bAimed)
 {
 	bAimedTarget = bAimed;
-	if (ActiveMode != EAbilityMode::None && IsTargetReaction())
+
+	const bool bIsMatchingTarget =(ReactionType == EAbilityReactionType::MagnesisTarget && ActiveMode == EAbilityMode::Magnesis) || (ReactionType == EAbilityReactionType::StasisTarget && ActiveMode == EAbilityMode::Stasis) || (ReactionType == EAbilityReactionType::CryonicTarget && ActiveMode == EAbilityMode::Cryonis);
+
+	if (ActiveMode != EAbilityMode::None && bIsMatchingTarget)
 	{
 		SetTargetStencilEnabled(bAimedTarget);
+	
 		if (bAimedTarget && GetOwner())
 		{
 			TArray<UPrimitiveComponent*> Components;
 			GetOwner()->GetComponents(Components);
+
 			for (UPrimitiveComponent* Component : Components)
 			{
 				if (Component && !TopScanOverlays.Contains(Cast<UStaticMeshComponent>(Component)))
@@ -117,6 +129,7 @@ void UAbilityReactionComponent::SetAimedTarget(const bool bAimed)
 				}
 			}
 		}
+
 		SetTargetSurfaceHighlightEnabled(true, ActiveMode);
 	}
 }
@@ -129,7 +142,9 @@ bool UAbilityReactionComponent::IsTargetReaction() const
 void UAbilityReactionComponent::SetTargetStencilEnabled(const bool bEnabled) const
 {
 	TArray<UPrimitiveComponent*> Components;
+
 	GetOwner()->GetComponents(Components);
+
 	for (UPrimitiveComponent* Component : Components)
 	{
 		if (Component && !TopScanOverlays.Contains(Cast<UStaticMeshComponent>(Component)))
@@ -146,9 +161,14 @@ void UAbilityReactionComponent::SetTopScanEnabled(const bool bEnabled, const EAb
 	{
 		CreateTopScanOverlays();
 	}
-	const FLinearColor Color = FAbilityModeVisualProfiles::Get(Mode).ScanColor;
+
+	const FAbilityModeVisualProfile& VisualProfile = FAbilityModeVisualProfiles::Get(Mode);
+	const FLinearColor Color = VisualProfile.ScanColor;
 	FVector2D ScanDirection(1.0f, 0.0f);
-	if (UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr)
+
+	const UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+
+	if (GameInstance)
 	{
 		if (const UAbilityModeSubsystem* AbilityModeSubsystem = GameInstance->GetSubsystem<UAbilityModeSubsystem>())
 		{
@@ -168,12 +188,14 @@ void UAbilityReactionComponent::SetTopScanEnabled(const bool bEnabled, const EAb
 			Overlay->SetHiddenInGame(!bEnabled, true);
 			Overlay->SetVisibility(bEnabled, true);
 		}
+
 		if (TopScanMaterials.IsValidIndex(Index) && TopScanMaterials[Index])
 		{
 			TopScanMaterials[Index]->SetVectorParameterValue(TEXT("ScanColor"), Color);
 			// ScanAngle is captured on Magnesis mode entry. The material samples world
 			// position, so every overlay shares the same frozen line direction.
-			TopScanMaterials[Index]->SetScalarParameterValue(TEXT("ScanAngle"), FMath::Atan2(ScanDirection.Y, ScanDirection.X));
+				TopScanMaterials[Index]->SetScalarParameterValue(TEXT("ScanAngle"), FMath::Atan2(ScanDirection.Y, ScanDirection.X));
+				TopScanMaterials[Index]->SetScalarParameterValue(TEXT("ScanLineSpacing"), VisualProfile.ScanLineSpacing);
 		}
 	}
 }
@@ -187,6 +209,7 @@ void UAbilityReactionComponent::SetTargetSurfaceHighlightEnabled(const bool bEna
 
 	const FAbilityModeVisualProfile& VisualProfile = FAbilityModeVisualProfiles::Get(Mode);
 	const FAbilityModeVisualCommonProfile& CommonProfile = FAbilityModeVisualProfiles::GetCommon();
+
 	for (int32 Index = 0; Index < TargetSurfaceHighlightOverlays.Num(); ++Index)
 	{
 		if (UStaticMeshComponent* Overlay = TargetSurfaceHighlightOverlays[Index])
@@ -194,11 +217,10 @@ void UAbilityReactionComponent::SetTargetSurfaceHighlightEnabled(const bool bEna
 			Overlay->SetHiddenInGame(!bEnabled, true);
 			Overlay->SetVisibility(bEnabled, true);
 		}
+
 		if (TargetSurfaceHighlightMaterials.IsValidIndex(Index) && TargetSurfaceHighlightMaterials[Index])
 		{
-			TargetSurfaceHighlightMaterials[Index]->SetVectorParameterValue(
-				TEXT("TargetEdgeColor"),
-				bAimedTarget ? VisualProfile.TargetEdgeColor : VisualProfile.CandidateGlowColor);
+			TargetSurfaceHighlightMaterials[Index]->SetVectorParameterValue(TEXT("TargetEdgeColor"),bAimedTarget ? VisualProfile.TargetEdgeColor : VisualProfile.CandidateGlowColor);
 			TargetSurfaceHighlightMaterials[Index]->SetScalarParameterValue(TEXT("TargetEdgeOpacity"), CommonProfile.TargetEdgeOpacity);
 		}
 	}
@@ -210,29 +232,37 @@ void UAbilityReactionComponent::CreateTopScanOverlays()
 	{
 		return;
 	}
+
 	UMaterialInterface* Material = TopScanOverlayMaterial.LoadSynchronous();
+
 	if (!Material)
 	{
 		return;
 	}
+
 	TArray<UStaticMeshComponent*> Sources; GetOwner()->GetComponents(Sources);
+
 	for (UStaticMeshComponent* Source : Sources)
 	{
 		if (!Source || !Source->GetStaticMesh() || TopScanOverlays.Contains(Source) || TargetSurfaceHighlightOverlays.Contains(Source))
 		{
 			continue;
 		}
+
 		UStaticMeshComponent* Overlay = NewObject<UStaticMeshComponent>(GetOwner(), NAME_None, RF_Transient);
 		GetOwner()->AddInstanceComponent(Overlay); Overlay->SetStaticMesh(Source->GetStaticMesh()); Overlay->SetupAttachment(Source);
 		// This is a separate translucent shell. Keep it far enough from the source
 		// mesh to avoid depth-buffer Z-fighting while the camera moves.
 		Overlay->SetRelativeScale3D(FVector(1.005f)); Overlay->SetRelativeLocation(FVector(0.0f, 0.0f, 0.5f)); Overlay->SetCollisionEnabled(ECollisionEnabled::NoCollision); Overlay->SetCastShadow(false); Overlay->SetRenderCustomDepth(false);
 		UMaterialInstanceDynamic* DynamicMaterial = UMaterialInstanceDynamic::Create(Material, this);
+
 		for (int32 Slot = 0; Slot < Source->GetNumMaterials(); ++Slot)
 		{
 			Overlay->SetMaterial(Slot, DynamicMaterial);
 		}
+
 		Overlay->SetHiddenInGame(true, true); Overlay->RegisterComponent();
+
 		TopScanOverlays.Add(Overlay); TopScanMaterials.Add(DynamicMaterial);
 	}
 }
@@ -243,27 +273,35 @@ void UAbilityReactionComponent::CreateTargetSurfaceHighlightOverlays()
 	{
 		return;
 	}
+
 	UMaterialInterface* Material = TargetSurfaceHighlightMaterial.LoadSynchronous();
+
 	if (!Material)
 	{
 		return;
 	}
+
 	TArray<UStaticMeshComponent*> Sources; GetOwner()->GetComponents(Sources);
+
 	for (UStaticMeshComponent* Source : Sources)
 	{
 		if (!Source || !Source->GetStaticMesh() || TopScanOverlays.Contains(Source) || TargetSurfaceHighlightOverlays.Contains(Source))
 		{
 			continue;
 		}
+
 		UStaticMeshComponent* Overlay = NewObject<UStaticMeshComponent>(GetOwner(), NAME_None, RF_Transient);
 		GetOwner()->AddInstanceComponent(Overlay); Overlay->SetStaticMesh(Source->GetStaticMesh()); Overlay->SetupAttachment(Source);
 		Overlay->SetRelativeScale3D(FVector(1.012f)); Overlay->SetCollisionEnabled(ECollisionEnabled::NoCollision); Overlay->SetCastShadow(false); Overlay->SetRenderCustomDepth(false);
 		UMaterialInstanceDynamic* DynamicMaterial = UMaterialInstanceDynamic::Create(Material, this);
+
 		for (int32 Slot = 0; Slot < Source->GetNumMaterials(); ++Slot)
 		{
 			Overlay->SetMaterial(Slot, DynamicMaterial);
 		}
+
 		Overlay->SetHiddenInGame(true, true); Overlay->RegisterComponent();
+
 		TargetSurfaceHighlightOverlays.Add(Overlay); TargetSurfaceHighlightMaterials.Add(DynamicMaterial);
 	}
 }

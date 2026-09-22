@@ -8,7 +8,6 @@ class FAbility
 {
 public:
 	explicit FAbility(AKzPlayerCharacter* InCharacter) : Character(InCharacter) { }
-
 	virtual ~FAbility() = default;
 
 	virtual void Tick(float DeltaTime) {}
