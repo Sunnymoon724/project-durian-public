@@ -23,6 +23,8 @@ class DURIAN_API AKzPlayerCharacter : public ACharacter
 	
 
 public:
+	DECLARE_MULTICAST_DELEGATE_OneParam(FAbilityChangedDelegate, EAbilityType);
+
 	// Sets default values for this character's properties
 	AKzPlayerCharacter();
 	virtual ~AKzPlayerCharacter() override;
@@ -61,6 +63,7 @@ public:
 	void HandleIceTargetAtFeet() const;
 	void HandleRemoteBombThrow() const;
 	void SetAbility(EAbilityType NewAbility);
+	FAbilityChangedDelegate OnAbilityChanged;
 
 	UPhysicsHandleComponent* GetPhysicsHandle() const { return PhysicsHandle; }
 	UAbilityEffectComponent* GetAbilityEffect() const { return AbilityEffect; }

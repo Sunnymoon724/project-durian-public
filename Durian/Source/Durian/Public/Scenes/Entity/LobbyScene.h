@@ -6,8 +6,6 @@
 #include "Scenes/Core/KZScene.h"
 #include "LobbyScene.generated.h"
 
-class UKzHudWidget;
-
 /**
  * 
  */
@@ -19,7 +17,4 @@ class DURIAN_API ULobbyScene : public UKzScene
 public:
 	virtual void Initialize(UWorld* World) override;
 
-private:
-	UPROPERTY(Transient)
-	TObjectPtr<UKzHudWidget> HudWidget;
 };

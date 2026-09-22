@@ -78,9 +78,7 @@ void AIcePlacementPreview::SetPreviewState(const FVector& Location, const bool b
 
 	if (PreviewMaterial)
 	{
-		PreviewMaterial->SetVectorParameterValue(TEXT("PreviewColor"), bCanSpawn
-			? FLinearColor(0.05f, 0.75f, 1.0f)
-			: FLinearColor(1.0f, 0.10f, 0.35f));
+		PreviewMaterial->SetVectorParameterValue(TEXT("PreviewColor"), bCanSpawn ? FLinearColor(0.05f, 0.75f, 1.0f) : FLinearColor(1.0f, 0.10f, 0.35f));
 		PreviewMaterial->SetScalarParameterValue(TEXT("EmissiveStrength"), bCanSpawn ? 3.0f : 0.8f);
 		PreviewMaterial->SetScalarParameterValue(TEXT("Opacity"), bCanSpawn ? 0.45f : 0.25f);
 		PreviewMaterial->SetScalarParameterValue(TEXT("PulseSpeed"), bCanSpawn ? 1.2f : 0.0f);

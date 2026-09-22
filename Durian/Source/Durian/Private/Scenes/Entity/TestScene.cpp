@@ -2,8 +2,9 @@
 
 
 #include "Scenes/Entity/TestScene.h"
-#include "UI/KzHudWidget.h"
 #include "UI/KzUISubsystem.h"
+#include "UI/Widget/KzHudWidget.h"
+#include "Engine/GameInstance.h"
 
 void UTestScene::Initialize(UWorld* World)
 {
@@ -14,12 +15,13 @@ void UTestScene::Initialize(UWorld* World)
 		return;
 	}
 
-	UKzBaseWidget* Widget = OpenWidget(World,TEXT("WBP_Hud"));
+	const UGameInstance* GameInstance = World->GetGameInstance();
+	UKzUISubsystem* UISubsystem = GameInstance ? GameInstance->GetSubsystem<UKzUISubsystem>() : nullptr;
 
-	if (!Widget)
+	if (!UISubsystem)
 	{
 		return;
 	}
 
-	HudWidget = Cast<UKzHudWidget>(Widget);
+	UISubsystem->Open<UKzHudWidget>();
 }

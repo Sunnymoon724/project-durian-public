@@ -167,6 +167,8 @@ void AKzPlayerCharacter::SetAbility(const EAbilityType NewAbility)
 	{
 		PreviousAbility->HandleCancel();
 	}
+
+	OnAbilityChanged.Broadcast(CurrentAbilityType);
 }
 
 void AKzPlayerCharacter::SetPlayerState(const EPlayerState NewState)

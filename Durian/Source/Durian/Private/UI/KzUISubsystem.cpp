@@ -2,8 +2,6 @@
 #include "Blueprint/UserWidget.h"
 #include "Engine/GameInstance.h"
 #include "GameFramework/PlayerController.h"
-#include "View/MVVMView.h"
-#include "MVVMViewModelBase.h"
 
 APlayerController* UKzUISubsystem::GetPlayerController() const
 {
@@ -97,38 +95,6 @@ void UKzUISubsystem::RemoveWidget(TMap<TObjectPtr<UClass>, TObjectPtr<UUIWidgetC
 	}
 }
 
-void UKzUISubsystem::BindViewModel(const UKzBaseWidget* Widget)
-{
-	if (!IsValid(Widget))
-	{
-		return;
-	}
-
-	UMVVMView* View = Widget->GetExtension<UMVVMView>();
-
-	if (!View)
-	{
-		return;
-	}
-
-	for (const auto& [ContextName, ViewModelClass] : Widget->GetViewModelBindingArray())
-	{
-		if (ContextName.IsNone() || !ViewModelClass)
-		{
-			continue;
-		}
-
-		TObjectPtr<UMVVMViewModelBase>& ViewModel = ViewModelRegistry.FindOrAdd(ViewModelClass);
-
-		if (!ViewModel)
-		{
-			ViewModel = NewObject<UMVVMViewModelBase>(this, ViewModelClass);
-		}
-
-		View->SetViewModel(ContextName, TScriptInterface<INotifyFieldValueChanged>(ViewModel));
-	}
-}
-
 int32 UKzUISubsystem::GetZOrder(const UKzBaseWidget* Widget)
 {
 	return Widget ? static_cast<int32>(Widget->GetPriorityType()) * 100 : 200;
@@ -164,8 +130,6 @@ void UKzUISubsystem::Register(const TSubclassOf<UKzBaseWidget> WidgetClass)
 	{
 		return;
 	}
-
-	BindViewModel(Widget);
 
 	Widget->SetVisibility(ESlateVisibility::Collapsed);
 
@@ -203,8 +167,6 @@ UKzBaseWidget* UKzUISubsystem::Open(const TSubclassOf<UKzBaseWidget> WidgetClass
 		{
 			return nullptr;
 		}
-
-		BindViewModel(Widget);
 
 		if (!Widget->IsInViewport())
 		{
@@ -300,8 +262,6 @@ void UKzUISubsystem::ClearAll()
 
 	OpenWidgetMultiMap.Empty();
 	PoolWidgetMultiMap.Empty();
-	ViewModelRegistry.Empty();
-
 	if (IsValid(UIRootWidget))
 	{
 		UIRootWidget->RemoveFromParent();

@@ -12,8 +12,7 @@ class UInputMappingContext;
 class UInputAction;
 struct FInputActionDescriptor;
 class AKzPlayerCharacter;
-class UKzAbilityWheelWidget;
-class UKzHudWidget;
+class UKzAbilityWheelViewModel;
 
 /**
  * 
@@ -107,22 +106,13 @@ private:
 	void OnGuard();
 	void OnCancel();
 	void OnMenu();
-	void OnAbilityWheel();
-	void OnAbilityWheelCompleted();
-	UFUNCTION()
-	void HandleAbilityWheelConfirmed(EAbilityType AbilityType);
+	void OnAbilityWheelPressDown();
+	void OnAbilityWheelPressUp();
 	void OnIceTargetAtFeet();
 	void OnRemoteBombThrow();
 	void OnMagnesisDistance(const FInputActionValue& Value);
+	UKzAbilityWheelViewModel* GetAbilityWheelViewModel() const;
 
 	AKzPlayerCharacter* GetControlledCharacter();
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = true))
-	TSubclassOf<UKzAbilityWheelWidget> AbilityWheelWidgetClass;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = true))
-	TSubclassOf<UKzHudWidget> HudWidgetClass;
-
-	UKzAbilityWheelWidget* GetAbilityWheelWidget() const;
-	UKzHudWidget* GetHudWidget() const;
 };

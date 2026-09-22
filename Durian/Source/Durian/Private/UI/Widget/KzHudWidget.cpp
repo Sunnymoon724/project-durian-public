@@ -1,47 +1,32 @@
-#include "UI/KzHudWidget.h"
+#include "UI/Widget/KzHudWidget.h"
+#include "UI/ViewModel/KzHudViewModel.h"
+#include "View/MVVMView.h"
 
-#include "Components/Image.h"
-#include "Materials/MaterialInterface.h"
-
-void UKzHudWidget::SetCurrentAbility(const EAbilityType AbilityType)
+TSubclassOf<UKzBaseWidget> UKzHudWidget::GetWidgetClass()
 {
-	if (!CurrentAbilityIcon)
+	static const TSoftClassPtr<UKzHudWidget> WidgetClass(FSoftObjectPath(TEXT("/Game/_BP/Widgets/WBP_Hud.WBP_Hud_C")));
+
+	return WidgetClass.LoadSynchronous();
+}
+
+void UKzHudWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	const UMVVMView* View = GetExtension<UMVVMView>();
+
+	if (!View)
 	{
 		return;
 	}
 
-	const TCHAR* MaterialPath = nullptr;
-
-	switch (AbilityType)
+	for (const FMVVMView_Source& Source : View->GetSources())
 	{
-	case EAbilityType::Magnesis:
-		MaterialPath = TEXT("/Game/Resources/UI/Common/MI_AbilityIcon_Magnesis.MI_AbilityIcon_Magnesis");
-		break;
-	case EAbilityType::Cryonis:
-		MaterialPath = TEXT("/Game/Resources/UI/Common/MI_AbilityIcon_Cryonis.MI_AbilityIcon_Cryonis");
-		break;
-	case EAbilityType::Stasis:
-		MaterialPath = TEXT("/Game/Resources/UI/Common/MI_AbilityIcon_Stasis.MI_AbilityIcon_Stasis");
-		break;
-	case EAbilityType::RemoteBombSphere:
-		MaterialPath = TEXT("/Game/Resources/UI/Common/MI_AbilityIcon_RemoteBombSphere.MI_AbilityIcon_RemoteBombSphere");
-		break;
-	case EAbilityType::RemoteBombCube:
-		MaterialPath = TEXT("/Game/Resources/UI/Common/MI_AbilityIcon_RemoteBombCube.MI_AbilityIcon_RemoteBombCube");
-		break;
-	default:
-		CurrentAbilityIcon->SetVisibility(ESlateVisibility::Collapsed);
-		return;
+		if (UKzHudViewModel* ViewModel = Cast<UKzHudViewModel>(Source.Source))
+		{
+			ViewModel->Initialize();
+
+			return;
+		}
 	}
-
-	UMaterialInterface* IconMaterial = LoadObject<UMaterialInterface>(nullptr, MaterialPath);
-
-	if (!IconMaterial)
-	{
-		CurrentAbilityIcon->SetVisibility(ESlateVisibility::Collapsed);
-		return;
-	}
-
-	CurrentAbilityIcon->SetBrushFromMaterial(IconMaterial);
-	CurrentAbilityIcon->SetVisibility(ESlateVisibility::Visible);
 }

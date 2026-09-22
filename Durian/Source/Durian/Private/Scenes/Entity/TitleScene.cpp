@@ -6,17 +6,4 @@ void UTitleScene::Initialize(UWorld* World)
 {
 	Super::Initialize(World);
 
-	if (!World)
-	{
-		return;
-	}
-
-	// UKzBaseWidget* Widget = OpenWidget(World,TEXT("WBP_Hud"));
-	//
-	// if (!Widget)
-	// {
-	// 	return;
-	// }
-	//
-	// HudWidget = Cast<UKzHudWidget>(Widget);
 }

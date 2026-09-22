@@ -67,9 +67,7 @@ void FMagnesisAbility::HandleAbilityUse()
 		{
 			if (UAbilityModeSubsystem* AbilityModeSubsystem = GameInstance->GetSubsystem<UAbilityModeSubsystem>())
 			{
-				const FVector ViewDirection = Character->GetController()
-					? Character->GetController()->GetControlRotation().Vector()
-					: Character->GetActorForwardVector();
+				const FVector ViewDirection = Character->GetController() ? Character->GetController()->GetControlRotation().Vector() : Character->GetActorForwardVector();
 				AbilityModeSubsystem->SetModeScanDirection(FVector2D(ViewDirection.X, ViewDirection.Y));
 				AbilityModeSubsystem->SetAbilityModeActive(EAbilityMode::Magnesis, true);
 			}
@@ -224,9 +222,7 @@ bool FMagnesisAbility::TraceTarget(UPrimitiveComponent*& OutComponent, FVector& 
 	QueryParams.AddIgnoredActor(Character);
 
 	const bool bTraceHit = Character->GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
-	const UAbilityReactionComponent* Reaction = bTraceHit && HitResult.GetActor()
-		? HitResult.GetActor()->FindComponentByClass<UAbilityReactionComponent>()
-		: nullptr;
+	const UAbilityReactionComponent* Reaction = bTraceHit && HitResult.GetActor() ? HitResult.GetActor()->FindComponentByClass<UAbilityReactionComponent>() : nullptr;
 	const bool bValidTarget = Reaction && Reaction->GetReactionType() == EAbilityReactionType::MagnesisTarget;
 
 	DrawDebugLine(

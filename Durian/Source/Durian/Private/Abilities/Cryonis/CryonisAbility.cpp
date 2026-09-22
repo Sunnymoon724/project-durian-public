@@ -67,9 +67,7 @@ void FCryonisAbility::HandleAbilityUse()
 		{
 			if (UAbilityModeSubsystem* AbilityModeSubsystem = GameInstance->GetSubsystem<UAbilityModeSubsystem>())
 			{
-				const FVector ViewDirection = Character->GetController()
-					? Character->GetController()->GetControlRotation().Vector()
-					: Character->GetActorForwardVector();
+				const FVector ViewDirection = Character->GetController() ? Character->GetController()->GetControlRotation().Vector() : Character->GetActorForwardVector();
 				AbilityModeSubsystem->SetModeScanDirection(FVector2D(ViewDirection.X, ViewDirection.Y));
 				AbilityModeSubsystem->SetAbilityModeActive(EAbilityMode::Cryonis, true);
 			}
@@ -118,9 +116,7 @@ void FCryonisAbility::UpdateTargeting()
 		return;
 	}
 
-	const UAbilityReactionComponent* Reaction = HitActor
-		? HitActor->FindComponentByClass<UAbilityReactionComponent>()
-		: nullptr;
+	const UAbilityReactionComponent* Reaction = HitActor ? HitActor->FindComponentByClass<UAbilityReactionComponent>() : nullptr;
 	if (!HitActor || (!HitActor->ActorHasTag(TEXT("IceSpawnSurface"))
 		&& (!Reaction || Reaction->GetReactionType() != EAbilityReactionType::Water)))
 	{
