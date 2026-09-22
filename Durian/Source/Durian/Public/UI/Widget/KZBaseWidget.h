@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Enums/UIEnums.h"
-#include "MVVMViewModelBase.h"
+#include "UI/KzViewModelBase.h"
 #include "KzBaseWidget.generated.h"
 
 USTRUCT(BlueprintType)
@@ -15,7 +15,7 @@ struct FViewModelBinding
 	FName ContextName;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="UI|MVVM")
-	TSubclassOf<UMVVMViewModelBase> ViewModelClass;
+	TSubclassOf<UKzViewModelBase> ViewModelClass;
 };
 
 UCLASS(Abstract, Blueprintable)

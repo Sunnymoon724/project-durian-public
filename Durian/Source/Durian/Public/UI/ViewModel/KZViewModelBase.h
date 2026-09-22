@@ -13,5 +13,7 @@ UCLASS()
 class DURIAN_API UKzViewModelBase : public UMVVMViewModelBase
 {
 	GENERATED_BODY()
-	
+
+public:
+	virtual void Initialize();
 };

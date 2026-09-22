@@ -3,3 +3,7 @@
 
 #include "UI/KzViewModelBase.h"
 
+void UKzViewModelBase::Initialize()
+{
+}
+
