@@ -26,8 +26,8 @@ Unreal Engine 5.8과 C++로 만드는 3D 물리 능력 퍼즐 액션 데모입�
 
 ## 문서
 
-프로젝트 문서 목록은 [Documents/DOCUMENT_INDEX.md](Documents/DOCUMENT_INDEX.md)에서 확인할 수 있습니다.
-
 ## 변경 기록
+
+문서 전체 색인은 [Documents/DOCUMENT_INDEX.md](Documents/DOCUMENT_INDEX.md)에서 확인할 수 있습니다.
 
 변경 내용은 [CHANGELOG.md](CHANGELOG.md)에 기록합니다.
