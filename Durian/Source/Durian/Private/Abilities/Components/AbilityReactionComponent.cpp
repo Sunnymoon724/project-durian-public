@@ -195,7 +195,6 @@ void UAbilityReactionComponent::SetTopScanEnabled(const bool bEnabled, const EAb
 			// ScanAngle is captured on Magnesis mode entry. The material samples world
 			// position, so every overlay shares the same frozen line direction.
 				TopScanMaterials[Index]->SetScalarParameterValue(TEXT("ScanAngle"), FMath::Atan2(ScanDirection.Y, ScanDirection.X));
-				TopScanMaterials[Index]->SetScalarParameterValue(TEXT("ScanLineSpacing"), VisualProfile.ScanLineSpacing);
 		}
 	}
 }

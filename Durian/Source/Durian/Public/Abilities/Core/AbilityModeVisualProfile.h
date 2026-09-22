@@ -22,6 +22,7 @@ struct FAbilityModeVisualCommonProfile
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target Surface", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float TargetEdgeOpacity = 0.16f;
+
 };
 
 /** 능력 모드별 색상 시각 파라미터다. */
@@ -32,9 +33,6 @@ struct FAbilityModeVisualProfile
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlay")
 	FLinearColor ScanColor;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlay", meta = (ClampMin = "0.01"))
-	float ScanLineSpacing = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlay")
 	FLinearColor TargetScanColor;
