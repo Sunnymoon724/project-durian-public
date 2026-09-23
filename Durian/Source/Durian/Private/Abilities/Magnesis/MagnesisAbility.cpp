@@ -67,7 +67,7 @@ void FMagnesisAbility::HandleAbilityUse()
 			{
 				const FVector ViewDirection = Character->GetController() ? Character->GetController()->GetControlRotation().Vector() : Character->GetActorForwardVector();
 				AbilityModeSubsystem->SetModeScanDirection(FVector2D(ViewDirection.X, ViewDirection.Y));
-				AbilityModeSubsystem->SetAbilityModeActive(EAbilityMode::Magnesis, true);
+				AbilityModeSubsystem->SetAbilityModeActive(EAbilityVisualMode::Magnesis, true);
 			}
 		}
 
@@ -201,7 +201,7 @@ void FMagnesisAbility::ExitTargetingMode()
 
 	if (UGameInstance* GameInstance = Character->GetGameInstance())
 	{
-		GameInstance->GetSubsystem<UAbilityModeSubsystem>()->SetAbilityModeActive(EAbilityMode::Magnesis, false);
+		GameInstance->GetSubsystem<UAbilityModeSubsystem>()->SetAbilityModeActive(EAbilityVisualMode::Magnesis, false);
 	}
 
 	if (UAbilityEffectComponent* AbilityEffect = Character->GetAbilityEffect())
@@ -276,7 +276,7 @@ void FMagnesisAbility::Release()
 
 	if (UGameInstance* GameInstance = Character->GetGameInstance())
 	{
-		GameInstance->GetSubsystem<UAbilityModeSubsystem>()->SetAbilityModeActive(EAbilityMode::Magnesis, false);
+		GameInstance->GetSubsystem<UAbilityModeSubsystem>()->SetAbilityModeActive(EAbilityVisualMode::Magnesis, false);
 	}
 
 	if (UAbilityEffectComponent* AbilityEffect = Character->GetAbilityEffect())

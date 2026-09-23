@@ -13,6 +13,7 @@ void UKzAbilityWheelViewModel::Initialize()
 	if (PlayerController)
 	{
 		PlayerController->OnPossessedPawnChanged.AddUniqueDynamic(this, &UKzAbilityWheelViewModel::HandlePossessedPawnChanged);
+
 		HandlePossessedPawnChanged(nullptr, PlayerController->GetPawn());
 	}
 }
@@ -63,6 +64,7 @@ void UKzAbilityWheelViewModel::SetSelectedAbility(const EAbilityType AbilityType
 	if (AbilitySlotArray.Contains(AbilityType))
 	{
 		UE_MVVM_SET_PROPERTY_VALUE(SelectedAbility, AbilityType);
+
 		UpdateSelectionAngle();
 	}
 }

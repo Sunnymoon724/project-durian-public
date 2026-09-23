@@ -3,15 +3,14 @@
 #include "CoreMinimal.h"
 #include "AbilityModeTypes.generated.h"
 
-/** 전역으로 전환되는 능력 모드다. */
+/** 월드 시각 반응과 타깃 강조에 사용하는 모드다. */
 UENUM(BlueprintType)
-enum class EAbilityMode : uint8
+enum class EAbilityVisualMode : uint8
 {
 	None,
 	Magnesis,
 	Cryonis,
-	Stasis,
-	RemoteBomb
+	Stasis
 };
 
 UENUM(BlueprintType)

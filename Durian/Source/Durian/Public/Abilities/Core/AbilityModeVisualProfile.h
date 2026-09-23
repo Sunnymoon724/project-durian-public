@@ -76,8 +76,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability Mode Visuals")
 	FAbilityModeVisualProfile Stasis;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability Mode Visuals")
-	FAbilityModeVisualProfile RemoteBomb;
 };
 
 /** 모드별 시각 언어의 단일 조회점이다. */
@@ -85,5 +83,5 @@ class DURIAN_API FAbilityModeVisualProfiles final
 {
 public:
 	static const FAbilityModeVisualCommonProfile& GetCommon();
-	static const FAbilityModeVisualProfile& Get(EAbilityMode Mode);
+	static const FAbilityModeVisualProfile& Get(EAbilityVisualMode Mode);
 };

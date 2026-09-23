@@ -19,9 +19,9 @@ class DURIAN_API IAbilityModeListener
 public:
 	/** 이 객체가 반응할 수 있는 능력 모드를 반환한다. */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Ability Mode")
-	TArray<EAbilityMode> GetSupportedAbilityModes() const;
+	TArray<EAbilityVisualMode> GetSupportedAbilityModes() const;
 
 	/** 등록된 능력 모드가 전환될 때 호출된다. */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Ability Mode")
-	void OnAbilityModeChanged(EAbilityMode Mode, bool bEnabled);
+	void OnAbilityModeChanged(EAbilityVisualMode Mode, bool bEnabled);
 };

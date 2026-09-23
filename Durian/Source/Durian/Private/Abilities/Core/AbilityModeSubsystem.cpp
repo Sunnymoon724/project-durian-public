@@ -11,10 +11,10 @@ bool UAbilityModeSubsystem::RegisterAbilityModeListener(UObject* Listener)
 		return false;
 	}
 
-	TSet<EAbilityMode> SupportedModes;
-	for (const EAbilityMode Mode : IAbilityModeListener::Execute_GetSupportedAbilityModes(Listener))
+	TSet<EAbilityVisualMode> SupportedModes;
+	for (const EAbilityVisualMode Mode : IAbilityModeListener::Execute_GetSupportedAbilityModes(Listener))
 	{
-		if (Mode != EAbilityMode::None)
+		if (Mode != EAbilityVisualMode::None)
 		{
 			SupportedModes.Add(Mode);
 		}
@@ -22,7 +22,7 @@ bool UAbilityModeSubsystem::RegisterAbilityModeListener(UObject* Listener)
 
 	RegisteredListeners.Add(Listener, MoveTemp(SupportedModes));
 
-	for (const EAbilityMode Mode : ActiveModes)
+	for (const EAbilityVisualMode Mode : ActiveModes)
 	{
 		if (RegisteredListeners.FindChecked(Listener).Contains(Mode))
 		{
@@ -41,9 +41,9 @@ void UAbilityModeSubsystem::UnregisterAbilityModeListener(UObject* Listener)
 	}
 }
 
-void UAbilityModeSubsystem::SetAbilityModeActive(const EAbilityMode Mode, const bool bEnabled)
+void UAbilityModeSubsystem::SetAbilityModeActive(const EAbilityVisualMode Mode, const bool bEnabled)
 {
-	if (Mode == EAbilityMode::None)
+	if (Mode == EAbilityVisualMode::None)
 	{
 		return;
 	}
@@ -66,7 +66,7 @@ void UAbilityModeSubsystem::SetAbilityModeActive(const EAbilityMode Mode, const 
 
 	RemoveInvalidListeners();
 
-	for (const TPair<TWeakObjectPtr<UObject>, TSet<EAbilityMode>>& Entry : RegisteredListeners)
+	for (const TPair<TWeakObjectPtr<UObject>, TSet<EAbilityVisualMode>>& Entry : RegisteredListeners)
 	{
 		if (UObject* Listener = Entry.Key.Get(); Listener && Entry.Value.Contains(Mode))
 		{
@@ -75,7 +75,7 @@ void UAbilityModeSubsystem::SetAbilityModeActive(const EAbilityMode Mode, const 
 	}
 }
 
-bool UAbilityModeSubsystem::IsAbilityModeActive(const EAbilityMode Mode) const
+bool UAbilityModeSubsystem::IsAbilityModeActive(const EAbilityVisualMode Mode) const
 {
 	return ActiveModes.Contains(Mode);
 }
@@ -99,7 +99,7 @@ void UAbilityModeSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-void UAbilityModeSubsystem::NotifyListener(UObject* Listener, const EAbilityMode Mode, const bool bEnabled) const
+void UAbilityModeSubsystem::NotifyListener(UObject* Listener, const EAbilityVisualMode Mode, const bool bEnabled) const
 {
 	IAbilityModeListener::Execute_OnAbilityModeChanged(Listener, Mode, bEnabled);
 }

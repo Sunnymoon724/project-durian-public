@@ -11,7 +11,6 @@ AMainActor::AMainActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	PrimaryActorTick.bStartWithTickEnabled = false;
-
 }
 
 // Called when the game starts or when spawned

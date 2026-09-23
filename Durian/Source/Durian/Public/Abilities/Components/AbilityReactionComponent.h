@@ -9,7 +9,6 @@ class UMaterialInstanceDynamic;
 class UMaterialInterface;
 class UStaticMeshComponent;
 
-/** 월드 오브젝트 하나의 능력 모드 반응을 담당한다. */
 UCLASS(ClassGroup = (Abilities), meta = (BlueprintSpawnableComponent))
 class DURIAN_API UAbilityReactionComponent : public UActorComponent, public IAbilityModeListener
 {
@@ -23,14 +22,14 @@ public:
 
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-	virtual TArray<EAbilityMode> GetSupportedAbilityModes_Implementation() const override;
-	virtual void OnAbilityModeChanged_Implementation(EAbilityMode Mode, bool bEnabled) override;
+	virtual TArray<EAbilityVisualMode> GetSupportedAbilityModes_Implementation() const override;
+	virtual void OnAbilityModeChanged_Implementation(EAbilityVisualMode Mode, bool bEnabled) override;
 
 private:
 	bool IsTargetReaction() const;
 	void SetTargetStencilEnabled(bool bEnabled) const;
-	void SetTopScanEnabled(bool bEnabled, EAbilityMode Mode);
-	void SetTargetSurfaceHighlightEnabled(bool bEnabled, EAbilityMode Mode);
+	void SetTopScanEnabled(bool bEnabled, EAbilityVisualMode Mode);
+	void SetTargetSurfaceHighlightEnabled(bool bEnabled, EAbilityVisualMode Mode);
 	void CreateTopScanOverlays();
 	void CreateTargetSurfaceHighlightOverlays();
 
@@ -56,5 +55,5 @@ private:
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> TargetSurfaceHighlightMaterials;
 
 	bool bAimedTarget = false;
-	EAbilityMode ActiveMode = EAbilityMode::None;
+	EAbilityVisualMode ActiveMode = EAbilityVisualMode::None;
 };

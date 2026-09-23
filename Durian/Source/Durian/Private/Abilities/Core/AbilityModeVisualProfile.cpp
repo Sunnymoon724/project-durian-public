@@ -26,7 +26,7 @@ const FAbilityModeVisualCommonProfile& FAbilityModeVisualProfiles::GetCommon()
 	return EmptyCommon;
 }
 
-const FAbilityModeVisualProfile& FAbilityModeVisualProfiles::Get(const EAbilityMode Mode)
+const FAbilityModeVisualProfile& FAbilityModeVisualProfiles::Get(const EAbilityVisualMode Mode)
 {
 	static const FAbilityModeVisualProfile constexpr EmptyProfile{};
 	UAbilityModeVisualProfilesDataAsset* VisualProfilesAsset = LoadVisualProfilesAsset();
@@ -39,11 +39,10 @@ const FAbilityModeVisualProfile& FAbilityModeVisualProfiles::Get(const EAbilityM
 
 	switch (Mode)
 	{
-	case EAbilityMode::Magnesis: return VisualProfilesAsset->Magnesis;
-	case EAbilityMode::Cryonis: return VisualProfilesAsset->Cryonis;
-	case EAbilityMode::Stasis: return VisualProfilesAsset->Stasis;
-	case EAbilityMode::RemoteBomb: return VisualProfilesAsset->RemoteBomb;
-	case EAbilityMode::None:
+	case EAbilityVisualMode::Magnesis: return VisualProfilesAsset->Magnesis;
+	case EAbilityVisualMode::Cryonis: return VisualProfilesAsset->Cryonis;
+	case EAbilityVisualMode::Stasis: return VisualProfilesAsset->Stasis;
+	case EAbilityVisualMode::None:
 	default:
 		UE_LOG(LogTemp, Error, TEXT("AbilityModeVisualProfiles: Invalid ability mode %s in '/Game/Data/AbilityMode/DA_AbilityModeVisualProfiles'"), *UEnum::GetValueAsString(Mode));
 		return EmptyProfile;

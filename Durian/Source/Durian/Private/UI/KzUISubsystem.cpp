@@ -192,12 +192,12 @@ UKzBaseWidget* UKzUISubsystem::Get(const TSubclassOf<UKzBaseWidget> WidgetClass)
 
 	if (!Widget)
 	{
-		if (FindWidget(PoolWidgetMultiMap, WidgetClass.Get()))
+		if (!FindWidget(PoolWidgetMultiMap, WidgetClass.Get()))
 		{
-			return Open(WidgetClass);
+			return nullptr;
 		}
 
-		return nullptr;
+		return Open(WidgetClass);
 	}
 
 	return Widget;
@@ -262,6 +262,7 @@ void UKzUISubsystem::ClearAll()
 
 	OpenWidgetMultiMap.Empty();
 	PoolWidgetMultiMap.Empty();
+
 	if (IsValid(UIRootWidget))
 	{
 		UIRootWidget->RemoveFromParent();

@@ -27,7 +27,9 @@ private:
 	void RemoveTargetedPillar();
 	void ExitTargetingMode();
 	void ClearTarget();
+	void UpdateAimedTarget(AActor* NewTarget);
 	void EnsurePreview();
+	static bool IsIcePillarTarget(const AActor* Actor);
 	bool TraceTarget(FHitResult& OutHit) const;
 	bool CanSpawnAt(const FVector& SpawnLocation, AActor* SurfaceActor) const;
 	static FVector GetSpawnLocation(const FHitResult& Hit);
@@ -35,6 +37,7 @@ private:
 
 	TWeakObjectPtr<AActor> TargetSurface;
 	TWeakObjectPtr<AIcePillar> TargetPillar;
+	TWeakObjectPtr<AActor> AimedTargetActor;
 	TWeakObjectPtr<AIcePlacementPreview> PlacementPreview;
 	TArray<TWeakObjectPtr<AIcePillar>> SpawnedPillars;
 

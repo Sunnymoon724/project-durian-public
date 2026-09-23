@@ -44,14 +44,12 @@ public:
 	void ClearMagnesisHoldLink();
 
 	virtual void BeginPlay() override;
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 private:
 	UMaterialInstanceDynamic* GetOrCreateVisionMaterial(EAbilityType Ability);
 	UMaterialInstanceDynamic* GetOrCreateHighlightMaterial(EAbilityType Ability);
-	void ApplyVisionProfile(UMaterialInstanceDynamic* MaterialInstance, EAbilityType Ability) const;
+	static void ApplyVisionProfile(UMaterialInstanceDynamic* MaterialInstance, EAbilityType Ability);
 	void SetBlendableWeight(UMaterialInstanceDynamic* MaterialInstance, const float Weight) const;
-	void ApplyCameraManagerBlendables();
 
 	UPROPERTY(EditDefaultsOnly, Category = "Ability VFX|Vision")
 	TMap<EAbilityType, TSoftObjectPtr<UMaterialInterface>> VisionMaterials;

@@ -18,7 +18,9 @@ void FStasisAbility::Tick(float DeltaTime)
 
 	switch (Character->GetCurrentState())
 	{
-	case EPlayerState::StasisTargeting: UpdateTargeting(); break;
+	case EPlayerState::StasisTargeting:
+		UpdateTargeting();
+		break;
 	case EPlayerState::StasisActive:
 		RemainingTime -= DeltaTime;
 		if (RemainingTime <= 0.0f) EndStasis(true);
@@ -38,7 +40,7 @@ void FStasisAbility::HandleCancel()
 	{
 		ClearTarget();
 		Character->SetPlayerState(EPlayerState::Normal);
-		if (UGameInstance* GI = Character->GetGameInstance()) GI->GetSubsystem<UAbilityModeSubsystem>()->SetAbilityModeActive(EAbilityMode::Stasis, false);
+		if (UGameInstance* GI = Character->GetGameInstance()) GI->GetSubsystem<UAbilityModeSubsystem>()->SetAbilityModeActive(EAbilityVisualMode::Stasis, false);
 		if (UAbilityEffectComponent* Effect = Character->GetAbilityEffect()) Effect->ClearVisionEffects();
 	}
 	else if (Character && Character->GetCurrentState() == EPlayerState::StasisActive) EndStasis(false);
@@ -50,7 +52,7 @@ void FStasisAbility::HandleAbilityUse()
 	if (Character->GetCurrentState() == EPlayerState::Normal)
 	{
 		Character->SetPlayerState(EPlayerState::StasisTargeting);
-		if (UGameInstance* GI = Character->GetGameInstance()) GI->GetSubsystem<UAbilityModeSubsystem>()->SetAbilityModeActive(EAbilityMode::Stasis, true);
+		if (UGameInstance* GI = Character->GetGameInstance()) GI->GetSubsystem<UAbilityModeSubsystem>()->SetAbilityModeActive(EAbilityVisualMode::Stasis, true);
 		if (UAbilityEffectComponent* Effect = Character->GetAbilityEffect()) Effect->SetVisionEnabled(EAbilityType::Stasis, true);
 	}
 	else if (Character->GetCurrentState() == EPlayerState::StasisTargeting) HandleCancel();
@@ -85,7 +87,11 @@ void FStasisAbility::UpdateTargeting()
 void FStasisAbility::StartStasis()
 {
 	UPrimitiveComponent* Target = nullptr;
-	if (!TraceTarget(Target) || !Target->IsSimulatingPhysics()) { HandleCancel(); return; }
+	if (!TraceTarget(Target) || !Target->IsSimulatingPhysics())
+	{
+		HandleCancel();
+		return;
+	}
 	TargetedComponent = Target;
 	SavedLinearVelocity = Target->GetPhysicsLinearVelocity();
 	SavedAngularVelocity = Target->GetPhysicsAngularVelocityInRadians();
@@ -109,7 +115,7 @@ void FStasisAbility::EndStasis(const bool bApplyImpulse)
 	AccumulatedImpulse = FVector::ZeroVector;
 	CooldownRemaining = Constants::StasisCooldown;
 	Character->SetPlayerState(EPlayerState::Normal);
-	if (UGameInstance* GI = Character->GetGameInstance()) GI->GetSubsystem<UAbilityModeSubsystem>()->SetAbilityModeActive(EAbilityMode::Stasis, false);
+	if (UGameInstance* GI = Character->GetGameInstance()) GI->GetSubsystem<UAbilityModeSubsystem>()->SetAbilityModeActive(EAbilityVisualMode::Stasis, false);
 	if (UAbilityEffectComponent* Effect = Character->GetAbilityEffect()) Effect->ClearVisionEffects();
 }
 

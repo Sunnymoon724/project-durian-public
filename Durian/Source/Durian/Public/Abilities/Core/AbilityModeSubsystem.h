@@ -24,10 +24,10 @@ public:
 
 	/** 지정한 모드를 켜거나 끄고, 해당 모드에 반응하는 등록 객체에 알린다. */
 	UFUNCTION(BlueprintCallable, Category = "Ability Mode")
-	void SetAbilityModeActive(EAbilityMode Mode, bool bEnabled);
+	void SetAbilityModeActive(EAbilityVisualMode Mode, bool bEnabled);
 
 	UFUNCTION(BlueprintPure, Category = "Ability Mode")
-	bool IsAbilityModeActive(EAbilityMode Mode) const;
+	bool IsAbilityModeActive(EAbilityVisualMode Mode) const;
 
 	/** 모드를 켠 순간의 수평 시선 방향. 모드가 끝날 때까지 변경하지 않는다. */
 	void SetModeScanDirection(const FVector2D& Direction);
@@ -36,10 +36,10 @@ public:
 	virtual void Deinitialize() override;
 
 private:
-	void NotifyListener(UObject* Listener, EAbilityMode Mode, bool bEnabled) const;
+	void NotifyListener(UObject* Listener, EAbilityVisualMode Mode, bool bEnabled) const;
 	void RemoveInvalidListeners();
 
-	TMap<TWeakObjectPtr<UObject>, TSet<EAbilityMode>> RegisteredListeners;
-	TSet<EAbilityMode> ActiveModes;
+	TMap<TWeakObjectPtr<UObject>, TSet<EAbilityVisualMode>> RegisteredListeners;
+	TSet<EAbilityVisualMode> ActiveModes;
 	FVector2D ModeScanDirection = FVector2D(1.0f, 0.0f);
 };

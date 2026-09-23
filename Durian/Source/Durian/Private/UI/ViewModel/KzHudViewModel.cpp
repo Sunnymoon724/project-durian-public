@@ -12,6 +12,7 @@ void UKzHudViewModel::Initialize()
 	if (PlayerController)
 	{
 		PlayerController->OnPossessedPawnChanged.AddUniqueDynamic(this, &UKzHudViewModel::HandlePossessedPawnChanged);
+
 		HandlePossessedPawnChanged(nullptr, PlayerController->GetPawn());
 	}
 }

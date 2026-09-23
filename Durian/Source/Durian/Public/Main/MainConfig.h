@@ -12,11 +12,7 @@
  */
 
 UENUM(BlueprintType)
-enum class EStartupMode : uint8
-{
-	Normal,
-	Test,
-};
+enum class EStartupMode : uint8 { Normal, Test, };
 
 UCLASS(BlueprintType)
 class DURIAN_API UMainConfig : public UDataAsset

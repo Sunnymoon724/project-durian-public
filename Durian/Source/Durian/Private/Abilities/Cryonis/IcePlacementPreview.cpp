@@ -1,5 +1,7 @@
 #include "Abilities/Cryonis/IcePlacementPreview.h"
 
+#include "Abilities/Cryonis/IcePillar.h"
+
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -13,18 +15,27 @@ AIcePlacementPreview::AIcePlacementPreview()
 	PrimaryActorTick.bCanEverTick = true;
 	SetActorTickEnabled(false);
 
+	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
+	RootComponent = SceneRoot;
+
 	PreviewPlane = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewPlane"));
-	RootComponent = PreviewPlane;
+	PreviewPlane->SetupAttachment(SceneRoot);
 	PreviewPlane->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	PreviewPlane->SetCastShadow(false);
-	PreviewPlane->SetRelativeLocation(FVector(0.0f, 0.0f, 2.0f));
-	PreviewPlane->SetRelativeScale3D(FVector(1.5f, 1.5f, 1.0f));
+	PreviewPlane->SetRelativeLocation(FVector(0.0f, 0.0f, -AIcePillar::HalfHeight + 2.0f));
+	PreviewPlane->SetRelativeScale3D(FVector(AIcePillar::HorizontalScale, AIcePillar::HorizontalScale, 1.0f));
+
+	PreviewPillar = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewPillar"));
+	PreviewPillar->SetupAttachment(SceneRoot);
+	PreviewPillar->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	PreviewPillar->SetCastShadow(false);
+	PreviewPillar->SetVisibility(false, true);
 
 	SpawnRing = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SpawnRing"));
-	SpawnRing->SetupAttachment(RootComponent);
+	SpawnRing->SetupAttachment(SceneRoot);
 	SpawnRing->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	SpawnRing->SetCastShadow(false);
-	SpawnRing->SetRelativeLocation(FVector(0.0f, 0.0f, 3.0f));
+	SpawnRing->SetRelativeLocation(FVector(0.0f, 0.0f, -AIcePillar::HalfHeight + 3.0f));
 	SpawnRing->SetRelativeScale3D(FVector(1.0f));
 	SpawnRing->SetVisibility(false, true);
 
@@ -35,11 +46,19 @@ AIcePlacementPreview::AIcePlacementPreview()
 		SpawnRing->SetStaticMesh(PlaneMesh.Object);
 	}
 
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> PreviewMaterialAsset(TEXT("/Game/Resources/VFX/Ice/Materials/MI_IceSpawnPreview.MI_IceSpawnPreview"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
+	if (CubeMesh.Succeeded())
+	{
+		PreviewPillar->SetStaticMesh(CubeMesh.Object);
+	}
+
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> PreviewMaterialAsset(TEXT("/Game/Resources/VFX/Cryonis/Materials/MI_IceSpawnPreview.MI_IceSpawnPreview"));
 	if (PreviewMaterialAsset.Succeeded())
 	{
 		PreviewMaterial = UMaterialInstanceDynamic::Create(PreviewMaterialAsset.Object, this);
 		PreviewPlane->SetMaterial(0, PreviewMaterial);
+		PillarPreviewMaterial = UMaterialInstanceDynamic::Create(PreviewMaterialAsset.Object, this);
+		PreviewPillar->SetMaterial(0, PillarPreviewMaterial);
 	}
 
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> RingMaterialAsset(TEXT("/Game/Resources/VFX/Cryonis/Materials/MI_IceSpawnRing.MI_IceSpawnRing"));
@@ -56,18 +75,33 @@ void AIcePlacementPreview::Tick(const float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if (!RingMaterial || !SpawnRing->IsVisible())
+	const bool bHasAnimatedPreview = PreviewPillar->IsVisible() || SpawnRing->IsVisible();
+	if (!bHasAnimatedPreview)
 	{
 		return;
 	}
 
-	SpawnRingElapsed += DeltaSeconds;
-	const float Progress = FMath::Clamp(SpawnRingElapsed / SpawnRingDuration, 0.0f, 1.0f);
-	const float OuterRadius = FMath::Lerp(0.16f, 0.48f, Progress);
-	const float RingWidth = RingMaterial->K2_GetScalarParameterValue(TEXT("RingWidth"));
-	RingMaterial->SetScalarParameterValue(TEXT("OuterRadius"), OuterRadius);
-	RingMaterial->SetScalarParameterValue(TEXT("InnerRadius"), FMath::Max(0.0f, OuterRadius - RingWidth));
-	RingMaterial->SetScalarParameterValue(TEXT("RingOpacity"), FMath::Square(1.0f - Progress));
+	if (PreviewPillar->IsVisible())
+	{
+		const float Duration = FMath::Max(0.01f, PillarPreviewDuration);
+		PillarPreviewElapsed = FMath::Fmod(PillarPreviewElapsed + DeltaSeconds, Duration);
+		const float Progress = PillarPreviewElapsed / Duration;
+		const float EasedProgress = FMath::InterpEaseOut(0.0f, 1.0f, Progress, 2.0f);
+
+		PreviewPillar->SetRelativeScale3D(FVector(AIcePillar::HorizontalScale, AIcePillar::HorizontalScale, FMath::Max(0.02f, AIcePillar::FullHeightScale * EasedProgress)));
+		PreviewPillar->SetRelativeLocation(FVector(0.0f, 0.0f, -AIcePillar::HalfHeight * (1.0f - EasedProgress)));
+	}
+
+	if (RingMaterial && SpawnRing->IsVisible())
+	{
+		SpawnRingElapsed += DeltaSeconds;
+		const float Progress = FMath::Clamp(SpawnRingElapsed / SpawnRingDuration, 0.0f, 1.0f);
+		const float OuterRadius = FMath::Lerp(0.16f, 0.48f, Progress);
+		const float RingWidth = RingMaterial->K2_GetScalarParameterValue(TEXT("RingWidth"));
+		RingMaterial->SetScalarParameterValue(TEXT("OuterRadius"), OuterRadius);
+		RingMaterial->SetScalarParameterValue(TEXT("InnerRadius"), FMath::Max(0.0f, OuterRadius - RingWidth));
+		RingMaterial->SetScalarParameterValue(TEXT("RingOpacity"), FMath::Square(1.0f - Progress));
+	}
 }
 
 void AIcePlacementPreview::SetPreviewState(const FVector& Location, const bool bVisible, const bool bCanSpawn)
@@ -75,6 +109,16 @@ void AIcePlacementPreview::SetPreviewState(const FVector& Location, const bool b
 	SetActorLocation(Location);
 	SetActorHiddenInGame(!bVisible);
 	PreviewPlane->SetVisibility(bVisible, true);
+	PreviewPillar->SetVisibility(bVisible && bCanSpawn, true);
+
+	if (bVisible && bCanSpawn && (!bHasPreviewLocation || !LastPreviewLocation.Equals(Location, 0.5f)))
+	{
+		LastPreviewLocation = Location;
+		bHasPreviewLocation = true;
+		PillarPreviewElapsed = 0.0f;
+		PreviewPillar->SetRelativeScale3D(FVector(AIcePillar::HorizontalScale, AIcePillar::HorizontalScale, 0.02f));
+		PreviewPillar->SetRelativeLocation(FVector(0.0f, 0.0f, -AIcePillar::HalfHeight));
+	}
 
 	if (PreviewMaterial)
 	{
@@ -83,6 +127,16 @@ void AIcePlacementPreview::SetPreviewState(const FVector& Location, const bool b
 		PreviewMaterial->SetScalarParameterValue(TEXT("Opacity"), bCanSpawn ? 0.45f : 0.25f);
 		PreviewMaterial->SetScalarParameterValue(TEXT("PulseSpeed"), bCanSpawn ? 1.2f : 0.0f);
 	}
+
+	if (PillarPreviewMaterial)
+	{
+		PillarPreviewMaterial->SetVectorParameterValue(TEXT("PreviewColor"), bCanSpawn ? FLinearColor(0.05f, 0.75f, 1.0f) : FLinearColor(1.0f, 0.10f, 0.35f));
+		PillarPreviewMaterial->SetScalarParameterValue(TEXT("EmissiveStrength"), bCanSpawn ? 3.0f : 0.8f);
+		PillarPreviewMaterial->SetScalarParameterValue(TEXT("Opacity"), bCanSpawn ? 0.45f : 0.25f);
+		PillarPreviewMaterial->SetScalarParameterValue(TEXT("PulseSpeed"), bCanSpawn ? 1.2f : 0.0f);
+	}
+
+	SetActorTickEnabled(bVisible && bCanSpawn);
 }
 
 void AIcePlacementPreview::PlaySpawnEffect()
@@ -110,6 +164,7 @@ void AIcePlacementPreview::PlaySpawnEffect()
 void AIcePlacementPreview::HideSpawnRing()
 {
 	SpawnRing->SetVisibility(false, true);
+	PreviewPillar->SetVisibility(false, true);
 	SetActorTickEnabled(false);
 }
 
@@ -120,7 +175,9 @@ void AIcePlacementPreview::ClearPreview()
 		GetWorld()->GetTimerManager().ClearTimer(SpawnRingTimer);
 	}
 	SpawnRing->SetVisibility(false, true);
+	PreviewPillar->SetVisibility(false, true);
 	SetActorTickEnabled(false);
 	PreviewPlane->SetVisibility(false, true);
 	SetActorHiddenInGame(true);
+	bHasPreviewLocation = false;
 }

@@ -5,6 +5,7 @@
 #include "IcePillar.generated.h"
 
 class UAbilityReactionComponent;
+class USceneComponent;
 class UStaticMeshComponent;
 class UNiagaraSystem;
 
@@ -15,8 +16,11 @@ class DURIAN_API AIcePillar : public AActor
 
 public:
 	AIcePillar();
+	virtual void Tick(float DeltaSeconds) override;
 
 	static constexpr float HalfHeight = 100.0f;
+	static constexpr float HorizontalScale = 1.5f;
+	static constexpr float FullHeightScale = 2.0f;
 
 	void PlayDestroyEffect();
 
@@ -25,4 +29,13 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ice")
 	TObjectPtr<UAbilityReactionComponent> ReactionComponent;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Ice|Animation")
+	float SpawnAnimationDuration = 0.45f;
+
+private:
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<USceneComponent> SceneRoot;
+
+	float SpawnAnimationElapsed = 0.0f;
 };
