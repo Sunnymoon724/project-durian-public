@@ -52,3 +52,4 @@ Tools/NotionUpdater/RefreshReport/Config.env
 
 # Temporary generated content
 .generated-content/
+*.env
