@@ -9,9 +9,7 @@ class UCameraComponent;
 class APlayerCameraManager;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
-class UNiagaraComponent;
 class UNiagaraSystem;
-class UPrimitiveComponent;
 
 /**
  * 플레이어 능력의 화면 효과를 공통으로 관리한다.
@@ -37,12 +35,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Ability VFX")
 	void PlayEnterPulse(EAbilityType Ability);
 
-	/** 잡은 자력 대상까지의 연결선을 생성하거나 위치를 갱신한다. */
-	void UpdateMagnesisHoldLink(UPrimitiveComponent* TargetComponent, const FVector& StartLocation, const FVector& EndLocation);
-
-	/** 현재 자력 연결선을 즉시 정리한다. */
-	void ClearMagnesisHoldLink();
-
 	virtual void BeginPlay() override;
 
 private:
@@ -65,12 +57,6 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Ability VFX|Pulse")
 	TMap<EAbilityType, TSoftObjectPtr<UNiagaraSystem>> EnterPulseSystems;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Ability VFX|Magnesis")
-	TSoftObjectPtr<UNiagaraSystem> MagnesisHoldLinkSystem;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UNiagaraComponent> MagnesisHoldLinkComponent;
 
 	TWeakObjectPtr<UCameraComponent> CameraComponent;
 	TWeakObjectPtr<APlayerCameraManager> PlayerCameraManager;

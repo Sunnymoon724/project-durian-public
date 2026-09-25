@@ -3,6 +3,11 @@
 #include "CoreMinimal.h"
 
 class AKzPlayerCharacter;
+class AActor;
+class UPrimitiveComponent;
+struct FHitResult;
+
+enum class EAbilityReactionType : uint8;
 
 class FAbility
 {
@@ -17,5 +22,7 @@ public:
 	virtual void HandleDistance(float AxisValue) {}
 
 protected:
+	bool TraceAbilityTarget(EAbilityReactionType ReactionType, float TraceRange, FHitResult& OutHit, bool bTargetAtFeet = false, const AActor* IgnoredActor = nullptr, bool bRequirePhysics = false) const;
+
 	AKzPlayerCharacter* Character = nullptr;
 };

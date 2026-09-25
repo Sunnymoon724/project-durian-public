@@ -16,22 +16,18 @@ class DURIAN_API AIcePillar : public AActor
 
 public:
 	AIcePillar();
+	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 
-	static constexpr float HalfHeight = 100.0f;
 	static constexpr float HorizontalScale = 1.5f;
-	static constexpr float FullHeightScale = 2.0f;
 
-	void PlayDestroyEffect();
+	void PlayDestroyEffect() const;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ice")
 	TObjectPtr<UStaticMeshComponent> IceMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ice")
 	TObjectPtr<UAbilityReactionComponent> ReactionComponent;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Ice|Animation")
-	float SpawnAnimationDuration = 0.45f;
 
 private:
 	UPROPERTY(VisibleAnywhere)

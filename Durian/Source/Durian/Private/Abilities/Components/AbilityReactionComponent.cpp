@@ -70,11 +70,11 @@ TArray<EAbilityVisualMode> UAbilityReactionComponent::GetSupportedAbilityModes_I
 	switch (ReactionType)
 	{
 		case EAbilityReactionType::Normal:
-		return { EAbilityVisualMode::Magnesis, EAbilityVisualMode::Cryonis, EAbilityVisualMode::Stasis };
+			return { EAbilityVisualMode::Magnesis, EAbilityVisualMode::Cryonis, EAbilityVisualMode::Stasis };
 		case EAbilityReactionType::MagnesisTarget:
 		case EAbilityReactionType::StasisTarget:
 		case EAbilityReactionType::CryonicTarget:
-		return { EAbilityVisualMode::Magnesis, EAbilityVisualMode::Cryonis, EAbilityVisualMode::Stasis };
+			return { EAbilityVisualMode::Magnesis, EAbilityVisualMode::Cryonis, EAbilityVisualMode::Stasis };
 		default:
 			UE_LOG(LogTemp, Log, TEXT("Not supported in %s."), *UEnum::GetValueAsString(ReactionType));
 			return {};
@@ -94,7 +94,11 @@ void UAbilityReactionComponent::OnAbilityModeChanged_Implementation(const EAbili
 
 	if (bIsMatchingTarget)
 	{
-		SetTargetStencilEnabled(bEnabled && bAimedTarget);
+		SetTargetStencilEnabled(bEnabled);
+		if (bEnabled && bAimedTarget)
+		{
+			SetAimedTarget(true);
+		}
 		SetTargetSurfaceHighlightEnabled(bEnabled, Mode);
 	}
 	else
@@ -113,7 +117,7 @@ void UAbilityReactionComponent::SetAimedTarget(const bool bAimed)
 
 	if (ActiveMode != EAbilityVisualMode::None && bIsMatchingTarget)
 	{
-		SetTargetStencilEnabled(bAimedTarget);
+		SetTargetStencilEnabled(true);
 	
 		if (bAimedTarget && GetOwner())
 		{
@@ -123,7 +127,7 @@ void UAbilityReactionComponent::SetAimedTarget(const bool bAimed)
 
 			for (UPrimitiveComponent* Component : ComponentArray)
 			{
-				if (Component && !TopScanOverlays.Contains(Cast<UStaticMeshComponent>(Component)))
+				if (Component && !Component->ComponentHasTag(TEXT("StasisFeedback")) && !TopScanOverlays.Contains(Cast<UStaticMeshComponent>(Component)))
 				{
 					Component->SetCustomDepthStencilValue(2);
 				}
@@ -147,7 +151,7 @@ void UAbilityReactionComponent::SetTargetStencilEnabled(const bool bEnabled) con
 
 	for (UPrimitiveComponent* Component : ComponentArray)
 	{
-		if (Component && !TopScanOverlays.Contains(Cast<UStaticMeshComponent>(Component)))
+		if (Component && !Component->ComponentHasTag(TEXT("StasisFeedback")) && !TopScanOverlays.Contains(Cast<UStaticMeshComponent>(Component)))
 		{
 			Component->SetRenderCustomDepth(bEnabled);
 			Component->SetCustomDepthStencilValue(bEnabled ? 1 : 0);
@@ -241,7 +245,7 @@ void UAbilityReactionComponent::CreateTopScanOverlays()
 
 	for (UStaticMeshComponent* Source : SourceArray)
 	{
-		if (!Source || !Source->GetStaticMesh() || TopScanOverlays.Contains(Source) || TargetSurfaceHighlightOverlays.Contains(Source))
+		if (!Source || !Source->GetStaticMesh() || Source->ComponentHasTag(TEXT("StasisFeedback")) || TopScanOverlays.Contains(Source) || TargetSurfaceHighlightOverlays.Contains(Source))
 		{
 			continue;
 		}
@@ -293,7 +297,7 @@ void UAbilityReactionComponent::CreateTargetSurfaceHighlightOverlays()
 
 	for (UStaticMeshComponent* Source : SourceArray)
 	{
-		if (!Source || !Source->GetStaticMesh() || TopScanOverlays.Contains(Source) || TargetSurfaceHighlightOverlays.Contains(Source))
+		if (!Source || !Source->GetStaticMesh() || Source->ComponentHasTag(TEXT("StasisFeedback")) || TopScanOverlays.Contains(Source) || TargetSurfaceHighlightOverlays.Contains(Source))
 		{
 			continue;
 		}

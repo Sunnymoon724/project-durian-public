@@ -1,5 +1,4 @@
 #include "Abilities/Core/AbilityModeSubsystem.h"
-
 #include "Abilities/Core/AbilityModeListener.h"
 
 bool UAbilityModeSubsystem::RegisterAbilityModeListener(UObject* Listener)
@@ -11,16 +10,17 @@ bool UAbilityModeSubsystem::RegisterAbilityModeListener(UObject* Listener)
 		return false;
 	}
 
-	TSet<EAbilityVisualMode> SupportedModes;
+	TSet<EAbilityVisualMode> SupportedModeSet;
+
 	for (const EAbilityVisualMode Mode : IAbilityModeListener::Execute_GetSupportedAbilityModes(Listener))
 	{
 		if (Mode != EAbilityVisualMode::None)
 		{
-			SupportedModes.Add(Mode);
+			SupportedModeSet.Add(Mode);
 		}
 	}
 
-	RegisteredListeners.Add(Listener, MoveTemp(SupportedModes));
+	RegisteredListeners.Add(Listener, MoveTemp(SupportedModeSet));
 
 	for (const EAbilityVisualMode Mode : ActiveModes)
 	{

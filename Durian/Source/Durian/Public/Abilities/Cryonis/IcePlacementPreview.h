@@ -52,6 +52,4 @@ private:
 	bool bHasPreviewLocation = false;
 
 	float SpawnRingDuration = 0.5f;
-	UPROPERTY(EditDefaultsOnly, Category = "Preview")
-	float PillarPreviewDuration = 0.45f;
 };

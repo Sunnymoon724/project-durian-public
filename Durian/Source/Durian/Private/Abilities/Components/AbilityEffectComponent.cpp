@@ -8,7 +8,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
-#include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 
@@ -16,11 +15,11 @@ UAbilityEffectComponent::UAbilityEffectComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
-	VisionMaterials.Add(EAbilityType::Magnesis, TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnesis/PP/MI_PP_MagnesisWorldScan.MI_PP_MagnesisWorldScan"))));
-	VisionMaterials.Add(EAbilityType::Cryonis, TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Resources/VFX/AbilityMode/PP/MI_PP_IceWorldScan.MI_PP_IceWorldScan"))));
-	VisionMaterials.Add(EAbilityType::Stasis, TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Resources/VFX/AbilityMode/PP/MI_PP_TimeLockWorldScan.MI_PP_TimeLockWorldScan"))));
+	const TSoftObjectPtr<UMaterialInterface> AbilityModeWorldScanMaterial(FSoftObjectPath(TEXT("/Game/Resources/VFX/AbilityMode/PP/M_PP_AbilityModeWorldScan.M_PP_AbilityModeWorldScan")));
+	VisionMaterials.Add(EAbilityType::Magnesis, AbilityModeWorldScanMaterial);
+	VisionMaterials.Add(EAbilityType::Cryonis, AbilityModeWorldScanMaterial);
+	VisionMaterials.Add(EAbilityType::Stasis, AbilityModeWorldScanMaterial);
 
-	MagnesisHoldLinkSystem = TSoftObjectPtr<UNiagaraSystem>(FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnesis/Niagara/NS_MagnesisHoldLink.NS_MagnesisHoldLink")));
 }
 
 void UAbilityEffectComponent::BeginPlay()
@@ -162,48 +161,6 @@ void UAbilityEffectComponent::PlayEnterPulse(EAbilityType Ability)
 	}
 
 	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(),PulseSystem,GetOwner()->GetActorLocation(),GetOwner()->GetActorRotation(),FVector::OneVector,true,true,ENCPoolMethod::AutoRelease,true);
-}
-
-void UAbilityEffectComponent::UpdateMagnesisHoldLink(UPrimitiveComponent* TargetComponent, const FVector& StartLocation, const FVector& EndLocation)
-{
-	if (!IsValid(TargetComponent) || !GetWorld())
-	{
-		ClearMagnesisHoldLink();
-
-		return;
-	}
-
-	if (!IsValid(MagnesisHoldLinkComponent))
-	{
-		UNiagaraSystem* LinkSystem = MagnesisHoldLinkSystem.LoadSynchronous();
-
-		if (!LinkSystem)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("AbilityEffectComponent: Could not load Magnesis hold link system."));
-
-			return;
-		}
-
-		MagnesisHoldLinkComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), LinkSystem, StartLocation, FRotator::ZeroRotator, FVector::OneVector, false, true, ENCPoolMethod::None, true);
-	}
-
-	if (IsValid(MagnesisHoldLinkComponent))
-	{
-		MagnesisHoldLinkComponent->SetVariablePosition(TEXT("User.BeamStart"), StartLocation);
-		MagnesisHoldLinkComponent->SetVariablePosition(TEXT("User.BeamEnd"), EndLocation);
-		MagnesisHoldLinkComponent->Activate(true);
-	}
-}
-
-void UAbilityEffectComponent::ClearMagnesisHoldLink()
-{
-	if (IsValid(MagnesisHoldLinkComponent))
-	{
-		MagnesisHoldLinkComponent->DeactivateImmediate();
-		MagnesisHoldLinkComponent->DestroyComponent();
-	}
-
-	MagnesisHoldLinkComponent = nullptr;
 }
 
 UMaterialInstanceDynamic* UAbilityEffectComponent::GetOrCreateVisionMaterial(EAbilityType Ability)

@@ -3,146 +3,254 @@
 #include "Abilities/Components/AbilityEffectComponent.h"
 #include "Abilities/Components/AbilityReactionComponent.h"
 #include "Abilities/Core/AbilityModeSubsystem.h"
-#include "Constants/GameConstants.h"
+#include "Abilities/Stasis/StasisTargetComponent.h"
+#include "Constants/GameConstantsDataAsset.h"
 #include "Framework/Player/KzPlayerCharacter.h"
-#include "GameFramework/Controller.h"
-#include "PhysicsEngine/BodyInstance.h"
 #include "Components/PrimitiveComponent.h"
 #include "Engine/GameInstance.h"
-#include "Logging/LogMacros.h"
+#include "Engine/World.h"
+#include "GameFramework/Actor.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 void FStasisAbility::Tick(float DeltaTime)
 {
-	if (!Character) return;
-	CooldownRemaining = FMath::Max(0.0f, CooldownRemaining - DeltaTime);
-
-	switch (Character->GetCurrentState())
+	if (!Character)
 	{
-	case EPlayerState::StasisTargeting:
-		UpdateTargeting();
-		break;
-	case EPlayerState::StasisActive:
+		return;
+	}
+	CooldownRemaining = FMath::Max(0.0f, CooldownRemaining - DeltaTime);
+	if (IsStasisActive())
+	{
 		RemainingTime -= DeltaTime;
-		if (RemainingTime <= 0.0f) EndStasis(true);
-		break;
-	default: break;
+		if (RemainingTime <= 0.0f)
+		{
+			EndStasis(true, true);
+		}
+		else if (UStasisTargetComponent* Target = ActiveTarget.Get())
+		{
+			Target->UpdateFeedback(RemainingTime, UGameConstantsDataAsset::Get()->StasisDuration, Character->GetPawnViewLocation(), UGameConstantsDataAsset::Get()->StasisMaxImpulse);
+		}
+	}
+	else if (ActiveTarget.IsValid())
+	{
+		EndStasis(false, false);
+	}
+	if (Character->GetCurrentAbilityType() == EAbilityType::Stasis && Character->GetCurrentState() == EPlayerState::StasisTargeting)
+	{
+		if (Character->GetCharacterMovement() && Character->GetCharacterMovement()->IsFalling())
+		{
+			HandleCancel();
+			return;
+		}
+		UpdateTargeting();
 	}
 }
 
 void FStasisAbility::HandleInteract()
 {
-	if (Character && Character->GetCurrentState() == EPlayerState::StasisTargeting) StartStasis();
+	if (Character && Character->GetCurrentState() == EPlayerState::StasisTargeting)
+	{
+		StartStasis();
+	}
 }
 
 void FStasisAbility::HandleCancel()
 {
-	if (Character && Character->GetCurrentState() == EPlayerState::StasisTargeting)
+	if (!Character || Character->GetCurrentState() != EPlayerState::StasisTargeting)
 	{
-		ClearTarget();
-		Character->SetPlayerState(EPlayerState::Normal);
-		if (UGameInstance* GI = Character->GetGameInstance()) GI->GetSubsystem<UAbilityModeSubsystem>()->SetAbilityModeActive(EAbilityVisualMode::Stasis, false);
-		if (UAbilityEffectComponent* Effect = Character->GetAbilityEffect()) Effect->ClearVisionEffects();
+		return;
 	}
-	else if (Character && Character->GetCurrentState() == EPlayerState::StasisActive) EndStasis(false);
+	ClearTarget();
+	Character->SetPlayerState(EPlayerState::Normal);
+	if (UGameInstance* GameInstance = Character->GetGameInstance())
+	{
+		GameInstance->GetSubsystem<UAbilityModeSubsystem>()->SetAbilityModeActive(EAbilityVisualMode::Stasis, false);
+	}
+	if (UAbilityEffectComponent* Effect = Character->GetAbilityEffect())
+	{
+		Effect->SetVisionEnabled(EAbilityType::Stasis, false);
+	}
 }
 
 void FStasisAbility::HandleAbilityUse()
 {
-	if (!Character || CooldownRemaining > 0.0f) return;
-	if (Character->GetCurrentState() == EPlayerState::Normal)
+	if (!Character || IsStasisActive() || CooldownRemaining > 0.0f)
 	{
-		Character->SetPlayerState(EPlayerState::StasisTargeting);
-		if (UGameInstance* GI = Character->GetGameInstance()) GI->GetSubsystem<UAbilityModeSubsystem>()->SetAbilityModeActive(EAbilityVisualMode::Stasis, true);
-		if (UAbilityEffectComponent* Effect = Character->GetAbilityEffect()) Effect->SetVisionEnabled(EAbilityType::Stasis, true);
+		return;
 	}
-	else if (Character->GetCurrentState() == EPlayerState::StasisTargeting) HandleCancel();
-}
-
-void FStasisAbility::AccumulateImpulse(const FVector& Impulse)
-{
-	if (!Character || Character->GetCurrentState() != EPlayerState::StasisActive) return;
-	AccumulatedImpulse = (AccumulatedImpulse + Impulse).GetClampedToMaxSize(Constants::StasisMaxImpulse);
-}
-
-void FStasisAbility::UpdateTargeting()
-{
-	// 조준 중에는 타임록 월드 스캔 효과를 유지한다.
-	if (UAbilityEffectComponent* Effect = Character->GetAbilityEffect())
-	{
-		Effect->SetVisionEnabled(EAbilityType::Stasis, true);
-	}
-
-	UPrimitiveComponent* NewTarget = nullptr;
-	if (TraceTarget(NewTarget))
-	{
-		if (TargetedComponent.Get() != NewTarget) ClearTarget();
-		TargetedComponent = NewTarget;
-		NewTarget->SetRenderCustomDepth(true);
-		NewTarget->SetCustomDepthStencilValue(2);
-		if (UAbilityReactionComponent* Reaction = NewTarget->GetOwner()->FindComponentByClass<UAbilityReactionComponent>()) Reaction->SetAimedTarget(true);
-	}
-	else ClearTarget();
-}
-
-void FStasisAbility::StartStasis()
-{
-	UPrimitiveComponent* Target = nullptr;
-	if (!TraceTarget(Target) || !Target->IsSimulatingPhysics())
+	if (Character->GetCurrentState() == EPlayerState::StasisTargeting)
 	{
 		HandleCancel();
 		return;
 	}
-	TargetedComponent = Target;
-	SavedLinearVelocity = Target->GetPhysicsLinearVelocity();
-	SavedAngularVelocity = Target->GetPhysicsAngularVelocityInRadians();
-	AccumulatedImpulse = FVector::ZeroVector;
-	Target->SetSimulatePhysics(false);
-	RemainingTime = Constants::StasisDuration;
-	Character->SetPlayerState(EPlayerState::StasisActive);
-	UE_LOG(LogTemp, Log, TEXT("Stasis started on %s"), *GetNameSafe(Target->GetOwner()));
+	if (Character->GetCurrentState() != EPlayerState::Normal)
+	{
+		return;
+	}
+	Character->SetPlayerState(EPlayerState::StasisTargeting);
+	if (UGameInstance* GameInstance = Character->GetGameInstance())
+	{
+		GameInstance->GetSubsystem<UAbilityModeSubsystem>()->SetAbilityModeActive(EAbilityVisualMode::Stasis, true);
+	}
+	if (UAbilityEffectComponent* Effect = Character->GetAbilityEffect())
+	{
+		Effect->SetVisionEnabled(EAbilityType::Stasis, true);
+	}
 }
 
-void FStasisAbility::EndStasis(const bool bApplyImpulse)
+void FStasisAbility::HandleAttackHit(const FHitResult& Hit, const FVector& AttackDirection)
 {
-	if (TargetedComponent.IsValid())
+	UStasisTargetComponent* Target = ActiveTarget.Get();
+	if (!Target || !Target->IsStasisActive() || Hit.GetComponent() != Target->GetFrozenPrimitive())
 	{
-		TargetedComponent->SetSimulatePhysics(true);
-		TargetedComponent->SetPhysicsLinearVelocity(SavedLinearVelocity);
-		TargetedComponent->SetPhysicsAngularVelocityInRadians(SavedAngularVelocity);
-		if (bApplyImpulse && !AccumulatedImpulse.IsNearlyZero()) TargetedComponent->AddImpulse(AccumulatedImpulse);
+		return;
 	}
+	Target->AccumulateImpulse(AttackDirection.GetSafeNormal() * UGameConstantsDataAsset::Get()->StasisImpulsePerHit, UGameConstantsDataAsset::Get()->StasisMaxImpulse);
+}
+
+void FStasisAbility::UpdateTargeting()
+{
+	UPrimitiveComponent* NewTarget = nullptr;
+	if (!TraceTarget(NewTarget))
+	{
+		ClearTarget();
+		return;
+	}
+	if (TargetedComponent.Get() != NewTarget)
+	{
+		ClearTarget();
+		if (UClass* MarkerClass = LoadClass<AActor>(nullptr, TEXT("/Game/Resources/VFX/Stasis/Blueprints/BP_StasisTargetVFX.BP_StasisTargetVFX_C")))
+		{
+			FActorSpawnParameters SpawnParameters;
+			SpawnParameters.Owner = NewTarget->GetOwner();
+			SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			AimingMarker = Character->GetWorld()->SpawnActor<AActor>(MarkerClass, NewTarget->Bounds.Origin + FVector(0.0f, 0.0f, NewTarget->Bounds.BoxExtent.Z + 20.0f), FRotator::ZeroRotator, SpawnParameters);
+			if (AActor* Marker = AimingMarker.Get())
+			{
+				Marker->SetActorEnableCollision(false);
+				Marker->AttachToComponent(NewTarget, FAttachmentTransformRules::KeepWorldTransform);
+			}
+		}
+	}
+	TargetedComponent = NewTarget;
+	if (UAbilityReactionComponent* Reaction = NewTarget->GetOwner()->FindComponentByClass<UAbilityReactionComponent>())
+	{
+		Reaction->SetAimedTarget(true);
+	}
+}
+
+void FStasisAbility::StartStasis()
+{
+	if (IsStasisActive())
+	{
+		return;
+	}
+	UPrimitiveComponent* Primitive = nullptr;
+	if (!TraceTarget(Primitive))
+	{
+		HandleCancel();
+		return;
+	}
+	AActor* TargetActor = Primitive->GetOwner();
+	UStasisTargetComponent* Target = TargetActor->FindComponentByClass<UStasisTargetComponent>();
+	if (!Target)
+	{
+		Target = NewObject<UStasisTargetComponent>(TargetActor);
+		TargetActor->AddInstanceComponent(Target);
+		Target->RegisterComponent();
+	}
+	if (!Target->BeginStasis(Primitive))
+	{
+		HandleCancel();
+		return;
+	}
+	ActiveTarget = Target;
+	RemainingTime = UGameConstantsDataAsset::Get()->StasisDuration;
 	ClearTarget();
-	AccumulatedImpulse = FVector::ZeroVector;
-	CooldownRemaining = Constants::StasisCooldown;
-	Character->SetPlayerState(EPlayerState::Normal);
-	if (UGameInstance* GI = Character->GetGameInstance()) GI->GetSubsystem<UAbilityModeSubsystem>()->SetAbilityModeActive(EAbilityVisualMode::Stasis, false);
-	if (UAbilityEffectComponent* Effect = Character->GetAbilityEffect()) Effect->ClearVisionEffects();
+	Character->SetPlayerState(EPlayerState::StasisActive);
+	if (UGameInstance* GameInstance = Character->GetGameInstance())
+	{
+		GameInstance->GetSubsystem<UAbilityModeSubsystem>()->SetAbilityModeActive(EAbilityVisualMode::Stasis, false);
+	}
+	if (UAbilityEffectComponent* Effect = Character->GetAbilityEffect())
+	{
+		Effect->SetVisionEnabled(EAbilityType::Stasis, false);
+	}
+	UE_LOG(LogTemp, Log, TEXT("Stasis started on %s"), *GetNameSafe(TargetActor));
+}
+
+void FStasisAbility::EndStasis(const bool bApplyImpulse, const bool bStartCooldown)
+{
+	if (UStasisTargetComponent* Target = ActiveTarget.Get())
+	{
+		Target->EndStasis(bApplyImpulse);
+	}
+	ActiveTarget.Reset();
+	RemainingTime = 0.0f;
+	if (bStartCooldown)
+	{
+		CooldownRemaining = UGameConstantsDataAsset::Get()->StasisCooldown;
+	}
+	if (Character && Character->GetCurrentState() == EPlayerState::StasisActive)
+	{
+		Character->SetPlayerState(EPlayerState::Normal);
+	}
 }
 
 void FStasisAbility::ClearTarget()
 {
-	if (TargetedComponent.IsValid())
+	if (AActor* Marker = AimingMarker.Get())
 	{
-		TargetedComponent->SetCustomDepthStencilValue(1);
-		if (UAbilityReactionComponent* Reaction = TargetedComponent->GetOwner()->FindComponentByClass<UAbilityReactionComponent>()) Reaction->SetAimedTarget(false);
+		Marker->Destroy();
+	}
+	AimingMarker.Reset();
+	if (UPrimitiveComponent* Primitive = TargetedComponent.Get())
+	{
+		if (UAbilityReactionComponent* Reaction = Primitive->GetOwner()->FindComponentByClass<UAbilityReactionComponent>())
+		{
+			Reaction->SetAimedTarget(false);
+		}
 	}
 	TargetedComponent.Reset();
 }
 
+void FStasisAbility::AbortForEndPlay()
+{
+	if (!Character)
+	{
+		return;
+	}
+	if (Character->GetCurrentState() == EPlayerState::StasisTargeting)
+	{
+		HandleCancel();
+	}
+	if (ActiveTarget.IsValid())
+	{
+		EndStasis(false, false);
+	}
+}
+
+bool FStasisAbility::IsStasisActive() const
+{
+	const UStasisTargetComponent* Target = ActiveTarget.Get();
+	return Target && Target->IsStasisActive();
+}
+
+FVector FStasisAbility::GetAccumulatedImpulse() const
+{
+	const UStasisTargetComponent* Target = ActiveTarget.Get();
+	return Target ? Target->GetAccumulatedImpulse() : FVector::ZeroVector;
+}
+
 bool FStasisAbility::TraceTarget(UPrimitiveComponent*& OutComponent) const
 {
-	OutComponent = nullptr;
-	if (!Character || !Character->GetController() || !Character->GetWorld()) return false;
-	const FVector Start = Character->GetPawnViewLocation();
-	const FVector End = Start + Character->GetController()->GetControlRotation().Vector() * Constants::StasisTargetRange;
 	FHitResult Hit;
-	FCollisionQueryParams Params(SCENE_QUERY_STAT(StasisTargetTrace), false, Character);
-	Params.AddIgnoredActor(Character);
-	const bool bHit = Character->GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params);
-	UPrimitiveComponent* Component = Hit.GetComponent();
-	const UAbilityReactionComponent* Reaction = Hit.GetActor() ? Hit.GetActor()->FindComponentByClass<UAbilityReactionComponent>() : nullptr;
-	const bool bValidTarget = bHit && Component && Component->IsSimulatingPhysics() && Reaction && Reaction->GetReactionType() == EAbilityReactionType::StasisTarget;
-	if (!bValidTarget) return false;
-	OutComponent = Component;
+	if (!TraceAbilityTarget(EAbilityReactionType::StasisTarget, UGameConstantsDataAsset::Get()->StasisTargetRange, Hit, false, AimingMarker.Get(), true))
+	{
+		OutComponent = nullptr;
+		return false;
+	}
+
+	OutComponent = Hit.GetComponent();
 	return true;
 }

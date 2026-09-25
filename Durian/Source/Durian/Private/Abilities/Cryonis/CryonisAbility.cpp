@@ -5,6 +5,7 @@
 #include "Abilities/Components/AbilityReactionComponent.h"
 #include "Abilities/Cryonis/IcePillar.h"
 #include "Abilities/Cryonis/IcePlacementPreview.h"
+#include "Constants/GameConstantsDataAsset.h"
 #include "Engine/GameInstance.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
@@ -13,15 +14,26 @@
 #include "CollisionQueryParams.h"
 #include "CollisionShape.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 void FCryonisAbility::Tick(const float DeltaTime)
 {
-	if (!Character || Character->GetCurrentState() != EPlayerState::IceTargeting)
+	if (!Character)
 	{
 		return;
 	}
 
 	SpawnCooldownRemaining = FMath::Max(0.0f, SpawnCooldownRemaining - DeltaTime);
+	if (Character->GetCurrentState() != EPlayerState::IceTargeting)
+	{
+		return;
+	}
+	if (Character->GetCharacterMovement() && Character->GetCharacterMovement()->IsFalling())
+	{
+		ExitTargetingMode();
+		return;
+	}
 
 	UpdateTargeting();
 }
@@ -58,36 +70,34 @@ void FCryonisAbility::HandleAbilityUse()
 		return;
 	}
 
-	if (Character->GetCurrentState() == EPlayerState::Normal)
+	const EPlayerState PreviousState = Character->GetCurrentState();
+
+	if (PreviousState == EPlayerState::Normal)
 	{
 		Character->SetPlayerState(EPlayerState::IceTargeting);
 		bTargetAtFeet = false;
+
 		EnsurePreview();
-		
+
 		const UGameInstance* GameInstance = Character->GetGameInstance();
 
 		if (GameInstance)
 		{
 			if (UAbilityModeSubsystem* AbilityModeSubsystem = GameInstance->GetSubsystem<UAbilityModeSubsystem>())
 			{
-				const FVector ViewDirection = Character->GetController()
-					? Character->GetController()->GetControlRotation().Vector()
-					: Character->GetActorForwardVector();
+				const FVector ViewDirection = Character->GetController() ? Character->GetController()->GetControlRotation().Vector() : Character->GetActorForwardVector();
+
 				AbilityModeSubsystem->SetModeScanDirection(FVector2D(ViewDirection.X, ViewDirection.Y));
 				AbilityModeSubsystem->SetAbilityModeActive(EAbilityVisualMode::Cryonis, true);
 			}
 		}
 
-		// The Cryonis world-scan post process currently produces unstable
-		// temporal/dithered edges on large water surfaces. Keep the ability-mode
-		// target feedback, but do not enable that full-screen effect until its
-		// material is corrected.
 		if (UAbilityEffectComponent* AbilityEffect = Character->GetAbilityEffect())
 		{
-			AbilityEffect->SetVisionEnabled(EAbilityType::Cryonis, false);
+			AbilityEffect->SetVisionEnabled(EAbilityType::Cryonis, true);
 		}
 	}
-	else if (Character->GetCurrentState() == EPlayerState::IceTargeting)
+	else if (PreviousState == EPlayerState::IceTargeting)
 	{
 		ExitTargetingMode();
 	}
@@ -108,12 +118,12 @@ bool FCryonisAbility::IsIcePillarTarget(const AActor* Actor)
 
 void FCryonisAbility::UpdateTargeting()
 {
-	// Clear the current hit result without clearing the aimed actor first.
-	// The aimed state is changed only when the traced actor changes.
 	TargetSurface.Reset();
 	TargetPillar.Reset();
+
 	TargetLocation = FVector::ZeroVector;
 	bTargetValid = false;
+
 	EnsurePreview();
 
 	if (!PlacementPreview.IsValid())
@@ -126,29 +136,46 @@ void FCryonisAbility::UpdateTargeting()
 	if (!TraceTarget(Hit))
 	{
 		UpdateAimedTarget(nullptr);
+
 		PlacementPreview->SetPreviewState(FVector::ZeroVector, false, false);
 
 		return;
 	}
 
 	AActor* HitActor = Hit.GetActor();
+	if (!bTargetAtFeet && HitActor && !IsIcePillarTarget(HitActor) && Character->GetCapsuleComponent())
+	{
+		const FVector CandidateLocation = GetSpawnLocation(Hit);
+		const float PillarHalfHeight = UGameConstantsDataAsset::Get()->IcePillarHeight * 0.5f;
+		const FBox CandidateBounds(CandidateLocation - FVector(75.0f, 75.0f, PillarHalfHeight), CandidateLocation + FVector(75.0f, 75.0f, PillarHalfHeight));
+		if (CandidateBounds.Intersect(Character->GetCapsuleComponent()->Bounds.GetBox()))
+		{
+			FHitResult FootHit;
+			if (!TraceAbilityTarget(EAbilityReactionType::CryonicTarget, UGameConstantsDataAsset::Get()->CryonisTargetRange, FootHit, true, PlacementPreview.Get()) || IsIcePillarTarget(FootHit.GetActor()))
+			{
+				UpdateAimedTarget(nullptr);
+				PlacementPreview->SetPreviewState(FVector::ZeroVector, false, false);
+				return;
+			}
+			Hit = FootHit;
+			HitActor = FootHit.GetActor();
+		}
+	}
 
 	if (IsIcePillarTarget(HitActor))
 	{
 		UpdateAimedTarget(HitActor);
+
 		TargetPillar = Cast<AIcePillar>(HitActor);
 		PlacementPreview->SetPreviewState(FVector::ZeroVector, false, false);
 
 		return;
 	}
 
-	const UAbilityReactionComponent* Reaction = HitActor
-		? HitActor->FindComponentByClass<UAbilityReactionComponent>()
-		: nullptr;
-
-	if (!HitActor || !Reaction || Reaction->GetReactionType() != EAbilityReactionType::CryonicTarget)
+	if (!HitActor)
 	{
 		UpdateAimedTarget(nullptr);
+
 		PlacementPreview->SetPreviewState(FVector::ZeroVector, false, false);
 
 		return;
@@ -156,6 +183,7 @@ void FCryonisAbility::UpdateTargeting()
 
 	TargetSurface = HitActor;
 	UpdateAimedTarget(HitActor);
+
 	TargetLocation = GetSpawnLocation(Hit);
 	bTargetValid = SpawnCooldownRemaining <= 0.0f && CanSpawnAt(TargetLocation, HitActor);
 	PlacementPreview->SetPreviewState(TargetLocation, true, bTargetValid);
@@ -168,9 +196,7 @@ void FCryonisAbility::SpawnIcePillar()
 		return;
 	}
 
-	const FVector SpawnLocation = PlacementPreview.IsValid()
-		? PlacementPreview->GetActorLocation()
-		: TargetLocation;
+	const FVector SpawnLocation = PlacementPreview.IsValid() ? PlacementPreview->GetActorLocation() : TargetLocation;
 
 	if (!CanSpawnAt(SpawnLocation, TargetSurface.Get()))
 	{
@@ -178,9 +204,18 @@ void FCryonisAbility::SpawnIcePillar()
 	}
 
 	FActorSpawnParameters SpawnParameters;
+
 	SpawnParameters.Owner = Character;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	AIcePillar* NewPillar = Character->GetWorld()->SpawnActor<AIcePillar>(SpawnLocation, FRotator::ZeroRotator, SpawnParameters);
+
+	UClass* PillarClass = LoadClass<AIcePillar>(nullptr, TEXT("/Game/_BP/Interacts/BP_IcePillar.BP_IcePillar_C"));
+
+	if (!PillarClass)
+	{
+		return;
+	}
+
+	AIcePillar* NewPillar = Character->GetWorld()->SpawnActor<AIcePillar>(PillarClass, SpawnLocation, FRotator::ZeroRotator, SpawnParameters);
 
 	if (!NewPillar)
 	{
@@ -188,19 +223,20 @@ void FCryonisAbility::SpawnIcePillar()
 	}
 
 	SpawnedPillars.Add(NewPillar);
-	SpawnCooldownRemaining = SpawnCooldown;
+	SpawnCooldownRemaining = UGameConstantsDataAsset::Get()->IcePillarSpawnCooldown;
 
 	if (PlacementPreview.IsValid())
 	{
 		PlacementPreview->PlaySpawnEffect();
 	}
 
-	while (SpawnedPillars.Num() > MaxPillarCount)
+	while (SpawnedPillars.Num() > UGameConstantsDataAsset::Get()->MaxIcePillarCount)
 	{
 		if (AIcePillar* OldestPillar = SpawnedPillars[0].Get())
 		{
 			DestroyPillar(OldestPillar);
 		}
+
 		SpawnedPillars.RemoveAt(0);
 	}
 }
@@ -216,6 +252,7 @@ void FCryonisAbility::RemoveTargetedPillar()
 
 	DestroyPillar(Pillar);
 	SpawnedPillars.Remove(Pillar);
+
 	ClearTarget();
 }
 
@@ -235,7 +272,7 @@ void FCryonisAbility::ExitTargetingMode()
 
 	Character->SetPlayerState(EPlayerState::Normal);
 
-	if (UGameInstance* GameInstance = Character->GetGameInstance())
+	if (const UGameInstance* GameInstance = Character->GetGameInstance())
 	{
 		if (UAbilityModeSubsystem* AbilityModeSubsystem = GameInstance->GetSubsystem<UAbilityModeSubsystem>())
 		{
@@ -252,6 +289,7 @@ void FCryonisAbility::ExitTargetingMode()
 void FCryonisAbility::ClearTarget()
 {
 	UpdateAimedTarget(nullptr);
+
 	TargetSurface.Reset();
 	TargetPillar.Reset();
 	TargetLocation = FVector::ZeroVector;
@@ -265,18 +303,14 @@ void FCryonisAbility::UpdateAimedTarget(AActor* NewTarget)
 		return;
 	}
 
-	if (UAbilityReactionComponent* PreviousReaction = AimedTargetActor.IsValid()
-		? AimedTargetActor->FindComponentByClass<UAbilityReactionComponent>()
-		: nullptr)
+	if (UAbilityReactionComponent* PreviousReaction = AimedTargetActor.IsValid() ? AimedTargetActor->FindComponentByClass<UAbilityReactionComponent>() : nullptr)
 	{
 		PreviousReaction->SetAimedTarget(false);
 	}
 
 	AimedTargetActor = NewTarget;
 
-	if (UAbilityReactionComponent* NewReaction = AimedTargetActor.IsValid()
-		? AimedTargetActor->FindComponentByClass<UAbilityReactionComponent>()
-		: nullptr)
+	if (UAbilityReactionComponent* NewReaction = AimedTargetActor.IsValid() ? AimedTargetActor->FindComponentByClass<UAbilityReactionComponent>() : nullptr)
 	{
 		NewReaction->SetAimedTarget(true);
 	}
@@ -294,37 +328,10 @@ void FCryonisAbility::EnsurePreview()
 
 bool FCryonisAbility::TraceTarget(FHitResult& OutHit) const
 {
-	if (!Character || !Character->GetWorld() || !Character->GetController())
-	{
-		return false;
-	}
-
-	FVector TraceStart;
-	FVector TraceEnd;
-
-	if (bTargetAtFeet)
-	{
-		TraceStart = Character->GetActorLocation() + FVector(0.0f, 0.0f, 50.0f);
-		TraceEnd = Character->GetActorLocation() - FVector(0.0f, 0.0f, 200.0f);
-	}
-	else
-	{
-		TraceStart = Character->GetPawnViewLocation();
-		TraceEnd = TraceStart + Character->GetController()->GetControlRotation().Vector() * TargetRange;
-	}
-
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(IceTargetTrace), false, Character);
-	QueryParams.AddIgnoredActor(Character);
-
-	if (PlacementPreview.IsValid())
-	{
-		QueryParams.AddIgnoredActor(PlacementPreview.Get());
-	}
-
-	return Character->GetWorld()->LineTraceSingleByChannel(OutHit, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
+	return TraceAbilityTarget(EAbilityReactionType::CryonicTarget, UGameConstantsDataAsset::Get()->CryonisTargetRange, OutHit, bTargetAtFeet, PlacementPreview.Get());
 }
 
-bool FCryonisAbility::CanSpawnAt(const FVector& SpawnLocation, AActor* SurfaceActor) const
+bool FCryonisAbility::CanSpawnAt(const FVector& SpawnLocation, const AActor* SurfaceActor) const
 {
 	if (!Character || !Character->GetWorld())
 	{
@@ -332,6 +339,7 @@ bool FCryonisAbility::CanSpawnAt(const FVector& SpawnLocation, AActor* SurfaceAc
 	}
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(IceSpawnOverlap), false, Character);
+
 	QueryParams.AddIgnoredActor(Character);
 
 	if (SurfaceActor)
@@ -353,14 +361,14 @@ bool FCryonisAbility::CanSpawnAt(const FVector& SpawnLocation, AActor* SurfaceAc
 
 	TArray<FOverlapResult> Overlaps;
 
-	const bool bHasOverlap = Character->GetWorld()->OverlapMultiByObjectType(Overlaps, SpawnLocation, FQuat::Identity, ObjectParams,FCollisionShape::MakeBox(FVector(75.0f, 75.0f, AIcePillar::HalfHeight)), QueryParams);
+	const bool bHasOverlap = Character->GetWorld()->OverlapMultiByObjectType(Overlaps, SpawnLocation, FQuat::Identity, ObjectParams, FCollisionShape::MakeBox(FVector(75.0f, 75.0f, UGameConstantsDataAsset::Get()->IcePillarHeight * 0.5f)), QueryParams);
 
 	return !bHasOverlap;
 }
 
 FVector FCryonisAbility::GetSpawnLocation(const FHitResult& Hit)
 {
-	return Hit.ImpactPoint + FVector(0.0f, 0.0f, AIcePillar::HalfHeight);
+	return Hit.ImpactPoint + FVector(0.0f, 0.0f, UGameConstantsDataAsset::Get()->IcePillarHeight * 0.5f);
 }
 
 void FCryonisAbility::DestroyPillar(AIcePillar* Pillar)

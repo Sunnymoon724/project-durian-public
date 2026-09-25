@@ -5,14 +5,19 @@
 #include "Abilities/Core/AbilityModeSubsystem.h"
 #include "Abilities/Components/AbilityReactionComponent.h"
 #include "CollisionShape.h"
-#include "Constants/GameConstants.h"
+#include "Constants/GameConstantsDataAsset.h"
 #include "DrawDebugHelpers.h"
+#include "Engine/World.h"
 #include "Framework/Player/KzPlayerCharacter.h"
 #include "GameFramework/Controller.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/GameInstance.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
 
-FMagnesisAbility::FMagnesisAbility(AKzPlayerCharacter* InCharacter) : FAbility(InCharacter) { }
+FMagnesisAbility::FMagnesisAbility(AKzPlayerCharacter* InCharacter) : FAbility(InCharacter)
+{
+	MagnesisDistance = UGameConstantsDataAsset::Get()->MagnesisDefaultDistance;
+}
 
 void FMagnesisAbility::Tick(float DeltaTime)
 {
@@ -22,6 +27,11 @@ void FMagnesisAbility::Tick(float DeltaTime)
 	}
 	
 	EPlayerState state = Character->GetCurrentState();
+	if ((state == EPlayerState::MagnesisTargeting || state == EPlayerState::MagnesisHolding) && Character->GetCharacterMovement() && Character->GetCharacterMovement()->IsFalling())
+	{
+		Release();
+		return;
+	}
 
 	switch (state)
 	{
@@ -86,7 +96,7 @@ void FMagnesisAbility::HandleDistance(const float AxisValue)
 {
 	if (Character && Character->GetCurrentState() == EPlayerState::MagnesisHolding && !FMath::IsNearlyZero(AxisValue))
 	{
-		MagnesisDistance = FMath::Clamp(MagnesisDistance + AxisValue * 100.0f, Constants::MagnesisMinDistance, Constants::MagnesisMaxDistance);
+		MagnesisDistance = FMath::Clamp(MagnesisDistance + AxisValue * 100.0f, UGameConstantsDataAsset::Get()->MagnesisMinDistance, UGameConstantsDataAsset::Get()->MagnesisMaxDistance);
 	}
 }
 
@@ -118,10 +128,6 @@ void FMagnesisAbility::UpdateControl(const float DeltaTime)
 	if (!PhysicsHandle->GetGrabbedComponent())
 	{
 		Character->SetPlayerState(EPlayerState::Normal);
-		if (UAbilityEffectComponent* AbilityEffect = Character->GetAbilityEffect())
-		{
-			AbilityEffect->ClearMagnesisHoldLink();
-		}
 		return;
 	}
 
@@ -144,13 +150,9 @@ void FMagnesisAbility::UpdateControl(const float DeltaTime)
 	}
 
 	// Move the physics-handle target gradually so the object follows with a soft lag.
-	CurrentHoldLocation = FMath::VInterpTo(CurrentHoldLocation, SafeTargetLocation, DeltaTime, Constants::MagnesisFollowSpeed);
+	CurrentHoldLocation = FMath::VInterpTo(CurrentHoldLocation, SafeTargetLocation, DeltaTime, UGameConstantsDataAsset::Get()->MagnesisFollowSpeed);
 	PhysicsHandle->SetTargetLocation(CurrentHoldLocation);
 
-	if (UAbilityEffectComponent* AbilityEffect = Character->GetAbilityEffect())
-	{
-		AbilityEffect->UpdateMagnesisHoldLink(PhysicsHandle->GetGrabbedComponent(), HoldLocation, CurrentHoldLocation);
-	}
 }
 
 void FMagnesisAbility::SelectTarget()
@@ -159,15 +161,14 @@ void FMagnesisAbility::SelectTarget()
 	UPrimitiveComponent* HitComponent = nullptr;
 	FVector HitLocation = FVector::ZeroVector;
 
-	if (!Character || !PhysicsHandle || !TraceTarget(HitComponent, HitLocation))
+	if (!Character || !PhysicsHandle)
+	{
+		return;
+	}
+	if (!TraceTarget(HitComponent, HitLocation))
 	{
 		ExitTargetingMode();
-
-		if (Character)
-		{
-			Character->SetPlayerState(EPlayerState::Normal);
-		}
-
+		Character->SetPlayerState(EPlayerState::Normal);
 		return;
 	}
 
@@ -180,7 +181,7 @@ void FMagnesisAbility::SelectTarget()
 
 		const FVector HoldLocation = Character->GetActorLocation() + FVector(0.0f, 0.0f, 100.0f);
 
-		MagnesisDistance = FMath::Clamp(FVector::DotProduct(HitLocation - HoldLocation, Character->GetController()->GetControlRotation().Vector()), Constants::MagnesisMinDistance, Constants::MagnesisMaxDistance);
+		MagnesisDistance = FMath::Clamp(FVector::DotProduct(HitLocation - HoldLocation, Character->GetController()->GetControlRotation().Vector()), UGameConstantsDataAsset::Get()->MagnesisMinDistance, UGameConstantsDataAsset::Get()->MagnesisMaxDistance);
 
 		Character->SetPlayerState(EPlayerState::MagnesisHolding);
 	}
@@ -215,28 +216,15 @@ bool FMagnesisAbility::TraceTarget(UPrimitiveComponent*& OutComponent, FVector& 
 	OutComponent = nullptr;
 	OutLocation = FVector::ZeroVector;
 
-	if (!Character || !Character->GetController() || !Character->GetWorld())
-	{
-		return false;
-	}
-
-	// Start at the pawn's eye/view location so the trace does not originate from
-	// the third-person camera behind the character mesh.
-	const FVector TraceStart = Character->GetPawnViewLocation();
-	const FRotator ViewRotation = Character->GetController()->GetControlRotation();
-	const FVector TraceEnd = TraceStart + ViewRotation.Vector() * Constants::MagnesisTargetRange;
-
 	FHitResult HitResult;
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(MagnesisTargetTrace), false, Character);
-	QueryParams.AddIgnoredActor(Character);
+	const bool bValidTarget = TraceAbilityTarget(EAbilityReactionType::MagnesisTarget, UGameConstantsDataAsset::Get()->MagnesisTargetRange, HitResult, false, nullptr, true);
+	const FVector TraceStart = Character ? Character->GetPawnViewLocation() : FVector::ZeroVector;
+	const FVector TraceEnd = Character && Character->GetController() ? TraceStart + Character->GetController()->GetControlRotation().Vector() * UGameConstantsDataAsset::Get()->MagnesisTargetRange : TraceStart;
 
-	const bool bTraceHit = Character->GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
-	const UAbilityReactionComponent* Reaction = bTraceHit && HitResult.GetActor() ? HitResult.GetActor()->FindComponentByClass<UAbilityReactionComponent>() : nullptr;
-	const bool bValidTarget = Reaction && Reaction->GetReactionType() == EAbilityReactionType::MagnesisTarget;
+	const bool bTraceHit = HitResult.bBlockingHit;
+	if (Character && Character->GetWorld()) DrawDebugLine(Character->GetWorld(),TraceStart,bTraceHit ? HitResult.ImpactPoint : TraceEnd,bValidTarget ? FColor::Green : bTraceHit ? FColor::Yellow : FColor::Red,false,0.1f,1,2.0f);
 
-	DrawDebugLine(Character->GetWorld(),TraceStart,bTraceHit ? HitResult.ImpactPoint : TraceEnd,bValidTarget ? FColor::Green : bTraceHit ? FColor::Yellow : FColor::Red,false,0.1f,1,2.0f);
-
-	if (bTraceHit)
+	if (bTraceHit && Character && Character->GetWorld())
 	{
 		DrawDebugPoint(Character->GetWorld(),HitResult.ImpactPoint,12.0f,bValidTarget ? FColor::Green : FColor::Yellow,false,0.1f,1);
 	}
@@ -281,7 +269,6 @@ void FMagnesisAbility::Release()
 
 	if (UAbilityEffectComponent* AbilityEffect = Character->GetAbilityEffect())
 	{
-		AbilityEffect->ClearMagnesisHoldLink();
 		AbilityEffect->ClearVisionEffects();
 	}
 }

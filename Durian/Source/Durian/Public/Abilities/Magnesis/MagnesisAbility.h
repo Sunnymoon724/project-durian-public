@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/Core/Ability.h"
-#include "Constants/GameConstants.h"
 
 class UPrimitiveComponent;
 
@@ -32,5 +31,5 @@ private:
 	FVector TargetedLocation = FVector::ZeroVector;
 	FVector CurrentHoldLocation = FVector::ZeroVector;
 
-	float MagnesisDistance = Constants::MagnesisDefaultDistance;
+	float MagnesisDistance = 0.0f;
 };

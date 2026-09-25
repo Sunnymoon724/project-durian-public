@@ -3,6 +3,8 @@
 #include "Abilities/Core/Ability.h"
 
 class UPrimitiveComponent;
+class UStasisTargetComponent;
+class AActor;
 
 class FStasisAbility final : public FAbility
 {
@@ -16,19 +18,23 @@ public:
 	void HandleInteract() override;
 	void HandleCancel() override;
 	void HandleAbilityUse() override;
-	void AccumulateImpulse(const FVector& Impulse);
+	void HandleAttackHit(const FHitResult& Hit, const FVector& AttackDirection);
+	void AbortForEndPlay();
+	bool IsStasisActive() const;
+	float GetRemainingTime() const { return RemainingTime; }
+	float GetCooldownRemaining() const { return CooldownRemaining; }
+	FVector GetAccumulatedImpulse() const;
 
 private:
 	void UpdateTargeting();
 	void StartStasis();
-	void EndStasis(bool bApplyImpulse);
+	void EndStasis(bool bApplyImpulse, bool bStartCooldown);
 	void ClearTarget();
 	bool TraceTarget(UPrimitiveComponent*& OutComponent) const;
 
 	TWeakObjectPtr<UPrimitiveComponent> TargetedComponent;
-	FVector SavedLinearVelocity = FVector::ZeroVector;
-	FVector SavedAngularVelocity = FVector::ZeroVector;
-	FVector AccumulatedImpulse = FVector::ZeroVector;
+	TWeakObjectPtr<AActor> AimingMarker;
+	TWeakObjectPtr<UStasisTargetComponent> ActiveTarget;
 	float RemainingTime = 0.0f;
 	float CooldownRemaining = 0.0f;
 };

@@ -378,6 +378,10 @@ void AKzPlayerController::OnAbilityUse()
 
 void AKzPlayerController::OnAttack()
 {
+	if (AKzPlayerCharacter* ControlledCharacter = GetControlledCharacter())
+	{
+		ControlledCharacter->HandleAttack();
+	}
 	AttackRequested();
 }
 

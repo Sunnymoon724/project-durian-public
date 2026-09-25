@@ -10,15 +10,13 @@ class AIcePlacementPreview;
 class FCryonisAbility final : public FAbility
 {
 public:
-	explicit FCryonisAbility(AKzPlayerCharacter* InCharacter)
-		: FAbility(InCharacter)
-	{
-	}
+	explicit FCryonisAbility(AKzPlayerCharacter* InCharacter) : FAbility(InCharacter) { }
 
-	void Tick(float DeltaTime) override;
-	void HandleInteract() override;
-	void HandleCancel() override;
-	void HandleAbilityUse() override;
+	virtual void Tick(float DeltaTime) override;
+	virtual void HandleInteract() override;
+	virtual void HandleCancel() override;
+	virtual void HandleAbilityUse() override;
+
 	void HandleTargetAtFeet();
 
 private:
@@ -31,7 +29,7 @@ private:
 	void EnsurePreview();
 	static bool IsIcePillarTarget(const AActor* Actor);
 	bool TraceTarget(FHitResult& OutHit) const;
-	bool CanSpawnAt(const FVector& SpawnLocation, AActor* SurfaceActor) const;
+	bool CanSpawnAt(const FVector& SpawnLocation,const AActor* SurfaceActor) const;
 	static FVector GetSpawnLocation(const FHitResult& Hit);
 	static void DestroyPillar(AIcePillar* Pillar);
 
@@ -46,7 +44,4 @@ private:
 	bool bTargetAtFeet = false;
 	bool bTargetValid = false;
 
-	static constexpr int32 MaxPillarCount = 3;
-	static constexpr float SpawnCooldown = 2.0f;
-	static constexpr float TargetRange = 1500.0f;
 };
