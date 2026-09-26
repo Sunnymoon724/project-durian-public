@@ -250,7 +250,7 @@ void FCryonisAbility::RemoveTargetedPillar()
 		return;
 	}
 
-	DestroyPillar(Pillar);
+	DestroyPillar(Pillar, true);
 	SpawnedPillars.Remove(Pillar);
 
 	ClearTarget();
@@ -371,13 +371,13 @@ FVector FCryonisAbility::GetSpawnLocation(const FHitResult& Hit)
 	return Hit.ImpactPoint + FVector(0.0f, 0.0f, UGameConstantsDataAsset::Get()->IcePillarHeight * 0.5f);
 }
 
-void FCryonisAbility::DestroyPillar(AIcePillar* Pillar)
+void FCryonisAbility::DestroyPillar(AIcePillar* Pillar, const bool bShatter)
 {
 	if (!IsValid(Pillar))
 	{
 		return;
 	}
 
-	Pillar->PlayDestroyEffect();
+	Pillar->PlayDestroyEffect(bShatter);
 	Pillar->Destroy();
 }

@@ -31,7 +31,7 @@ private:
 	bool TraceTarget(FHitResult& OutHit) const;
 	bool CanSpawnAt(const FVector& SpawnLocation,const AActor* SurfaceActor) const;
 	static FVector GetSpawnLocation(const FHitResult& Hit);
-	static void DestroyPillar(AIcePillar* Pillar);
+	static void DestroyPillar(AIcePillar* Pillar, bool bShatter = false);
 
 	TWeakObjectPtr<AActor> TargetSurface;
 	TWeakObjectPtr<AIcePillar> TargetPillar;

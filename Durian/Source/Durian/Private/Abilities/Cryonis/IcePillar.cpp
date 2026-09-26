@@ -63,14 +63,15 @@ void AIcePillar::Tick(const float DeltaSeconds)
 	}
 }
 
-void AIcePillar::PlayDestroyEffect() const
+void AIcePillar::PlayDestroyEffect(const bool bShatter) const
 {
 	if (!GetWorld())
 	{
 		return;
 	}
 
-	UNiagaraSystem* DissolveSystem = Cast<UNiagaraSystem>(StaticLoadObject(UNiagaraSystem::StaticClass(),nullptr,TEXT("/Game/Resources/VFX/Cryonis/Niagara/NS_IcePillarDissolve.NS_IcePillarDissolve")));
+	const TCHAR* EffectPath = bShatter ? TEXT("/Game/Resources/VFX/Cryonis/Niagara/NS_IcePillarShatter.NS_IcePillarShatter") : TEXT("/Game/Resources/VFX/Cryonis/Niagara/NS_IcePillarDissolve.NS_IcePillarDissolve");
+	UNiagaraSystem* DissolveSystem = Cast<UNiagaraSystem>(StaticLoadObject(UNiagaraSystem::StaticClass(), nullptr, EffectPath));
 
 	if (DissolveSystem)
 	{

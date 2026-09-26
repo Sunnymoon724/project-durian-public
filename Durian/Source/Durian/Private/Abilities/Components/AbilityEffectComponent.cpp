@@ -120,11 +120,7 @@ void UAbilityEffectComponent::ApplyVisionProfile(UMaterialInstanceDynamic* Mater
 
 	MaterialInstance->SetVectorParameterValue(TEXT("WorldGradeColor"), Profile.WorldGradeColor);
 	MaterialInstance->SetScalarParameterValue(TEXT("WorldBlend"), Common.WorldBlend);
-	MaterialInstance->SetVectorParameterValue(TEXT("CandidateGradeColor"), Profile.CandidateGradeColor);
-	MaterialInstance->SetVectorParameterValue(TEXT("CandidateGlowColor"), Profile.CandidateGlowColor);
 	MaterialInstance->SetScalarParameterValue(TEXT("CandidateBlend"), Common.CandidateBlend);
-	MaterialInstance->SetVectorParameterValue(TEXT("TargetGradeColor"), Profile.TargetGradeColor);
-	MaterialInstance->SetVectorParameterValue(TEXT("TargetGlowColor"), Profile.TargetGlowColor);
 	MaterialInstance->SetScalarParameterValue(TEXT("TargetBlend"), Common.TargetBlend);
 }
 

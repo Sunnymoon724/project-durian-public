@@ -70,11 +70,11 @@ TArray<EAbilityVisualMode> UAbilityReactionComponent::GetSupportedAbilityModes_I
 	switch (ReactionType)
 	{
 		case EAbilityReactionType::Normal:
-			return { EAbilityVisualMode::Magnesis, EAbilityVisualMode::Cryonis, EAbilityVisualMode::Stasis };
+		return { EAbilityVisualMode::Magnesis, EAbilityVisualMode::Cryonis, EAbilityVisualMode::Stasis };
 		case EAbilityReactionType::MagnesisTarget:
 		case EAbilityReactionType::StasisTarget:
 		case EAbilityReactionType::CryonicTarget:
-			return { EAbilityVisualMode::Magnesis, EAbilityVisualMode::Cryonis, EAbilityVisualMode::Stasis };
+		return { EAbilityVisualMode::Magnesis, EAbilityVisualMode::Cryonis, EAbilityVisualMode::Stasis };
 		default:
 			UE_LOG(LogTemp, Log, TEXT("Not supported in %s."), *UEnum::GetValueAsString(ReactionType));
 			return {};
@@ -94,11 +94,7 @@ void UAbilityReactionComponent::OnAbilityModeChanged_Implementation(const EAbili
 
 	if (bIsMatchingTarget)
 	{
-		SetTargetStencilEnabled(bEnabled);
-		if (bEnabled && bAimedTarget)
-		{
-			SetAimedTarget(true);
-		}
+		SetTargetStencilEnabled(bEnabled && bAimedTarget);
 		SetTargetSurfaceHighlightEnabled(bEnabled, Mode);
 	}
 	else
@@ -117,7 +113,7 @@ void UAbilityReactionComponent::SetAimedTarget(const bool bAimed)
 
 	if (ActiveMode != EAbilityVisualMode::None && bIsMatchingTarget)
 	{
-		SetTargetStencilEnabled(true);
+		SetTargetStencilEnabled(bAimedTarget);
 	
 		if (bAimedTarget && GetOwner())
 		{
@@ -127,7 +123,7 @@ void UAbilityReactionComponent::SetAimedTarget(const bool bAimed)
 
 			for (UPrimitiveComponent* Component : ComponentArray)
 			{
-				if (Component && !Component->ComponentHasTag(TEXT("StasisFeedback")) && !TopScanOverlays.Contains(Cast<UStaticMeshComponent>(Component)))
+				if (Component && !TopScanOverlays.Contains(Cast<UStaticMeshComponent>(Component)))
 				{
 					Component->SetCustomDepthStencilValue(2);
 				}
@@ -151,10 +147,10 @@ void UAbilityReactionComponent::SetTargetStencilEnabled(const bool bEnabled) con
 
 	for (UPrimitiveComponent* Component : ComponentArray)
 	{
-		if (Component && !Component->ComponentHasTag(TEXT("StasisFeedback")) && !TopScanOverlays.Contains(Cast<UStaticMeshComponent>(Component)))
+		if (Component && !TopScanOverlays.Contains(Cast<UStaticMeshComponent>(Component)))
 		{
-			Component->SetRenderCustomDepth(bEnabled);
-			Component->SetCustomDepthStencilValue(bEnabled ? 1 : 0);
+			Component->SetRenderCustomDepth(false);
+			Component->SetCustomDepthStencilValue(0);
 		}
 	}
 }
@@ -167,6 +163,7 @@ void UAbilityReactionComponent::SetTopScanEnabled(const bool bEnabled, const EAb
 	}
 
 	const FAbilityModeVisualProfile& VisualProfile = FAbilityModeVisualProfiles::Get(Mode);
+	const FAbilityModeVisualCommonProfile& CommonProfile = FAbilityModeVisualProfiles::GetCommon();
 	const FLinearColor Color = VisualProfile.ScanColor;
 
 	FVector2D ScanDirection(1.0f, 0.0f);
@@ -186,7 +183,7 @@ void UAbilityReactionComponent::SetTopScanEnabled(const bool bEnabled, const EAb
 		if (UStaticMeshComponent* Overlay = TopScanOverlays[Index])
 		{
 			Overlay->SetRelativeScale3D(FVector(1.005f));
-			Overlay->SetRelativeLocation(FVector(0.0f, 0.0f, 0.5f));
+			Overlay->SetRelativeLocation(FVector(0.0f, 0.0f, CommonProfile.ScanNormalTopOverlayZOffset));
 			Overlay->SetHiddenInGame(!bEnabled, true);
 			Overlay->SetVisibility(bEnabled, true);
 		}
@@ -219,7 +216,8 @@ void UAbilityReactionComponent::SetTargetSurfaceHighlightEnabled(const bool bEna
 
 		if (TargetSurfaceHighlightMaterials.IsValidIndex(Index) && TargetSurfaceHighlightMaterials[Index])
 		{
-			TargetSurfaceHighlightMaterials[Index]->SetVectorParameterValue(TEXT("TargetEdgeColor"),bAimedTarget ? VisualProfile.TargetEdgeColor : VisualProfile.CandidateGlowColor);
+			TargetSurfaceHighlightMaterials[Index]->SetVectorParameterValue(TEXT("TargetEdgeColor"), bAimedTarget ? VisualProfile.TargetEdgeColor : VisualProfile.CandidateGlowColor);
+			TargetSurfaceHighlightMaterials[Index]->SetVectorParameterValue(TEXT("TargetFillColor"), bAimedTarget ? VisualProfile.TargetScanColor : VisualProfile.CandidateGradeColor);
 			TargetSurfaceHighlightMaterials[Index]->SetScalarParameterValue(TEXT("TargetEdgeOpacity"), CommonProfile.TargetEdgeOpacity);
 		}
 	}
@@ -233,6 +231,7 @@ void UAbilityReactionComponent::CreateTopScanOverlays()
 	}
 
 	UMaterialInterface* Material = TopScanOverlayMaterial.LoadSynchronous();
+	const FAbilityModeVisualCommonProfile& CommonProfile = FAbilityModeVisualProfiles::GetCommon();
 
 	if (!Material)
 	{
@@ -245,7 +244,7 @@ void UAbilityReactionComponent::CreateTopScanOverlays()
 
 	for (UStaticMeshComponent* Source : SourceArray)
 	{
-		if (!Source || !Source->GetStaticMesh() || Source->ComponentHasTag(TEXT("StasisFeedback")) || TopScanOverlays.Contains(Source) || TargetSurfaceHighlightOverlays.Contains(Source))
+		if (!Source || !Source->GetStaticMesh() || TopScanOverlays.Contains(Source) || TargetSurfaceHighlightOverlays.Contains(Source))
 		{
 			continue;
 		}
@@ -257,7 +256,7 @@ void UAbilityReactionComponent::CreateTopScanOverlays()
 		Overlay->SetStaticMesh(Source->GetStaticMesh());
 		Overlay->SetupAttachment(Source);
 		Overlay->SetRelativeScale3D(FVector(1.005f));
-		Overlay->SetRelativeLocation(FVector(0.0f, 0.0f, 0.5f));
+		Overlay->SetRelativeLocation(FVector(0.0f, 0.0f, CommonProfile.ScanNormalTopOverlayZOffset));
 		Overlay->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		Overlay->SetCastShadow(false);
 		Overlay->SetRenderCustomDepth(false);
@@ -285,6 +284,7 @@ void UAbilityReactionComponent::CreateTargetSurfaceHighlightOverlays()
 	}
 
 	UMaterialInterface* Material = TargetSurfaceHighlightMaterial.LoadSynchronous();
+	const FAbilityModeVisualCommonProfile& CommonProfile = FAbilityModeVisualProfiles::GetCommon();
 
 	if (!Material)
 	{
@@ -297,7 +297,7 @@ void UAbilityReactionComponent::CreateTargetSurfaceHighlightOverlays()
 
 	for (UStaticMeshComponent* Source : SourceArray)
 	{
-		if (!Source || !Source->GetStaticMesh() || Source->ComponentHasTag(TEXT("StasisFeedback")) || TopScanOverlays.Contains(Source) || TargetSurfaceHighlightOverlays.Contains(Source))
+		if (!Source || !Source->GetStaticMesh() || TopScanOverlays.Contains(Source) || TargetSurfaceHighlightOverlays.Contains(Source))
 		{
 			continue;
 		}
@@ -308,8 +308,8 @@ void UAbilityReactionComponent::CreateTargetSurfaceHighlightOverlays()
 
 		Overlay->SetStaticMesh(Source->GetStaticMesh());
 		Overlay->SetupAttachment(Source);
-		Overlay->SetRelativeScale3D(FVector(1.012f));
-		Overlay->SetRelativeLocation(FVector(0.0f, 0.0f, 0.01f));
+		Overlay->SetRelativeScale3D(FVector(CommonProfile.ScanTargetTopOverlayScale));
+		Overlay->SetRelativeLocation(FVector(0.0f, 0.0f, CommonProfile.ScanTargetTopOverlayZOffset));
 		Overlay->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		Overlay->SetCastShadow(false);
 		Overlay->SetRenderCustomDepth(false);

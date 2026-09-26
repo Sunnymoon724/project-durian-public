@@ -13,6 +13,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/GameInstance.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 
 FMagnesisAbility::FMagnesisAbility(AKzPlayerCharacter* InCharacter) : FAbility(InCharacter)
 {
@@ -177,6 +179,10 @@ void FMagnesisAbility::SelectTarget()
 
 	if (PhysicsHandle->GetGrabbedComponent())
 	{
+		if (UNiagaraSystem* GrabPulse = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Resources/VFX/Magnesis/Niagara/NS_MagnesisGrabPulse.NS_MagnesisGrabPulse")))
+		{
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(Character->GetWorld(), GrabPulse, HitComponent->Bounds.Origin);
+		}
 		CurrentHoldLocation = HitLocation;
 
 		const FVector HoldLocation = Character->GetActorLocation() + FVector(0.0f, 0.0f, 100.0f);
@@ -253,7 +259,12 @@ void FMagnesisAbility::Release()
 	{
 		if (PhysicsHandle->GetGrabbedComponent())
 		{
+			const FVector ReleaseLocation = PhysicsHandle->GetGrabbedComponent()->Bounds.Origin;
 			PhysicsHandle->ReleaseComponent();
+			if (UNiagaraSystem* ReleasePulse = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Resources/VFX/Magnesis/Niagara/NS_MagnesisReleasePulse.NS_MagnesisReleasePulse")))
+			{
+				UNiagaraFunctionLibrary::SpawnSystemAtLocation(Character->GetWorld(), ReleasePulse, ReleaseLocation);
+			}
 		}
 	}
 

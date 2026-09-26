@@ -21,7 +21,7 @@ public:
 
 	static constexpr float HorizontalScale = 1.5f;
 
-	void PlayDestroyEffect() const;
+	void PlayDestroyEffect(bool bShatter) const;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ice")
 	TObjectPtr<UStaticMeshComponent> IceMesh;

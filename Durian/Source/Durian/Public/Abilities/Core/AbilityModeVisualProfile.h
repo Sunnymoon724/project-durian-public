@@ -23,6 +23,15 @@ struct FAbilityModeVisualCommonProfile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target Surface", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float TargetEdgeOpacity = 0.16f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlay", meta = (ClampMin = "0.0"))
+	float ScanNormalTopOverlayZOffset = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target Surface", meta = (ClampMin = "0.0"))
+	float ScanTargetTopOverlayZOffset = 0.01f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target Surface", meta = (ClampMin = "1.0"))
+	float ScanTargetTopOverlayScale = 1.012f;
+
 };
 
 /** 능력 모드별 색상 시각 파라미터다. */
@@ -31,29 +40,23 @@ struct FAbilityModeVisualProfile
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlay")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlay", meta = (DisplayName = "Scan Line Color"))
 	FLinearColor ScanColor;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Overlay")
-	FLinearColor TargetScanColor;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target Surface")
-	FLinearColor TargetEdgeColor;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World Scan")
-	FLinearColor WorldGradeColor;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World Scan|Candidate")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target Surface", meta = (DisplayName = "Candidate Main Color"))
 	FLinearColor CandidateGradeColor;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World Scan|Candidate")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target Surface", meta = (DisplayName = "Candidate Edge Color"))
 	FLinearColor CandidateGlowColor;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World Scan|Targeted")
-	FLinearColor TargetGradeColor;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target Surface", meta = (DisplayName = "Target Main Color"))
+	FLinearColor TargetScanColor;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World Scan|Targeted")
-	FLinearColor TargetGlowColor;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Target Surface", meta = (DisplayName = "Target Edge Color"))
+	FLinearColor TargetEdgeColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "World Scan", meta = (DisplayName = "World Grade Color"))
+	FLinearColor WorldGradeColor;
 
 };
 

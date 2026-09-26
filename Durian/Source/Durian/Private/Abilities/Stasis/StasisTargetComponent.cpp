@@ -41,6 +41,10 @@ void UStasisTargetComponent::AccumulateImpulse(const FVector& Impulse, const flo
 	}
 
 	AccumulatedImpulse = (AccumulatedImpulse + Impulse).GetClampedToMaxSize(FMath::Max(0.0f, MaxImpulse));
+	if (UNiagaraSystem* HitSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Resources/VFX/Stasis/Niagara/NS_StasisForceHit.NS_StasisForceHit")))
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitSystem, FrozenPrimitive->Bounds.Origin);
+	}
 }
 
 void UStasisTargetComponent::EndStasis(const bool bApplyImpulse)
@@ -53,7 +57,10 @@ void UStasisTargetComponent::EndStasis(const bool bApplyImpulse)
 	bStasisActive = false;
 	if (bApplyImpulse)
 	{
-		SpawnPulse();
+		if (UNiagaraSystem* ReleaseSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Resources/VFX/Stasis/Niagara/NS_StasisRelease.NS_StasisRelease")))
+		{
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ReleaseSystem, FrozenPrimitive->Bounds.Origin);
+		}
 	}
 	ClearFeedback();
 	if (AActor* Owner = GetOwner())
@@ -148,7 +155,7 @@ void UStasisTargetComponent::CreateFeedback()
 
 	UStaticMesh* Cylinder = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
 	UStaticMesh* Cone = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cone.Cone"));
-	UMaterialInterface* MarkerMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Resources/VFX/Stasis/Materials/MI_StasisTargetMarker.MI_StasisTargetMarker"));
+	UMaterialInterface* MarkerMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Resources/VFX/Stasis/Materials/MI_StasisForceArrow.MI_StasisForceArrow"));
 	if (Cylinder && Cone)
 	{
 		DirectionShaft = NewObject<UStaticMeshComponent>(Owner);
@@ -226,7 +233,7 @@ void UStasisTargetComponent::SpawnPulse() const
 	{
 		return;
 	}
-	if (UNiagaraSystem* Pulse = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Resources/VFX/Stasis/Niagara/NS_StasisLockPulse.NS_StasisLockPulse")))
+	if (UNiagaraSystem* Pulse = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Resources/VFX/Stasis/Niagara/NS_StasisLockPulse_FromEffect.NS_StasisLockPulse_FromEffect")))
 	{
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Pulse, FrozenPrimitive->Bounds.Origin);
 	}

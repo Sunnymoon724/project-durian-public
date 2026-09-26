@@ -6,6 +6,7 @@
 #include "Framework/Player/KzPlayerCharacter.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
+#include "Materials/MaterialInterface.h"
 #include "UObject/ConstructorHelpers.h"
 
 ARemoteBomb::ARemoteBomb()
@@ -31,6 +32,11 @@ void ARemoteBomb::Initialize(const ERemoteBombShape InShape, AKzPlayerCharacter*
 {
 	Shape = InShape;
 	OwningCharacter = InOwner;
+	const TCHAR* ChargeMaterialPath = Shape == ERemoteBombShape::Cube ? TEXT("/Game/Resources/VFX/RemoteBomb/Materials/MI_RemoteBombCharge_Cube.MI_RemoteBombCharge_Cube") : TEXT("/Game/Resources/VFX/RemoteBomb/Materials/MI_RemoteBombCharge_Round.MI_RemoteBombCharge_Round");
+	if (UMaterialInterface* ChargeMaterial = LoadObject<UMaterialInterface>(nullptr, ChargeMaterialPath))
+	{
+		BombMesh->SetMaterial(0, ChargeMaterial);
+	}
 	if (Shape == ERemoteBombShape::Cube)
 	{
 		UStaticMesh* CubeMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
@@ -78,9 +84,10 @@ void ARemoteBomb::Place(const FVector& Location, const FVector& Impulse)
 
 void ARemoteBomb::PlayExplosionEffect(const float Radius) const
 {
-	if (ExplosionEffect)
+	UNiagaraSystem* System = ExplosionEffect ? ExplosionEffect.Get() : LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Resources/VFX/RemoteBomb/Niagara/NS_RemoteBombExplosion.NS_RemoteBombExplosion"));
+	if (System)
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ExplosionEffect, GetActorLocation());
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), System, GetActorLocation());
 		return;
 	}
 

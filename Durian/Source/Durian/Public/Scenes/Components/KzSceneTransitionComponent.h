@@ -22,4 +22,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Scene Transition")
 	FName CompletedChallengeId = NAME_None;
+
+private:
+	void FinishTransition();
+	FTimerHandle TransitionTimer;
+	bool bTransitionPending = false;
 };

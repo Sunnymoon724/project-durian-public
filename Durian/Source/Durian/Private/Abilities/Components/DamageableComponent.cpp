@@ -1,6 +1,9 @@
 #include "Abilities/Components/DamageableComponent.h"
 
 #include "GameFramework/Actor.h"
+#include "Framework/Player/KzPlayerCharacter.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 
 UDamageableComponent::UDamageableComponent()
 {
@@ -25,6 +28,14 @@ void UDamageableComponent::HandleAnyDamage(AActor* DamagedActor, const float Dam
 	}
 
 	Health = FMath::Max(0.0f, Health - Damage);
+	if (IsValid(DamagedActor) && !DamagedActor->IsA<AKzPlayerCharacter>())
+	{
+		const TCHAR* EffectPath = Health > 0.0f ? TEXT("/Game/Resources/VFX/Combat/Niagara/NS_SentinelHit.NS_SentinelHit") : TEXT("/Game/Resources/VFX/Combat/Niagara/NS_SentinelDeath.NS_SentinelDeath");
+		if (UNiagaraSystem* Effect = LoadObject<UNiagaraSystem>(nullptr, EffectPath))
+		{
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Effect, DamagedActor->GetActorLocation());
+		}
+	}
 	OnHealthChanged.Broadcast(Health, MaxHealth);
 	if (Health > 0.0f)
 	{
