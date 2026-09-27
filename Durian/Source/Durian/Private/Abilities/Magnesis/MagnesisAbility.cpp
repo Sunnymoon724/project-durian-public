@@ -6,15 +6,13 @@
 #include "Abilities/Components/AbilityReactionComponent.h"
 #include "CollisionShape.h"
 #include "Constants/GameConstantsDataAsset.h"
-#include "DrawDebugHelpers.h"
 #include "Engine/World.h"
 #include "Framework/Player/KzPlayerCharacter.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/GameInstance.h"
+#include "Framework/Utility/NiagaraEffectUtility.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
-#include "NiagaraFunctionLibrary.h"
-#include "NiagaraSystem.h"
 
 FMagnesisAbility::FMagnesisAbility(AKzPlayerCharacter* InCharacter) : FAbility(InCharacter)
 {
@@ -179,10 +177,7 @@ void FMagnesisAbility::SelectTarget()
 
 	if (PhysicsHandle->GetGrabbedComponent())
 	{
-		if (UNiagaraSystem* GrabPulse = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Resources/VFX/Magnesis/Niagara/NS_MagnesisGrabPulse.NS_MagnesisGrabPulse")))
-		{
-			UNiagaraFunctionLibrary::SpawnSystemAtLocation(Character->GetWorld(), GrabPulse, HitComponent->Bounds.Origin);
-		}
+		FNiagaraEffectUtility::SpawnAtLocation(Character->GetWorld(), FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnesis/Niagara/NS_MagnesisGrabPulse.NS_MagnesisGrabPulse")), HitComponent->Bounds.Origin);
 		CurrentHoldLocation = HitLocation;
 
 		const FVector HoldLocation = Character->GetActorLocation() + FVector(0.0f, 0.0f, 100.0f);
@@ -224,16 +219,7 @@ bool FMagnesisAbility::TraceTarget(UPrimitiveComponent*& OutComponent, FVector& 
 
 	FHitResult HitResult;
 	const bool bValidTarget = TraceAbilityTarget(EAbilityReactionType::MagnesisTarget, UGameConstantsDataAsset::Get()->MagnesisTargetRange, HitResult, false, nullptr, true);
-	const FVector TraceStart = Character ? Character->GetPawnViewLocation() : FVector::ZeroVector;
-	const FVector TraceEnd = Character && Character->GetController() ? TraceStart + Character->GetController()->GetControlRotation().Vector() * UGameConstantsDataAsset::Get()->MagnesisTargetRange : TraceStart;
-
 	const bool bTraceHit = HitResult.bBlockingHit;
-	if (Character && Character->GetWorld()) DrawDebugLine(Character->GetWorld(),TraceStart,bTraceHit ? HitResult.ImpactPoint : TraceEnd,bValidTarget ? FColor::Green : bTraceHit ? FColor::Yellow : FColor::Red,false,0.1f,1,2.0f);
-
-	if (bTraceHit && Character && Character->GetWorld())
-	{
-		DrawDebugPoint(Character->GetWorld(),HitResult.ImpactPoint,12.0f,bValidTarget ? FColor::Green : FColor::Yellow,false,0.1f,1);
-	}
 
 	if (!bTraceHit || !bValidTarget)
 	{
@@ -261,10 +247,7 @@ void FMagnesisAbility::Release()
 		{
 			const FVector ReleaseLocation = PhysicsHandle->GetGrabbedComponent()->Bounds.Origin;
 			PhysicsHandle->ReleaseComponent();
-			if (UNiagaraSystem* ReleasePulse = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Resources/VFX/Magnesis/Niagara/NS_MagnesisReleasePulse.NS_MagnesisReleasePulse")))
-			{
-				UNiagaraFunctionLibrary::SpawnSystemAtLocation(Character->GetWorld(), ReleasePulse, ReleaseLocation);
-			}
+			FNiagaraEffectUtility::SpawnAtLocation(Character->GetWorld(), FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnesis/Niagara/NS_MagnesisReleasePulse.NS_MagnesisReleasePulse")), ReleaseLocation);
 		}
 	}
 

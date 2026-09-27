@@ -2,10 +2,7 @@
 
 #pragma once
 
-#include "Abilities/Cryonis/CryonisAbility.h"
-#include "Abilities/Magnesis/MagnesisAbility.h"
-#include "Abilities/RemoteBomb/RemoteBombAbility.h"
-#include "Abilities/Stasis/StasisAbility.h"
+#include "Abilities/Core/PlayerAbilityComponent.h"
 #include "CoreMinimal.h"
 #include "Enums/PlayerEnums.h"
 #include "GameFramework/Character.h"
@@ -13,7 +10,6 @@
 class UPrimitiveComponent;
 class UAbilityEffectComponent;
 class UDamageableComponent;
-class ARemoteBomb;
 class UPhysicsHandleComponent;
 #include "KzPlayerCharacter.generated.h"
 
@@ -32,10 +28,11 @@ public:
 	virtual ~AKzPlayerCharacter() override;
 
 	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 protected:
 private:
+	friend class UPlayerAbilityComponent;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Magnesis", meta = (AllowPrivateAccess = true))
 	TObjectPtr<class UPhysicsHandleComponent> PhysicsHandle;
 
@@ -45,26 +42,16 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Damage", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UDamageableComponent> Damageable;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Remote Bomb")
-	TSubclassOf<ARemoteBomb> RemoteBombClass;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UPlayerAbilityComponent> AbilityComponent;
 
-	TUniquePtr<FMagnesisAbility> MagnesisAbility;
-	TUniquePtr<FStasisAbility> StasisAbility;
-	TUniquePtr<FRemoteBombAbility> RemoteBombAbility;
-	TUniquePtr<FCryonisAbility> CryonisAbility;
-	FAbility* CurrentAbility = nullptr;
-	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", meta = (AllowPrivateAccess = true))
 	EPlayerState CurrentState = EPlayerState::Normal;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", meta = (AllowPrivateAccess = true))
 	EAbilityType CurrentAbilityType = EAbilityType::Magnesis;
-	void InterruptMagnesis();
-	void InterruptCryonis();
-	void InterruptStasisTargeting();
 
 public:
-	virtual void Tick(const float DeltaTime) override;
 	virtual float TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 	void HandleInteract() const;
@@ -81,31 +68,30 @@ public:
 	UPhysicsHandleComponent* GetPhysicsHandle() const { return PhysicsHandle; }
 	UAbilityEffectComponent* GetAbilityEffect() const { return AbilityEffect; }
 	UDamageableComponent* GetDamageable() const { return Damageable; }
-	TSubclassOf<ARemoteBomb> GetRemoteBombClass() const { return RemoteBombClass; }
 	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	float GetRemoteBombSphereCooldown() const { return RemoteBombAbility ? RemoteBombAbility->GetCooldownRemaining(ERemoteBombShape::Sphere) : 0.0f; }
+	float GetRemoteBombSphereCooldown() const { return AbilityComponent ? AbilityComponent->GetRemoteBombCooldown(ERemoteBombShape::Sphere) : 0.0f; }
 	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	float GetRemoteBombCubeCooldown() const { return RemoteBombAbility ? RemoteBombAbility->GetCooldownRemaining(ERemoteBombShape::Cube) : 0.0f; }
+	float GetRemoteBombCubeCooldown() const { return AbilityComponent ? AbilityComponent->GetRemoteBombCooldown(ERemoteBombShape::Cube) : 0.0f; }
 	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	bool HasRemoteBombSphere() const { return RemoteBombAbility && RemoteBombAbility->HasBomb(ERemoteBombShape::Sphere); }
+	bool HasRemoteBombSphere() const { return AbilityComponent && AbilityComponent->HasRemoteBomb(ERemoteBombShape::Sphere); }
 	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	bool HasRemoteBombCube() const { return RemoteBombAbility && RemoteBombAbility->HasBomb(ERemoteBombShape::Cube); }
+	bool HasRemoteBombCube() const { return AbilityComponent && AbilityComponent->HasRemoteBomb(ERemoteBombShape::Cube); }
 	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	bool IsRemoteBombSphereInstalled() const { return RemoteBombAbility && RemoteBombAbility->IsBombInstalled(ERemoteBombShape::Sphere); }
+	bool IsRemoteBombSphereInstalled() const { return AbilityComponent && AbilityComponent->IsRemoteBombInstalled(ERemoteBombShape::Sphere); }
 	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	bool IsRemoteBombCubeInstalled() const { return RemoteBombAbility && RemoteBombAbility->IsBombInstalled(ERemoteBombShape::Cube); }
+	bool IsRemoteBombCubeInstalled() const { return AbilityComponent && AbilityComponent->IsRemoteBombInstalled(ERemoteBombShape::Cube); }
 	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	bool IsHoldingRemoteBomb() const { return RemoteBombAbility && RemoteBombAbility->IsHoldingBomb(); }
+	bool IsHoldingRemoteBomb() const { return AbilityComponent && AbilityComponent->IsHoldingRemoteBomb(); }
 	EPlayerState GetCurrentState() const { return CurrentState; }
 	EAbilityType GetCurrentAbilityType() const { return CurrentAbilityType; }
 	UFUNCTION(BlueprintPure, Category = "Stasis")
-	bool IsStasisActive() const { return StasisAbility && StasisAbility->IsStasisActive(); }
+	bool IsStasisActive() const { return AbilityComponent && AbilityComponent->IsStasisActive(); }
 	UFUNCTION(BlueprintPure, Category = "Stasis")
-	float GetStasisRemainingTime() const { return StasisAbility ? StasisAbility->GetRemainingTime() : 0.0f; }
+	float GetStasisRemainingTime() const { return AbilityComponent ? AbilityComponent->GetStasisRemainingTime() : 0.0f; }
 	UFUNCTION(BlueprintPure, Category = "Stasis")
-	float GetStasisCooldownRemaining() const { return StasisAbility ? StasisAbility->GetCooldownRemaining() : 0.0f; }
+	float GetStasisCooldownRemaining() const { return AbilityComponent ? AbilityComponent->GetStasisCooldownRemaining() : 0.0f; }
 	UFUNCTION(BlueprintPure, Category = "Stasis")
-	FVector GetStasisAccumulatedImpulse() const { return StasisAbility ? StasisAbility->GetAccumulatedImpulse() : FVector::ZeroVector; }
+	FVector GetStasisAccumulatedImpulse() const { return AbilityComponent ? AbilityComponent->GetStasisAccumulatedImpulse() : FVector::ZeroVector; }
 	UFUNCTION(BlueprintCallable, Category = "State")
 	void SetPlayerState(const EPlayerState NewState);
 

@@ -1,10 +1,9 @@
 #include "Scenes/Components/KzSceneTransitionComponent.h"
 
 #include "Framework/Game/KzGameInstance.h"
+#include "Framework/Utility/NiagaraEffectUtility.h"
 #include "Scenes/Core/KZSceneDefinition.h"
 #include "Scenes/Core/KzSceneSubsystem.h"
-#include "NiagaraFunctionLibrary.h"
-#include "NiagaraSystem.h"
 #include "TimerManager.h"
 
 UKzSceneTransitionComponent::UKzSceneTransitionComponent()
@@ -31,16 +30,10 @@ bool UKzSceneTransitionComponent::Transition()
 		return false;
 	}
 	const TCHAR* EffectPath = CompletedChallengeId.IsNone() ? TEXT("/Game/Resources/VFX/Challenge/Niagara/NS_ChallengeEnter.NS_ChallengeEnter") : TEXT("/Game/Resources/VFX/Challenge/Niagara/NS_ChallengeReturn.NS_ChallengeReturn");
-	if (UNiagaraSystem* Effect = LoadObject<UNiagaraSystem>(nullptr, EffectPath))
-	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Effect, GetOwner()->GetActorLocation());
-	}
+	FNiagaraEffectUtility::SpawnAtLocation(GetWorld(), FSoftObjectPath(EffectPath), GetOwner()->GetActorLocation());
 	if (!CompletedChallengeId.IsNone())
 	{
-		if (UNiagaraSystem* ClearEffect = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Resources/VFX/Challenge/Niagara/NS_ChallengeClear.NS_ChallengeClear")))
-		{
-			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ClearEffect, GetOwner()->GetActorLocation());
-		}
+		FNiagaraEffectUtility::SpawnAtLocation(GetWorld(), FSoftObjectPath(TEXT("/Game/Resources/VFX/Challenge/Niagara/NS_ChallengeClear.NS_ChallengeClear")), GetOwner()->GetActorLocation());
 	}
 	bTransitionPending = true;
 	GetWorld()->GetTimerManager().SetTimer(TransitionTimer, this, &UKzSceneTransitionComponent::FinishTransition, 0.6f, false);

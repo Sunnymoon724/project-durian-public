@@ -1,61 +1,94 @@
 #include "Abilities/Cryonis/IcePillar.h"
-#include "Abilities/Components/AbilityReactionComponent.h"
 #include "Constants/GameConstantsDataAsset.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
-#include "Kismet/GameplayStatics.h"
+#include "Framework/Utility/NiagaraEffectUtility.h"
 #include "Materials/MaterialInterface.h"
-#include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "UObject/ConstructorHelpers.h"
 
 AIcePillar::AIcePillar()
 {
 	PrimaryActorTick.bCanEverTick = true;
-
-	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
-	RootComponent = SceneRoot;
-
-	IceMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("IceMesh"));
-	IceMesh->SetupAttachment(SceneRoot);
-	IceMesh->SetCollisionProfileName(TEXT("BlockAll"));
-	IceMesh->SetSimulatePhysics(false);
-	IceMesh->SetMobility(EComponentMobility::Movable);
-	IceMesh->SetRelativeScale3D(FVector(HorizontalScale, HorizontalScale, 0.02f));
-	IceMesh->SetRelativeLocation(FVector::ZeroVector);
-
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
-
-	if (CubeMesh.Succeeded())
-	{
-		IceMesh->SetStaticMesh(CubeMesh.Object);
-	}
-
-	ReactionComponent = CreateDefaultSubobject<UAbilityReactionComponent>(TEXT("AbilityReaction"));
-	ReactionComponent->SetReactionType(EAbilityReactionType::CryonicTarget);
-
-	Tags.AddUnique(TEXT("IcePillar"));
 }
 
 void AIcePillar::BeginPlay()
 {
 	Super::BeginPlay();
-	IceMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -UGameConstantsDataAsset::Get()->IcePillarHeight * 0.5f));
+
+	IcePillar = Cast<UStaticMeshComponent>(GetDefaultSubobjectByName(TEXT("Pillar")));
+
+	if (!IcePillar)
+	{
+		UE_LOG(LogTemp, Error, TEXT("AIcePillar requires StaticMeshComponents named Pillar in BP_IcePillar."));
+
+		return;
+	}
+
+	if (ShatterEffect.IsNull())
+	{
+		UE_LOG(LogTemp, Error, TEXT("AIcePillar: ShatterEffect is not assigned in BP_IcePillar."));
+
+		return;
+	}
+
+	if (!ShatterEffect.LoadSynchronous())
+	{
+		UE_LOG(LogTemp, Error, TEXT("AIcePillar: ShatterEffect asset could not be loaded: %s"), *ShatterEffect.ToString());
+
+		return;
+	}
+
+	if (DissolveEffect.IsNull())
+	{
+		UE_LOG(LogTemp, Error, TEXT("AIcePillar: DissolveEffect is not assigned in BP_IcePillar."));
+
+		return;
+	}
+
+	if (!DissolveEffect.LoadSynchronous())
+	{
+		UE_LOG(LogTemp, Error, TEXT("AIcePillar: DissolveEffect asset could not be loaded: %s"), *DissolveEffect.ToString());
+
+		return;
+	}
+
+	PillarHeight = UGameConstantsDataAsset::Get()->IcePillarHeight;
+	PillarAnimationDuration = UGameConstantsDataAsset::Get()->IcePillarSpawnAnimationDuration;
+	PillarHorizontalScale = UGameConstantsDataAsset::Get()->IcePillarHorizontalScale;
+
+	IcePillar->SetRelativeScale3D(FVector(PillarHorizontalScale, PillarHorizontalScale, 0.02f));
+	IcePillar->SetRelativeLocation(FVector(0.0f, 0.0f, -PillarHeight * 0.5f));
+}
+
+bool AIcePillar::IsSetupValid() const
+{
+	return IcePillar && ShatterEffect && DissolveEffect;
 }
 
 void AIcePillar::Tick(const float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	const float SpawnDuration = UGameConstantsDataAsset::Get()->IcePillarSpawnAnimationDuration;
-	SpawnAnimationElapsed = FMath::Min(SpawnAnimationElapsed + DeltaSeconds, SpawnDuration);
+	if (!IsSetupValid())
+	{
+		SetActorTickEnabled(false);
 
-	const float Progress = FMath::Clamp(SpawnAnimationElapsed / FMath::Max(0.01f, SpawnDuration),0.0f,1.0f);
+		return;
+	}
+
+	const float AnimationDuration = FMath::Max(0.01f, PillarAnimationDuration);
+	SpawnAnimationElapsed = FMath::Min(SpawnAnimationElapsed + DeltaSeconds, AnimationDuration);
+
+	const float Progress = SpawnAnimationElapsed / AnimationDuration;
 	const float EasedProgress = FMath::InterpEaseOut(0.0f, 1.0f, Progress, 2.0f);
 
-	const float MeshHeight = IceMesh->GetStaticMesh() ? IceMesh->GetStaticMesh()->GetBoundingBox().GetSize().Z : 100.0f;
-	const float HeightScale = UGameConstantsDataAsset::Get()->IcePillarHeight / FMath::Max(1.0f, MeshHeight);
-	IceMesh->SetRelativeScale3D(FVector(HorizontalScale, HorizontalScale, FMath::Max(0.02f, HeightScale * EasedProgress)));
+	const UStaticMesh* StaticMesh = IcePillar->GetStaticMesh();
+	const float MeshHeight = StaticMesh ? StaticMesh->GetBoundingBox().GetSize().Z : 100.0f;
+	const float HeightScale = PillarHeight / FMath::Max(1.0f, MeshHeight);
+	const float CurrentHeightScale = FMath::Max(0.02f, HeightScale * EasedProgress);
+
+	IcePillar->SetRelativeScale3D(FVector(PillarHorizontalScale, PillarHorizontalScale, CurrentHeightScale));
 
 	if (Progress >= 1.0f)
 	{
@@ -70,11 +103,7 @@ void AIcePillar::PlayDestroyEffect(const bool bShatter) const
 		return;
 	}
 
-	const TCHAR* EffectPath = bShatter ? TEXT("/Game/Resources/VFX/Cryonis/Niagara/NS_IcePillarShatter.NS_IcePillarShatter") : TEXT("/Game/Resources/VFX/Cryonis/Niagara/NS_IcePillarDissolve.NS_IcePillarDissolve");
-	UNiagaraSystem* DissolveSystem = Cast<UNiagaraSystem>(StaticLoadObject(UNiagaraSystem::StaticClass(), nullptr, EffectPath));
+	const TSoftObjectPtr<UNiagaraSystem>& Effect = bShatter ? ShatterEffect : DissolveEffect;
 
-	if (DissolveSystem)
-	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(),DissolveSystem,GetActorLocation(),GetActorRotation(),GetActorScale3D(),true,true);
-	}
+	FNiagaraEffectUtility::SpawnAtLocation(GetWorld(), Effect, GetActorLocation(), GetActorRotation(), GetActorScale3D());
 }

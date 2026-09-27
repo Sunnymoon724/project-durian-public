@@ -2,13 +2,13 @@
 
 #include "Abilities/Core/AbilityModeVisualProfile.h"
 #include "Abilities/Core/AbilityVisualModeUtility.h"
+#include "Framework/Utility/NiagaraEffectUtility.h"
 #include "Camera/CameraComponent.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Components/PrimitiveComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
-#include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 
 UAbilityEffectComponent::UAbilityEffectComponent()
@@ -147,16 +147,7 @@ void UAbilityEffectComponent::PlayEnterPulse(EAbilityType Ability)
 		return;
 	}
 
-	UNiagaraSystem* PulseSystem = PulseAsset->LoadSynchronous();
-
-	if (!PulseSystem)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AbilityEffectComponent: Could not load enter pulse for ability %d."), static_cast<int32>(Ability));
-
-		return;
-	}
-
-	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(),PulseSystem,GetOwner()->GetActorLocation(),GetOwner()->GetActorRotation(),FVector::OneVector,true,true,ENCPoolMethod::AutoRelease,true);
+	FNiagaraEffectUtility::SpawnAtLocation(GetWorld(), *PulseAsset, GetOwner()->GetActorLocation(), GetOwner()->GetActorRotation());
 }
 
 UMaterialInstanceDynamic* UAbilityEffectComponent::GetOrCreateVisionMaterial(EAbilityType Ability)

@@ -15,6 +15,7 @@ public:
 	}
 
 	void Tick(float DeltaTime) override;
+	void TickPersistent(float DeltaTime);
 	void HandleInteract() override;
 	void HandleCancel() override;
 	void HandleAbilityUse() override;
@@ -22,7 +23,7 @@ public:
 	void AbortForEndPlay();
 	bool IsStasisActive() const;
 	float GetRemainingTime() const { return RemainingTime; }
-	float GetCooldownRemaining() const { return CooldownRemaining; }
+	float GetCooldownRemaining() const;
 	FVector GetAccumulatedImpulse() const;
 
 private:
@@ -36,5 +37,5 @@ private:
 	TWeakObjectPtr<AActor> AimingMarker;
 	TWeakObjectPtr<UStasisTargetComponent> ActiveTarget;
 	float RemainingTime = 0.0f;
-	float CooldownRemaining = 0.0f;
+	double CooldownEndTime = 0.0;
 };

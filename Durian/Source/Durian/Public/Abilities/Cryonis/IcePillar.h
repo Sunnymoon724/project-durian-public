@@ -16,22 +16,26 @@ class DURIAN_API AIcePillar : public AActor
 
 public:
 	AIcePillar();
-	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 
-	static constexpr float HorizontalScale = 1.5f;
-
 	void PlayDestroyEffect(bool bShatter) const;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ice")
-	TObjectPtr<UStaticMeshComponent> IceMesh;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ice")
-	TObjectPtr<UAbilityReactionComponent> ReactionComponent;
+protected:
+	virtual void BeginPlay() override;
 
 private:
+	UPROPERTY(EditDefaultsOnly, Category = "Effects")
+	TSoftObjectPtr<UNiagaraSystem> ShatterEffect;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Effects")
+	TSoftObjectPtr<UNiagaraSystem> DissolveEffect;
+
 	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<USceneComponent> SceneRoot;
+	TObjectPtr<UStaticMeshComponent> IcePillar;
 
 	float SpawnAnimationElapsed = 0.0f;
+
+	float PillarHeight = 1.0f;
+	float PillarHorizontalScale = 1.0f;
+	float PillarAnimationDuration = 1.0f;
+	bool IsSetupValid() const;
 };

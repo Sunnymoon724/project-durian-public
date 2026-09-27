@@ -3,6 +3,7 @@
 #include "Abilities/Core/AbilityModeTypes.h"
 #include "CollisionQueryParams.h"
 #include "Components/PrimitiveComponent.h"
+#include "DrawDebugHelpers.h"
 #include "Engine/World.h"
 #include "Framework/Player/KzPlayerCharacter.h"
 #include "GameFramework/Controller.h"
@@ -32,20 +33,20 @@ bool FAbility::TraceAbilityTarget(const EAbilityReactionType ReactionType, const
 		QueryParams.AddIgnoredActor(IgnoredActor);
 	}
 
-	if (!Character->GetWorld()->LineTraceSingleByChannel(OutHit, TraceStart, TraceEnd, ECC_Visibility, QueryParams))
-	{
-		return false;
-	}
-
-	const AActor* HitActor = OutHit.GetActor();
+	const bool bTraceHit = Character->GetWorld()->LineTraceSingleByChannel(OutHit, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
+	const AActor* HitActor = bTraceHit ? OutHit.GetActor() : nullptr;
 	const UAbilityReactionComponent* Reaction = HitActor ? HitActor->FindComponentByClass<UAbilityReactionComponent>() : nullptr;
+	const UPrimitiveComponent* HitComponent = bTraceHit ? OutHit.GetComponent() : nullptr;
+	const bool bValidTarget = bTraceHit && Reaction && Reaction->GetReactionType() == ReactionType && HitComponent && (!bRequirePhysics || HitComponent->IsSimulatingPhysics());
+	const FVector DebugEnd = bTraceHit ? OutHit.ImpactPoint : TraceEnd;
+	const FColor DebugColor = bValidTarget ? FColor::Green : bTraceHit ? FColor::Yellow : FColor::Red;
 
-	const UPrimitiveComponent* HitComponent = OutHit.GetComponent();
+	DrawDebugLine(Character->GetWorld(), TraceStart, DebugEnd, DebugColor, false, 0.1f, 1, 2.0f);
 
-	if (!Reaction || Reaction->GetReactionType() != ReactionType || !HitComponent || (bRequirePhysics && !HitComponent->IsSimulatingPhysics()))
+	if (bTraceHit)
 	{
-		return false;
+		DrawDebugPoint(Character->GetWorld(), OutHit.ImpactPoint, 12.0f, DebugColor, false, 0.1f, 1);
 	}
 
-	return true;
+	return bValidTarget;
 }

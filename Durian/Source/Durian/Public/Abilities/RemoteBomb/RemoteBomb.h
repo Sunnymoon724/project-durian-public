@@ -4,13 +4,12 @@
 #include "GameFramework/Actor.h"
 #include "RemoteBomb.generated.h"
 
-class AKzPlayerCharacter;
-class UStaticMeshComponent;
 class UNiagaraSystem;
 
 UENUM(BlueprintType)
 enum class ERemoteBombShape : uint8
 {
+	None,
 	Sphere,
 	Cube
 };
@@ -22,22 +21,23 @@ class DURIAN_API ARemoteBomb : public AActor
 
 public:
 	ARemoteBomb();
-	void Initialize(ERemoteBombShape InShape, AKzPlayerCharacter* InOwner);
 	void Hold(float Height);
 	void Place(const FVector& Location, const FVector& Impulse);
 	bool IsHeld() const { return bHeld; }
-	ERemoteBombShape GetShape() const { return Shape; }
-	UStaticMeshComponent* GetBombMesh() const { return BombMesh; }
+	ERemoteBombShape GetShape() const { return BombShape; }
 	void PlayExplosionEffect(float Radius) const;
+	
+protected:
+	virtual void BeginPlay() override;
 
 private:
-	UPROPERTY(VisibleAnywhere, Category = "Remote Bomb")
-	TObjectPtr<UStaticMeshComponent> BombMesh;
+	UPROPERTY(EditDefaultsOnly, Category = "Effects")
+	TSoftObjectPtr<UNiagaraSystem> ExplosionEffect;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Remote Bomb|VFX")
-	TObjectPtr<UNiagaraSystem> ExplosionEffect;
+	UPROPERTY(EditDefaultsOnly, Category = "Shape")
+	ERemoteBombShape BombShape = ERemoteBombShape::None;
 
-	ERemoteBombShape Shape = ERemoteBombShape::Sphere;
-	TWeakObjectPtr<AKzPlayerCharacter> OwningCharacter;
 	bool bHeld = false;
+	
+	bool IsValid() const;
 };

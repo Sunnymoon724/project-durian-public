@@ -1,5 +1,4 @@
 #include "Abilities/Cryonis/CryonisAbility.h"
-
 #include "Abilities/Components/AbilityEffectComponent.h"
 #include "Abilities/Core/AbilityModeSubsystem.h"
 #include "Abilities/Components/AbilityReactionComponent.h"
@@ -9,6 +8,7 @@
 #include "Engine/GameInstance.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
+#include "Framework/Utility/NiagaraEffectUtility.h"
 #include "Framework/Player/KzPlayerCharacter.h"
 #include "GameFramework/Controller.h"
 #include "CollisionQueryParams.h"
@@ -17,25 +17,32 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-void FCryonisAbility::Tick(const float DeltaTime)
+void FCryonisAbility::Tick(const float)
 {
 	if (!Character)
 	{
 		return;
 	}
 
-	SpawnCooldownRemaining = FMath::Max(0.0f, SpawnCooldownRemaining - DeltaTime);
 	if (Character->GetCurrentState() != EPlayerState::IceTargeting)
 	{
 		return;
 	}
+
 	if (Character->GetCharacterMovement() && Character->GetCharacterMovement()->IsFalling())
 	{
 		ExitTargetingMode();
+
 		return;
 	}
 
 	UpdateTargeting();
+}
+
+float FCryonisAbility::GetSpawnCooldownRemaining() const
+{
+	const double CurrentTime = Character && Character->GetWorld() ? Character->GetWorld()->GetTimeSeconds() : 0.0;
+	return static_cast<float>(FMath::Max(0.0, SpawnCooldownEndTime - CurrentTime));
 }
 
 void FCryonisAbility::HandleInteract()
@@ -49,7 +56,7 @@ void FCryonisAbility::HandleInteract()
 	{
 		RemoveTargetedPillar();
 	}
-	else if (bTargetValid && SpawnCooldownRemaining <= 0.0f)
+	else if (bTargetValid && GetSpawnCooldownRemaining() <= 0.0f)
 	{
 		SpawnIcePillar();
 	}
@@ -185,7 +192,7 @@ void FCryonisAbility::UpdateTargeting()
 	UpdateAimedTarget(HitActor);
 
 	TargetLocation = GetSpawnLocation(Hit);
-	bTargetValid = SpawnCooldownRemaining <= 0.0f && CanSpawnAt(TargetLocation, HitActor);
+	bTargetValid = GetSpawnCooldownRemaining() <= 0.0f && CanSpawnAt(TargetLocation, HitActor);
 	PlacementPreview->SetPreviewState(TargetLocation, true, bTargetValid);
 }
 
@@ -208,7 +215,7 @@ void FCryonisAbility::SpawnIcePillar()
 	SpawnParameters.Owner = Character;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	UClass* PillarClass = LoadClass<AIcePillar>(nullptr, TEXT("/Game/_BP/Interacts/BP_IcePillar.BP_IcePillar_C"));
+	UClass* PillarClass = LoadClass<AIcePillar>(nullptr, TEXT("/Game/_BP/Abilities/BP_IcePillar.BP_IcePillar_C"));
 
 	if (!PillarClass)
 	{
@@ -223,12 +230,8 @@ void FCryonisAbility::SpawnIcePillar()
 	}
 
 	SpawnedPillars.Add(NewPillar);
-	SpawnCooldownRemaining = UGameConstantsDataAsset::Get()->IcePillarSpawnCooldown;
-
-	if (PlacementPreview.IsValid())
-	{
-		PlacementPreview->PlaySpawnEffect();
-	}
+	SpawnCooldownEndTime = Character->GetWorld()->GetTimeSeconds() + UGameConstantsDataAsset::Get()->IcePillarSpawnCooldown;
+	FNiagaraEffectUtility::SpawnAtLocation(Character->GetWorld(), FSoftObjectPath(TEXT("/Game/Resources/VFX/Cryonis/Niagara/NS_IceSpawnSplash.NS_IceSpawnSplash")), SpawnLocation);
 
 	while (SpawnedPillars.Num() > UGameConstantsDataAsset::Get()->MaxIcePillarCount)
 	{
@@ -323,7 +326,8 @@ void FCryonisAbility::EnsurePreview()
 		return;
 	}
 
-	PlacementPreview = Character->GetWorld()->SpawnActor<AIcePlacementPreview>(FVector::ZeroVector, FRotator::ZeroRotator);
+	static UClass* PreviewClass = LoadClass<AIcePlacementPreview>(nullptr, TEXT("/Game/_BP/Abilities/BP_IcePlacementPreview.BP_IcePlacementPreview_C"));
+	PlacementPreview = Character->GetWorld()->SpawnActor<AIcePlacementPreview>(PreviewClass ? PreviewClass : AIcePlacementPreview::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator);
 }
 
 bool FCryonisAbility::TraceTarget(FHitResult& OutHit) const

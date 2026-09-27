@@ -6,10 +6,9 @@
 #include "GameFramework/Actor.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
+#include "Framework/Utility/NiagaraEffectUtility.h"
 #include "Materials/MaterialInterface.h"
 #include "NiagaraComponent.h"
-#include "NiagaraFunctionLibrary.h"
-#include "NiagaraSystem.h"
 
 bool UStasisTargetComponent::BeginStasis(UPrimitiveComponent* InPrimitive)
 {
@@ -41,10 +40,7 @@ void UStasisTargetComponent::AccumulateImpulse(const FVector& Impulse, const flo
 	}
 
 	AccumulatedImpulse = (AccumulatedImpulse + Impulse).GetClampedToMaxSize(FMath::Max(0.0f, MaxImpulse));
-	if (UNiagaraSystem* HitSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Resources/VFX/Stasis/Niagara/NS_StasisForceHit.NS_StasisForceHit")))
-	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitSystem, FrozenPrimitive->Bounds.Origin);
-	}
+	FNiagaraEffectUtility::SpawnAtLocation(GetWorld(), FSoftObjectPath(TEXT("/Game/Resources/VFX/Stasis/Niagara/NS_StasisForceHit.NS_StasisForceHit")), FrozenPrimitive->Bounds.Origin);
 }
 
 void UStasisTargetComponent::EndStasis(const bool bApplyImpulse)
@@ -57,10 +53,7 @@ void UStasisTargetComponent::EndStasis(const bool bApplyImpulse)
 	bStasisActive = false;
 	if (bApplyImpulse)
 	{
-		if (UNiagaraSystem* ReleaseSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Resources/VFX/Stasis/Niagara/NS_StasisRelease.NS_StasisRelease")))
-		{
-			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ReleaseSystem, FrozenPrimitive->Bounds.Origin);
-		}
+		FNiagaraEffectUtility::SpawnAtLocation(GetWorld(), FSoftObjectPath(TEXT("/Game/Resources/VFX/Stasis/Niagara/NS_StasisRelease.NS_StasisRelease")), FrozenPrimitive->Bounds.Origin);
 	}
 	ClearFeedback();
 	if (AActor* Owner = GetOwner())
@@ -181,14 +174,8 @@ void UStasisTargetComponent::CreateFeedback()
 		}
 	}
 
-	if (UNiagaraSystem* HoldSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Resources/VFX/Stasis/Niagara/NS_StasisHoldAmbient.NS_StasisHoldAmbient")))
-	{
-		HoldAmbient = UNiagaraFunctionLibrary::SpawnSystemAttached(HoldSystem, Primitive, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::KeepRelativeOffset, false);
-	}
-	if (UNiagaraSystem* WarningSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Resources/VFX/Stasis/Niagara/NS_StasisExpiryWarning.NS_StasisExpiryWarning")))
-	{
-		ExpiryWarning = UNiagaraFunctionLibrary::SpawnSystemAttached(WarningSystem, Primitive, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::KeepRelativeOffset, false, false);
-	}
+	HoldAmbient = FNiagaraEffectUtility::SpawnAttachedRelative(Primitive, FSoftObjectPath(TEXT("/Game/Resources/VFX/Stasis/Niagara/NS_StasisHoldAmbient.NS_StasisHoldAmbient")), NAME_None, FVector::ZeroVector, FRotator::ZeroRotator, false);
+	ExpiryWarning = FNiagaraEffectUtility::SpawnAttachedRelative(Primitive, FSoftObjectPath(TEXT("/Game/Resources/VFX/Stasis/Niagara/NS_StasisExpiryWarning.NS_StasisExpiryWarning")), NAME_None, FVector::ZeroVector, FRotator::ZeroRotator, false, false);
 }
 
 void UStasisTargetComponent::ClearFeedback()
@@ -233,10 +220,7 @@ void UStasisTargetComponent::SpawnPulse() const
 	{
 		return;
 	}
-	if (UNiagaraSystem* Pulse = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Resources/VFX/Stasis/Niagara/NS_StasisLockPulse_FromEffect.NS_StasisLockPulse_FromEffect")))
-	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Pulse, FrozenPrimitive->Bounds.Origin);
-	}
+	FNiagaraEffectUtility::SpawnAtLocation(GetWorld(), FSoftObjectPath(TEXT("/Game/Resources/VFX/Stasis/Niagara/NS_StasisLockPulse_FromEffect.NS_StasisLockPulse_FromEffect")), FrozenPrimitive->Bounds.Origin);
 }
 
 void UStasisTargetComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)

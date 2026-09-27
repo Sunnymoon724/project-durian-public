@@ -1,93 +1,104 @@
 #include "Abilities/RemoteBomb/RemoteBomb.h"
 
+#include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "DrawDebugHelpers.h"
-#include "Engine/StaticMesh.h"
-#include "Framework/Player/KzPlayerCharacter.h"
-#include "NiagaraFunctionLibrary.h"
+#include "Framework/Utility/NiagaraEffectUtility.h"
 #include "NiagaraSystem.h"
-#include "Materials/MaterialInterface.h"
-#include "UObject/ConstructorHelpers.h"
 
 ARemoteBomb::ARemoteBomb()
 {
 	PrimaryActorTick.bCanEverTick = false;
-	BombMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BombMesh"));
-	RootComponent = BombMesh;
-	BombMesh->SetCollisionProfileName(TEXT("PhysicsActor"));
-	BombMesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
-	BombMesh->SetSimulatePhysics(false);
-	BombMesh->SetEnableGravity(true);
-	SetCanBeDamaged(false);
+	PrimaryActorTick.bStartWithTickEnabled = false;
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMesh(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
-	if (SphereMesh.Succeeded())
-	{
-		BombMesh->SetStaticMesh(SphereMesh.Object);
-	}
-	BombMesh->SetWorldScale3D(FVector(0.5f));
+	SetCanBeDamaged(false);
 }
 
-void ARemoteBomb::Initialize(const ERemoteBombShape InShape, AKzPlayerCharacter* InOwner)
+void ARemoteBomb::BeginPlay()
 {
-	Shape = InShape;
-	OwningCharacter = InOwner;
-	const TCHAR* ChargeMaterialPath = Shape == ERemoteBombShape::Cube ? TEXT("/Game/Resources/VFX/RemoteBomb/Materials/MI_RemoteBombCharge_Cube.MI_RemoteBombCharge_Cube") : TEXT("/Game/Resources/VFX/RemoteBomb/Materials/MI_RemoteBombCharge_Round.MI_RemoteBombCharge_Round");
-	if (UMaterialInterface* ChargeMaterial = LoadObject<UMaterialInterface>(nullptr, ChargeMaterialPath))
+	Super::BeginPlay();
+
+	UPrimitiveComponent* CollisionRoot = Cast<UPrimitiveComponent>(GetRootComponent());
+	if (!IsValid() || !CollisionRoot)
 	{
-		BombMesh->SetMaterial(0, ChargeMaterial);
+		return;
 	}
-	if (Shape == ERemoteBombShape::Cube)
+	CollisionRoot->SetCollisionProfileName(TEXT("PhysicsActor"));
+	CollisionRoot->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+
+	TArray<UStaticMeshComponent*> VisualMeshes;
+	GetComponents<UStaticMeshComponent>(VisualMeshes);
+	for (UStaticMeshComponent* VisualMesh : VisualMeshes)
 	{
-		UStaticMesh* CubeMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
-		if (CubeMesh)
+		if (VisualMesh && VisualMesh != CollisionRoot)
 		{
-			BombMesh->SetStaticMesh(CubeMesh);
+			VisualMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			VisualMesh->SetSimulatePhysics(false);
 		}
-		BombMesh->SetAngularDamping(8.0f);
-		BombMesh->SetLinearDamping(1.0f);
 	}
-	else
+
+}
+
+bool ARemoteBomb::IsValid() const
+{
+	if (!Cast<UPrimitiveComponent>(GetRootComponent()))
 	{
-		BombMesh->SetAngularDamping(0.1f);
-		BombMesh->SetLinearDamping(0.05f);
+		UE_LOG(LogTemp, Error, TEXT("ARemoteBomb requires a primitive collision component as its Blueprint root."));
+
+		return false;
 	}
+
+	return true;
 }
 
 void ARemoteBomb::Hold(const float Height)
 {
-	AKzPlayerCharacter* OwnerCharacter = OwningCharacter.Get();
-	if (!OwnerCharacter)
+	AActor* BombOwner = GetOwner();
+	UPrimitiveComponent* CollisionRoot = Cast<UPrimitiveComponent>(GetRootComponent());
+	if (!CollisionRoot || !BombOwner)
 	{
 		return;
 	}
-	BombMesh->SetSimulatePhysics(false);
-	BombMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	AttachToActor(OwnerCharacter, FAttachmentTransformRules::KeepWorldTransform);
+
+	CollisionRoot->SetSimulatePhysics(false);
+	CollisionRoot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	AttachToActor(BombOwner, FAttachmentTransformRules::KeepWorldTransform);
 	SetActorRelativeLocation(FVector(0.0f, 0.0f, Height));
 	bHeld = true;
 }
 
 void ARemoteBomb::Place(const FVector& Location, const FVector& Impulse)
 {
+	UPrimitiveComponent* CollisionRoot = Cast<UPrimitiveComponent>(GetRootComponent());
+	if (!CollisionRoot)
+	{
+		return;
+	}
+
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	SetActorLocation(Location, false, nullptr, ETeleportType::TeleportPhysics);
-	BombMesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
-	BombMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	BombMesh->SetSimulatePhysics(true);
+	CollisionRoot->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+	CollisionRoot->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	CollisionRoot->SetSimulatePhysics(true);
 	bHeld = false;
 	if (!Impulse.IsNearlyZero())
 	{
-		BombMesh->AddImpulse(Impulse, NAME_None, true);
+		CollisionRoot->AddImpulse(Impulse, NAME_None, true);
 	}
 }
 
 void ARemoteBomb::PlayExplosionEffect(const float Radius) const
 {
-	UNiagaraSystem* System = ExplosionEffect ? ExplosionEffect.Get() : LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Resources/VFX/RemoteBomb/Niagara/NS_RemoteBombExplosion.NS_RemoteBombExplosion"));
-	if (System)
+	if (ExplosionEffect)
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), System, GetActorLocation());
+		FNiagaraEffectUtility::SpawnAtLocation(GetWorld(), ExplosionEffect, GetActorLocation());
+		return;
+	}
+
+	const FSoftObjectPath DefaultExplosionEffect(TEXT("/Game/Resources/VFX/RemoteBomb/Niagara/NS_RemoteBombExplosion.NS_RemoteBombExplosion"));
+
+	if (FNiagaraEffectUtility::SpawnAtLocation(GetWorld(), DefaultExplosionEffect, GetActorLocation()))
+	{
 		return;
 	}
 

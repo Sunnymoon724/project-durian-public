@@ -18,6 +18,7 @@ public:
 	virtual void HandleAbilityUse() override;
 
 	void HandleTargetAtFeet();
+	float GetSpawnCooldownRemaining() const;
 
 private:
 	void UpdateTargeting();
@@ -40,7 +41,7 @@ private:
 	TArray<TWeakObjectPtr<AIcePillar>> SpawnedPillars;
 
 	FVector TargetLocation = FVector::ZeroVector;
-	float SpawnCooldownRemaining = 0.0f;
+	double SpawnCooldownEndTime = 0.0;
 	bool bTargetAtFeet = false;
 	bool bTargetValid = false;
 

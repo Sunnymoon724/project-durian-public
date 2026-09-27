@@ -6,10 +6,7 @@
 class FRemoteBombAbility final : public FAbility
 {
 public:
-	explicit FRemoteBombAbility(AKzPlayerCharacter* InCharacter)
-		: FAbility(InCharacter)
-	{
-	}
+	FRemoteBombAbility(AKzPlayerCharacter* InCharacter, TSubclassOf<ARemoteBomb> InSphereClass, TSubclassOf<ARemoteBomb> InCubeClass) : FAbility(InCharacter), BombClassArray{ InSphereClass, InCubeClass } { }
 
 	void Tick(float DeltaTime) override;
 	void HandleInteract() override;
@@ -34,7 +31,10 @@ private:
 	bool CanPickUp(const ARemoteBomb* Bomb) const;
 	void PlaceHeldBomb(bool bThrow);
 
-	TWeakObjectPtr<ARemoteBomb> Bombs[2];
+	TWeakObjectPtr<ARemoteBomb> BombArray[2];
+	TSubclassOf<ARemoteBomb> BombClassArray[2];
+
 	TWeakObjectPtr<ARemoteBomb> HeldBomb;
-	float CooldownRemaining[2] = { 0.0f, 0.0f };
+
+	double CooldownEndTimeArray[2] = { 0.0, 0.0 };
 };

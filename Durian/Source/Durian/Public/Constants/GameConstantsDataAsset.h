@@ -63,6 +63,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Cryonis", meta = (ClampMin = "1.0", UIMin = "1.0", Units = "cm"))
 	float IcePillarHeight = 200.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Cryonis", meta = (ClampMin = "0.1", UIMin = "0.1"))
+	float IcePillarHorizontalScale = 1.5f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Cryonis")
 	float CryonisTargetRange = 1500.0f;
 

@@ -12,13 +12,32 @@
 #include "GameFramework/Actor.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-void FStasisAbility::Tick(float DeltaTime)
+void FStasisAbility::Tick(float)
 {
 	if (!Character)
 	{
 		return;
 	}
-	CooldownRemaining = FMath::Max(0.0f, CooldownRemaining - DeltaTime);
+
+	if (Character->GetCurrentAbilityType() == EAbilityType::Stasis && Character->GetCurrentState() == EPlayerState::StasisTargeting)
+	{
+		if (Character->GetCharacterMovement() && Character->GetCharacterMovement()->IsFalling())
+		{
+			HandleCancel();
+			return;
+		}
+
+		UpdateTargeting();
+	}
+}
+
+void FStasisAbility::TickPersistent(float DeltaTime)
+{
+	if (!Character)
+	{
+		return;
+	}
+
 	if (IsStasisActive())
 	{
 		RemainingTime -= DeltaTime;
@@ -35,15 +54,12 @@ void FStasisAbility::Tick(float DeltaTime)
 	{
 		EndStasis(false, false);
 	}
-	if (Character->GetCurrentAbilityType() == EAbilityType::Stasis && Character->GetCurrentState() == EPlayerState::StasisTargeting)
-	{
-		if (Character->GetCharacterMovement() && Character->GetCharacterMovement()->IsFalling())
-		{
-			HandleCancel();
-			return;
-		}
-		UpdateTargeting();
-	}
+}
+
+float FStasisAbility::GetCooldownRemaining() const
+{
+	const double CurrentTime = Character && Character->GetWorld() ? Character->GetWorld()->GetTimeSeconds() : 0.0;
+	return static_cast<float>(FMath::Max(0.0, CooldownEndTime - CurrentTime));
 }
 
 void FStasisAbility::HandleInteract()
@@ -74,7 +90,7 @@ void FStasisAbility::HandleCancel()
 
 void FStasisAbility::HandleAbilityUse()
 {
-	if (!Character || IsStasisActive() || CooldownRemaining > 0.0f)
+	if (!Character || IsStasisActive() || GetCooldownRemaining() > 0.0f)
 	{
 		return;
 	}
@@ -189,7 +205,7 @@ void FStasisAbility::EndStasis(const bool bApplyImpulse, const bool bStartCooldo
 	RemainingTime = 0.0f;
 	if (bStartCooldown)
 	{
-		CooldownRemaining = UGameConstantsDataAsset::Get()->StasisCooldown;
+		CooldownEndTime = Character && Character->GetWorld() ? Character->GetWorld()->GetTimeSeconds() + UGameConstantsDataAsset::Get()->StasisCooldown : 0.0;
 	}
 	if (Character && Character->GetCurrentState() == EPlayerState::StasisActive)
 	{
@@ -203,7 +219,9 @@ void FStasisAbility::ClearTarget()
 	{
 		Marker->Destroy();
 	}
+
 	AimingMarker.Reset();
+
 	if (UPrimitiveComponent* Primitive = TargetedComponent.Get())
 	{
 		if (UAbilityReactionComponent* Reaction = Primitive->GetOwner()->FindComponentByClass<UAbilityReactionComponent>())
