@@ -39,7 +39,7 @@ AKzPlayerController::AKzPlayerController()
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Menu.IA_Menu"), MenuAction);
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_AbilityWheel.IA_AbilityWheel"), AbilityWheelAction);
 
-	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_IceTargetAtFeet.IA_IceTargetAtFeet"), IceTargetAtFeetAction);
+	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_CryonisTargetAtFeet.IA_CryonisTargetAtFeet"), CryonisTargetAtFeetAction);
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_BombThrow.IA_BombThrow"), RemoteBombThrowAction);
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_MagnesisDistance.IA_MagnesisDistance"), MagnesisDistanceAction);
 
@@ -101,7 +101,7 @@ void AKzPlayerController::SetupInputComponent()
 
 		if (InteractAction)
 		{
-			EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &AKzPlayerController::OnInteract);
+			EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &AKzPlayerController::OnAbilityInput, EAbilityInput::Interact);
 		}
 
 		if (AttackAction)
@@ -111,12 +111,13 @@ void AKzPlayerController::SetupInputComponent()
 
 		if (AbilityUseAction)
 		{
-			EnhancedInputComponent->BindAction(AbilityUseAction, ETriggerEvent::Started, this, &AKzPlayerController::OnAbilityUse);
+			EnhancedInputComponent->BindAction(AbilityUseAction, ETriggerEvent::Started, this, &AKzPlayerController::OnAbilityInput, EAbilityInput::Use);
 		}
 
 		if (CancelAction)
 		{
-			EnhancedInputComponent->BindAction(CancelAction, ETriggerEvent::Started, this, &AKzPlayerController::OnCancel);
+			EnhancedInputComponent->BindAction(CancelAction, ETriggerEvent::Started, this, &AKzPlayerController::OnSprintStarted);
+			EnhancedInputComponent->BindAction(CancelAction, ETriggerEvent::Completed, this, &AKzPlayerController::OnSprintCompleted);
 		}
 
 		if (MenuAction)
@@ -135,19 +136,19 @@ void AKzPlayerController::SetupInputComponent()
 			EnhancedInputComponent->BindAction(GuardAction, ETriggerEvent::Started, this, &AKzPlayerController::OnGuard);
 		}
 
-		if (IceTargetAtFeetAction)
+		if (CryonisTargetAtFeetAction)
 		{
-			EnhancedInputComponent->BindAction(IceTargetAtFeetAction, ETriggerEvent::Started, this, &AKzPlayerController::OnIceTargetAtFeet);
+			EnhancedInputComponent->BindAction(CryonisTargetAtFeetAction, ETriggerEvent::Started, this, &AKzPlayerController::OnAbilityInput, EAbilityInput::CryonisTargetAtFeet);
 		}
 
 		if (RemoteBombThrowAction)
 		{
-			EnhancedInputComponent->BindAction(RemoteBombThrowAction, ETriggerEvent::Started, this, &AKzPlayerController::OnRemoteBombThrow);
+			EnhancedInputComponent->BindAction(RemoteBombThrowAction, ETriggerEvent::Started, this, &AKzPlayerController::OnAbilityInput, EAbilityInput::RemoteBombThrow);
 		}
 
 		if (MagnesisDistanceAction)
 		{
-			EnhancedInputComponent->BindAction(MagnesisDistanceAction, ETriggerEvent::Triggered, this, &AKzPlayerController::OnMagnesisDistance);
+			EnhancedInputComponent->BindAction(MagnesisDistanceAction, ETriggerEvent::Triggered, this, &AKzPlayerController::OnAbilityInput, EAbilityInput::MagnesisDistance);
 		}
 	}
 }
@@ -162,6 +163,11 @@ void AKzPlayerController::OnMove(const FInputActionValue& Value)
 	}
 
 	const FVector2D MovementVector = Value.Get<FVector2D>();
+	ControlledCharacter->SetTraversalInput(MovementVector);
+	if (ControlledCharacter->IsWallClimbing())
+	{
+		return;
+	}
 
 	FVector CameraLocation;
 	FRotator CameraRotation;
@@ -175,6 +181,7 @@ void AKzPlayerController::OnMove(const FInputActionValue& Value)
 
 	if (!DesiredDirection.IsNearlyZero())
 	{
+		ControlledCharacter->SetDashDirection(DesiredDirection);
 		ControlledCharacter->AddMovementInput(DesiredDirection, 1.0f);
 
 		const FRotator MovementRotation(0.f, DesiredDirection.Rotation().Yaw, 0.f);
@@ -277,7 +284,7 @@ void AKzPlayerController::OnJumpStarted()
 		return;
 	}
 
-	ControlledCharacter->Jump();
+	ControlledCharacter->HandleTraversalPressed();
 }
 
 void AKzPlayerController::OnJumpCompleted()
@@ -292,19 +299,31 @@ void AKzPlayerController::OnJumpCompleted()
 	ControlledCharacter->StopJumping();
 }
 
-void AKzPlayerController::OnInteract()
+void AKzPlayerController::OnSprintStarted()
 {
 	if (AKzPlayerCharacter* ControlledCharacter = GetControlledCharacter())
 	{
-		ControlledCharacter->HandleInteract();
+		ControlledCharacter->SetSprintRequested(true);
 	}
 }
 
-void AKzPlayerController::OnCancel()
+void AKzPlayerController::OnSprintCompleted()
 {
 	if (AKzPlayerCharacter* ControlledCharacter = GetControlledCharacter())
 	{
-		ControlledCharacter->HandleCancel();
+		ControlledCharacter->SetSprintRequested(false);
+	}
+}
+
+void AKzPlayerController::OnAbilityInput(const FInputActionValue& Value, const EAbilityInput Input)
+{
+	if (AKzPlayerCharacter* ControlledCharacter = GetControlledCharacter())
+	{
+		if (UPlayerAbilityComponent* AbilityComponent = ControlledCharacter->GetAbilityComponent())
+		{
+			const float AxisValue = Input == EAbilityInput::MagnesisDistance ? Value.Get<float>() : 0.0f;
+			AbilityComponent->HandleInput(Input, AxisValue);
+		}
 	}
 }
 
@@ -368,20 +387,13 @@ UKzAbilityWheelViewModel* AKzPlayerController::GetAbilityWheelViewModel() const
 	return AbilityWheelWidget ? AbilityWheelWidget->GetViewModel() : nullptr;
 }
 
-void AKzPlayerController::OnAbilityUse()
-{
-	if (AKzPlayerCharacter* ControlledCharacter = GetControlledCharacter())
-	{
-		ControlledCharacter->HandleAbilityUse();
-	}
-}
-
 void AKzPlayerController::OnAttack()
 {
 	if (AKzPlayerCharacter* ControlledCharacter = GetControlledCharacter())
 	{
 		ControlledCharacter->HandleAttack();
 	}
+
 	AttackRequested();
 }
 
@@ -391,34 +403,6 @@ void AKzPlayerController::OnGuard()
 	{
 		ControlledCharacter->HandleGuard();
 	}
-}
-
-void AKzPlayerController::OnIceTargetAtFeet()
-{
-	if (AKzPlayerCharacter* ControlledCharacter = GetControlledCharacter())
-	{
-		ControlledCharacter->HandleIceTargetAtFeet();
-	}
-}
-
-void AKzPlayerController::OnRemoteBombThrow()
-{
-	if (AKzPlayerCharacter* ControlledCharacter = GetControlledCharacter())
-	{
-		ControlledCharacter->HandleRemoteBombThrow();
-	}
-}
-
-void AKzPlayerController::OnMagnesisDistance(const FInputActionValue& Value)
-{
-	AKzPlayerCharacter* ControlledCharacter = GetControlledCharacter();
-	
-	if (!ControlledCharacter)
-	{
-		return;
-	}
-
-	ControlledCharacter->HandleMagnesisDistanceInput(Value.Get<float>());
 }
 
 AKzPlayerCharacter* AKzPlayerController::GetControlledCharacter()

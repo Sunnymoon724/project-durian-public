@@ -1,16 +1,14 @@
 #include "Abilities/Cryonis/CryonisAbility.h"
-#include "Abilities/Components/AbilityEffectComponent.h"
-#include "Abilities/Core/AbilityModeSubsystem.h"
 #include "Abilities/Components/AbilityReactionComponent.h"
+#include "Abilities/Core/AbilityModeTypes.h"
 #include "Abilities/Cryonis/IcePillar.h"
 #include "Abilities/Cryonis/IcePlacementPreview.h"
 #include "Constants/GameConstantsDataAsset.h"
-#include "Engine/GameInstance.h"
+#include "Enums/PlayerEnums.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
 #include "Framework/Utility/NiagaraEffectUtility.h"
 #include "Framework/Player/KzPlayerCharacter.h"
-#include "GameFramework/Controller.h"
 #include "CollisionQueryParams.h"
 #include "CollisionShape.h"
 #include "Components/PrimitiveComponent.h"
@@ -41,80 +39,71 @@ void FCryonisAbility::Tick(const float)
 
 float FCryonisAbility::GetSpawnCooldownRemaining() const
 {
-	const double CurrentTime = Character && Character->GetWorld() ? Character->GetWorld()->GetTimeSeconds() : 0.0;
-	return static_cast<float>(FMath::Max(0.0, SpawnCooldownEndTime - CurrentTime));
+	return GetRemainingCooldown(SpawnCooldownEndTime);
 }
 
-void FCryonisAbility::HandleInteract()
-{
-	if (!Character || Character->GetCurrentState() != EPlayerState::IceTargeting)
-	{
-		return;
-	}
-
-	if (TargetPillar.IsValid())
-	{
-		RemoveTargetedPillar();
-	}
-	else if (bTargetValid && GetSpawnCooldownRemaining() <= 0.0f)
-	{
-		SpawnIcePillar();
-	}
-}
-
-void FCryonisAbility::HandleCancel()
-{
-	if (Character && Character->GetCurrentState() == EPlayerState::IceTargeting)
-	{
-		ExitTargetingMode();
-	}
-}
-
-void FCryonisAbility::HandleAbilityUse()
+void FCryonisAbility::HandleInput(const EAbilityInput Input, float)
 {
 	if (!Character)
 	{
 		return;
 	}
 
-	const EPlayerState PreviousState = Character->GetCurrentState();
-
-	if (PreviousState == EPlayerState::Normal)
+	switch (Input)
 	{
-		Character->SetPlayerState(EPlayerState::IceTargeting);
-		bTargetAtFeet = false;
-
-		EnsurePreview();
-
-		const UGameInstance* GameInstance = Character->GetGameInstance();
-
-		if (GameInstance)
+	case EAbilityInput::Interact:
 		{
-			if (UAbilityModeSubsystem* AbilityModeSubsystem = GameInstance->GetSubsystem<UAbilityModeSubsystem>())
+			if (Character->GetCurrentState() != EPlayerState::IceTargeting)
 			{
-				const FVector ViewDirection = Character->GetController() ? Character->GetController()->GetControlRotation().Vector() : Character->GetActorForwardVector();
+				return;
+			}
+			if (TargetPillar.IsValid())
+			{
+				RemoveTargetedPillar();
+			}
+			else if (bTargetValid && GetSpawnCooldownRemaining() <= 0.0f)
+			{
+				SpawnIcePillar();
+			}
+			break;
+		}
+	case EAbilityInput::Cancel:
+	case EAbilityInput::Interrupt:
+		{
+			if (Character->GetCurrentState() == EPlayerState::IceTargeting)
+			{
+				ExitTargetingMode();
+			}
+			break;
+		}
+	case EAbilityInput::Use:
+		{
+			const EPlayerState PreviousState = Character->GetCurrentState();
 
-				AbilityModeSubsystem->SetModeScanDirection(FVector2D(ViewDirection.X, ViewDirection.Y));
-				AbilityModeSubsystem->SetAbilityModeActive(EAbilityVisualMode::Cryonis, true);
+			if (PreviousState == EPlayerState::Normal)
+			{
+				Character->SetPlayerState(EPlayerState::IceTargeting);
+				bTargetAtFeet = false;
+				EnsurePreview();
+				SetAbilityModeActive(EAbilityVisualMode::Cryonis, true, true);
+				SetAbilityVisionEnabled(EAbilityType::Cryonis, true);
+			}
+			else if (PreviousState == EPlayerState::IceTargeting)
+			{
+				ExitTargetingMode();
 			}
 		}
-
-		if (UAbilityEffectComponent* AbilityEffect = Character->GetAbilityEffect())
+		break;
+	case EAbilityInput::CryonisTargetAtFeet:
 		{
-			AbilityEffect->SetVisionEnabled(EAbilityType::Cryonis, true);
+			if (Character->GetCurrentState() == EPlayerState::IceTargeting)
+			{
+				bTargetAtFeet = !bTargetAtFeet;
+			}
+			break;
 		}
-	}
-	else if (PreviousState == EPlayerState::IceTargeting)
-	{
-		ExitTargetingMode();
-	}
-}
-
-void FCryonisAbility::HandleTargetAtFeet()
-{
-	if (Character && Character->GetCurrentState() == EPlayerState::IceTargeting)
-	{
-		bTargetAtFeet = !bTargetAtFeet;
+	default:
+		break;
 	}
 }
 
@@ -150,20 +139,25 @@ void FCryonisAbility::UpdateTargeting()
 	}
 
 	AActor* HitActor = Hit.GetActor();
+
 	if (!bTargetAtFeet && HitActor && !IsIcePillarTarget(HitActor) && Character->GetCapsuleComponent())
 	{
 		const FVector CandidateLocation = GetSpawnLocation(Hit);
 		const float PillarHalfHeight = UGameConstantsDataAsset::Get()->IcePillarHeight * 0.5f;
 		const FBox CandidateBounds(CandidateLocation - FVector(75.0f, 75.0f, PillarHalfHeight), CandidateLocation + FVector(75.0f, 75.0f, PillarHalfHeight));
+
 		if (CandidateBounds.Intersect(Character->GetCapsuleComponent()->Bounds.GetBox()))
 		{
 			FHitResult FootHit;
+
 			if (!TraceAbilityTarget(EAbilityReactionType::CryonicTarget, UGameConstantsDataAsset::Get()->CryonisTargetRange, FootHit, true, PlacementPreview.Get()) || IsIcePillarTarget(FootHit.GetActor()))
 			{
 				UpdateAimedTarget(nullptr);
 				PlacementPreview->SetPreviewState(FVector::ZeroVector, false, false);
+
 				return;
 			}
+
 			Hit = FootHit;
 			HitActor = FootHit.GetActor();
 		}
@@ -275,18 +269,8 @@ void FCryonisAbility::ExitTargetingMode()
 
 	Character->SetPlayerState(EPlayerState::Normal);
 
-	if (const UGameInstance* GameInstance = Character->GetGameInstance())
-	{
-		if (UAbilityModeSubsystem* AbilityModeSubsystem = GameInstance->GetSubsystem<UAbilityModeSubsystem>())
-		{
-			AbilityModeSubsystem->SetAbilityModeActive(EAbilityVisualMode::Cryonis, false);
-		}
-	}
-
-	if (UAbilityEffectComponent* AbilityEffect = Character->GetAbilityEffect())
-	{
-		AbilityEffect->ClearVisionEffects();
-	}
+	SetAbilityModeActive(EAbilityVisualMode::Cryonis, false);
+	ClearAbilityVisionEffects();
 }
 
 void FCryonisAbility::ClearTarget()

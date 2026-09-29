@@ -10,15 +10,15 @@
 class UPrimitiveComponent;
 class UAbilityEffectComponent;
 class UDamageableComponent;
-class UPhysicsHandleComponent;
+class UTitanClimbingComponent;
+class UAnimSequence;
+class UPointLightComponent;
 #include "KzPlayerCharacter.generated.h"
 
 UCLASS()
 class DURIAN_API AKzPlayerCharacter : public ACharacter
 {
 	GENERATED_BODY()
-	
-	
 
 public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FAbilityChangedDelegate, EAbilityType);
@@ -28,13 +28,12 @@ public:
 	virtual ~AKzPlayerCharacter() override;
 
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
+	virtual void Landed(const FHitResult& Hit) override;
 	
 protected:
 private:
 	friend class UPlayerAbilityComponent;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Magnesis", meta = (AllowPrivateAccess = true))
-	TObjectPtr<class UPhysicsHandleComponent> PhysicsHandle;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability VFX", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UAbilityEffectComponent> AbilityEffect;
@@ -45,6 +44,40 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UPlayerAbilityComponent> AbilityComponent;
 
+	/** Wall traversal is supplied by the installed Titan Climbing plugin. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Traversal", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UTitanClimbingComponent> TitanClimbing;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Traversal", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UPointLightComponent> HoverGlow;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Hover", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAnimSequence> HoverAnimation;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Dash", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAnimSequence> DashAnimation;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Climb", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAnimSequence> ClimbIdleAnimation;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Climb", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAnimSequence> ClimbUpAnimation;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Climb", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAnimSequence> ClimbDownAnimation;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Climb", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAnimSequence> ClimbLeftAnimation;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Climb", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UAnimSequence> ClimbRightAnimation;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Hover", meta = (AllowPrivateAccess = true))
+	float HoverFallSpeed = 35.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Hover", meta = (AllowPrivateAccess = true))
+	float HoverAirControl = 0.7f;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", meta = (AllowPrivateAccess = true))
 	EPlayerState CurrentState = EPlayerState::Normal;
 
@@ -54,45 +87,51 @@ private:
 public:
 	virtual float TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
-	void HandleInteract() const;
-	void HandleCancel() const;
-	void HandleAbilityUse() const;
-	void HandleMagnesisDistanceInput(float AxisValue) const;
-	void HandleGuard();
-	void HandleAttack();
-	void HandleIceTargetAtFeet() const;
-	void HandleRemoteBombThrow() const;
-	void SetAbility(EAbilityType NewAbility);
+	void HandleGuard() const;
+	void HandleAttack() const;
+
+	void SetAbility(EAbilityType NewAbility) const;
+	UPlayerAbilityComponent* GetAbilityComponent() const { return AbilityComponent; }
+
 	FAbilityChangedDelegate OnAbilityChanged;
 
-	UPhysicsHandleComponent* GetPhysicsHandle() const { return PhysicsHandle; }
 	UAbilityEffectComponent* GetAbilityEffect() const { return AbilityEffect; }
-	UDamageableComponent* GetDamageable() const { return Damageable; }
-	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	float GetRemoteBombSphereCooldown() const { return AbilityComponent ? AbilityComponent->GetRemoteBombCooldown(ERemoteBombShape::Sphere) : 0.0f; }
-	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	float GetRemoteBombCubeCooldown() const { return AbilityComponent ? AbilityComponent->GetRemoteBombCooldown(ERemoteBombShape::Cube) : 0.0f; }
-	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	bool HasRemoteBombSphere() const { return AbilityComponent && AbilityComponent->HasRemoteBomb(ERemoteBombShape::Sphere); }
-	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	bool HasRemoteBombCube() const { return AbilityComponent && AbilityComponent->HasRemoteBomb(ERemoteBombShape::Cube); }
-	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	bool IsRemoteBombSphereInstalled() const { return AbilityComponent && AbilityComponent->IsRemoteBombInstalled(ERemoteBombShape::Sphere); }
-	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	bool IsRemoteBombCubeInstalled() const { return AbilityComponent && AbilityComponent->IsRemoteBombInstalled(ERemoteBombShape::Cube); }
-	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	bool IsHoldingRemoteBomb() const { return AbilityComponent && AbilityComponent->IsHoldingRemoteBomb(); }
+
 	EPlayerState GetCurrentState() const { return CurrentState; }
 	EAbilityType GetCurrentAbilityType() const { return CurrentAbilityType; }
-	UFUNCTION(BlueprintPure, Category = "Stasis")
-	bool IsStasisActive() const { return AbilityComponent && AbilityComponent->IsStasisActive(); }
-	UFUNCTION(BlueprintPure, Category = "Stasis")
-	float GetStasisRemainingTime() const { return AbilityComponent ? AbilityComponent->GetStasisRemainingTime() : 0.0f; }
-	UFUNCTION(BlueprintPure, Category = "Stasis")
-	float GetStasisCooldownRemaining() const { return AbilityComponent ? AbilityComponent->GetStasisCooldownRemaining() : 0.0f; }
-	UFUNCTION(BlueprintPure, Category = "Stasis")
-	FVector GetStasisAccumulatedImpulse() const { return AbilityComponent ? AbilityComponent->GetStasisAccumulatedImpulse() : FVector::ZeroVector; }
+
+	/** Space: climb when attached, toggle hover while falling, otherwise jump. */
+	void HandleTraversalPressed();
+	/** Right mouse: hold to sprint; release returns to normal walking. */
+	void SetSprintRequested(bool bRequested);
+	void SetTraversalInput(const FVector2D& Input);
+	void SetDashDirection(const FVector& Direction);
+	bool IsWallClimbing() const;
+	bool IsHovering() const { return bHovering; }
+
 	UFUNCTION(BlueprintCallable, Category = "State")
 	void SetPlayerState(const EPlayerState NewState);
 
+private:
+	bool StartHover();
+	void StopHover(bool bLanded);
+	void UpdateClimbAnimation();
+	void PlayClimbAnimation(UAnimSequence* Animation);
+	void RecoverFromClimbUp();
+	void RefreshSprintSpeed();
+
+	float SavedGravityScale = 1.0f;
+	float SavedAirControl = 0.0f;
+	bool bHovering = false;
+	bool bWasWallClimbing = false;
+	bool bPendingClimbUpRecovery = false;
+	FVector LastTraversalDirection = FVector::ZeroVector;
+	FVector LastClimbSurfaceNormal = FVector::ForwardVector;
+	FVector2D ClimbInput = FVector2D::ZeroVector;
+	TObjectPtr<UAnimSequence> ActiveClimbAnimation;
+	bool bSprintRequested = false;
+	bool bSprinting = false;
+
+	static constexpr float NormalWalkSpeed = 300.0f;
+	static constexpr float SprintSpeed = 600.0f;
 };

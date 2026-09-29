@@ -17,79 +17,93 @@ void FRemoteBombAbility::Tick(const float)
 	}
 }
 
-void FRemoteBombAbility::HandleInteract()
+void FRemoteBombAbility::HandleInput(const EAbilityInput Input, float)
 {
 	if (!Character)
 	{
 		return;
 	}
-	if (HeldBomb.IsValid())
-	{
-		PlaceHeldBomb(false);
-		return;
-	}
 
-	ERemoteBombShape Shape;
-	if (!GetSelectedShape(Shape))
+	switch (Input)
 	{
-		return;
-	}
-	ARemoteBomb* Bomb = BombArray[ToIndex(Shape)].Get();
-	if (Bomb && !Bomb->IsHeld() && CanPickUp(Bomb))
-	{
-		Bomb->Hold(UGameConstantsDataAsset::Get()->RemoteBombHoldHeight);
-		HeldBomb = Bomb;
-	}
-}
-
-void FRemoteBombAbility::HandleCancel()
-{
-	ARemoteBomb* Bomb = HeldBomb.Get();
-	if (!Bomb)
-	{
-		return;
-	}
-	BombArray[ToIndex(Bomb->GetShape())].Reset();
-	HeldBomb.Reset();
-	Bomb->Destroy();
-}
-
-void FRemoteBombAbility::HandleAbilityUse()
-{
-	ERemoteBombShape Shape;
-
-	if (!GetSelectedShape(Shape) || !Character || Character->GetCurrentState() != EPlayerState::Normal || HeldBomb.IsValid())
-	{
-		return;
-	}
-	
-	const int index = ToIndex(Shape);
-
-	const ARemoteBomb* CurrentBomb = BombArray[index].Get();
-
-	if (CurrentBomb)
-	{
-		if (!CurrentBomb->IsHeld())
+	case EAbilityInput::Interact:
 		{
-			DetonateBomb(Shape);
+
+			if (HeldBomb.IsValid())
+			{
+				PlaceHeldBomb(false);
+				return;
+			}
+			{
+				ERemoteBombShape Shape;
+				if (!GetSelectedShape(Shape))
+				{
+					return;
+				}
+				ARemoteBomb* Bomb = BombArray[ToIndex(Shape)].Get();
+				if (Bomb && !Bomb->IsHeld() && CanPickUp(Bomb))
+				{
+					Bomb->Hold(UGameConstantsDataAsset::Get()->RemoteBombHoldHeight);
+					HeldBomb = Bomb;
+				}
+			}
+			break;
 		}
+	case EAbilityInput::Cancel:
+		{
+			if (ARemoteBomb* Bomb = HeldBomb.Get())
+			{
+				BombArray[ToIndex(Bomb->GetShape())].Reset();
+				HeldBomb.Reset();
+				Bomb->Destroy();
+			}
+			break;
+		}
+	case EAbilityInput::Interrupt:
+		DropHeldBomb();
+		break;
+	case EAbilityInput::Use:
+		{
+			ERemoteBombShape Shape;
 
-		return;
-	}
+			if (!GetSelectedShape(Shape) || Character->GetCurrentState() != EPlayerState::Normal || HeldBomb.IsValid())
+			{
+				return;
+			}
 
-	if (GetCooldownRemaining(Shape) <= 0.0f)
-	{
-		SpawnBomb(Shape);
-	}
-}
+			const int32 Index = ToIndex(Shape);
+			const ARemoteBomb* CurrentBomb = BombArray[Index].Get();
 
-void FRemoteBombAbility::HandleRemoteBombThrow()
-{
-	ERemoteBombShape Shape;
+			if (CurrentBomb)
+			{
+				if (!CurrentBomb->IsHeld())
+				{
+					DetonateBomb(Shape);
+				}
 
-	if (GetSelectedShape(Shape) && HeldBomb.IsValid() && HeldBomb->GetShape() == Shape)
-	{
-		PlaceHeldBomb(true);
+				return;
+			}
+
+			if (GetCooldownRemaining(Shape) <= 0.0f)
+			{
+				SpawnBomb(Shape);
+			}
+
+			break;
+		}
+	case EAbilityInput::RemoteBombThrow:
+		{
+			ERemoteBombShape Shape;
+
+			if (GetSelectedShape(Shape) && HeldBomb.IsValid() && HeldBomb->GetShape() == Shape)
+			{
+				PlaceHeldBomb(true);
+			}
+
+			break;
+		}
+	default:
+		break;
 	}
 }
 
@@ -106,12 +120,14 @@ void FRemoteBombAbility::DropHeldBomb()
 void FRemoteBombAbility::AbortForEndPlay()
 {
 	HeldBomb.Reset();
+
 	for (int32 Index = 0; Index < 2; ++Index)
 	{
 		if (ARemoteBomb* Bomb = BombArray[Index].Get())
 		{
 			Bomb->Destroy();
 		}
+
 		BombArray[Index].Reset();
 		CooldownEndTimeArray[Index] = 0.0;
 	}
@@ -119,8 +135,7 @@ void FRemoteBombAbility::AbortForEndPlay()
 
 float FRemoteBombAbility::GetCooldownRemaining(const ERemoteBombShape Shape) const
 {
-	const double CurrentTime = Character && Character->GetWorld() ? Character->GetWorld()->GetTimeSeconds() : 0.0;
-	return static_cast<float>(FMath::Max(0.0, CooldownEndTimeArray[ToIndex(Shape)] - CurrentTime));
+	return GetRemainingCooldown(CooldownEndTimeArray[ToIndex(Shape)]);
 }
 
 bool FRemoteBombAbility::HasBomb(const ERemoteBombShape Shape) const
@@ -131,6 +146,7 @@ bool FRemoteBombAbility::HasBomb(const ERemoteBombShape Shape) const
 bool FRemoteBombAbility::IsBombInstalled(const ERemoteBombShape Shape) const
 {
 	const ARemoteBomb* Bomb = BombArray[ToIndex(Shape)].Get();
+
 	return Bomb && !Bomb->IsHeld();
 }
 
@@ -140,16 +156,21 @@ bool FRemoteBombAbility::GetSelectedShape(ERemoteBombShape& OutShape) const
 	{
 		return false;
 	}
+
 	if (Character->GetCurrentAbilityType() == EAbilityType::RemoteBombSphere)
 	{
 		OutShape = ERemoteBombShape::Sphere;
+
 		return true;
 	}
+
 	if (Character->GetCurrentAbilityType() == EAbilityType::RemoteBombCube)
 	{
 		OutShape = ERemoteBombShape::Cube;
+
 		return true;
 	}
+
 	return false;
 }
 
@@ -204,6 +225,7 @@ void FRemoteBombAbility::DetonateBomb(const ERemoteBombShape Shape)
 {
 	const int32 Index = ToIndex(Shape);
 	ARemoteBomb* Bomb = BombArray[Index].Get();
+
 	if (!Bomb || Bomb->IsHeld())
 	{
 		return;
@@ -211,13 +233,14 @@ void FRemoteBombAbility::DetonateBomb(const ERemoteBombShape Shape)
 	const UGameConstantsDataAsset* Constants = UGameConstantsDataAsset::Get();
 	const FVector Origin = Bomb->GetActorLocation();
 	const int32 OtherIndex = 1 - Index;
-	ARemoteBomb* OtherBomb = BombArray[OtherIndex].Get();
+	const ARemoteBomb* OtherBomb = BombArray[OtherIndex].Get();
 	const bool bChain = OtherBomb && !OtherBomb->IsHeld() && FVector::DistSquared(Origin, OtherBomb->GetActorLocation()) <= FMath::Square(Constants->RemoteBombExplosionRadius);
 	BombArray[Index].Reset();
 	CooldownEndTimeArray[Index] = Character && Character->GetWorld() ? Character->GetWorld()->GetTimeSeconds() + Constants->RemoteBombCooldown : 0.0;
 	Bomb->PlayExplosionEffect(Constants->RemoteBombExplosionRadius);
 	ApplyExplosion(Bomb, Origin);
 	Bomb->Destroy();
+
 	if (bChain)
 	{
 		DetonateBomb(OtherIndex == 0 ? ERemoteBombShape::Sphere : ERemoteBombShape::Cube);
@@ -227,10 +250,12 @@ void FRemoteBombAbility::DetonateBomb(const ERemoteBombShape Shape)
 void FRemoteBombAbility::ApplyExplosion(ARemoteBomb* Bomb, const FVector& Origin) const
 {
 	UWorld* World = Character ? Character->GetWorld() : nullptr;
+
 	if (!World || !Bomb)
 	{
 		return;
 	}
+
 	const UGameConstantsDataAsset* Constants = UGameConstantsDataAsset::Get();
 	FCollisionObjectQueryParams ObjectTypes;
 	ObjectTypes.AddObjectTypesToQuery(ECC_WorldStatic);
@@ -243,36 +268,45 @@ void FRemoteBombAbility::ApplyExplosion(ARemoteBomb* Bomb, const FVector& Origin
 	World->OverlapMultiByObjectType(Overlaps, Origin, FQuat::Identity, ObjectTypes, FCollisionShape::MakeSphere(Constants->RemoteBombExplosionRadius), OverlapParams);
 	TSet<AActor*> DamagedActors;
 	TSet<UPrimitiveComponent*> ImpulsedComponents;
+
 	for (const FOverlapResult& Overlap : Overlaps)
 	{
 		AActor* Target = Overlap.GetActor();
 		UPrimitiveComponent* Primitive = Overlap.GetComponent();
+
 		if (!IsValid(Target) || Cast<ARemoteBomb>(Target))
 		{
 			continue;
 		}
+
 		if (Primitive && Primitive->IsSimulatingPhysics() && !ImpulsedComponents.Contains(Primitive))
 		{
 			Primitive->AddRadialImpulse(Origin, Constants->RemoteBombExplosionRadius, Constants->RemoteBombImpulse, ERadialImpulseFalloff::RIF_Constant, true);
 			ImpulsedComponents.Add(Primitive);
 		}
+
 		if (DamagedActors.Contains(Target))
 		{
 			continue;
 		}
+
 		FCollisionQueryParams SightParams(SCENE_QUERY_STAT(RemoteBombOcclusion), false, Bomb);
 		SightParams.AddIgnoredActor(Bomb);
 		FHitResult SightHit;
 		const FVector TargetLocation = Primitive ? Primitive->Bounds.Origin : Target->GetActorLocation();
+
 		if (World->LineTraceSingleByChannel(SightHit, Origin, TargetLocation, ECC_Visibility, SightParams) && SightHit.GetActor() != Target)
 		{
 			continue;
 		}
+
 		DamagedActors.Add(Target);
+
 		if (Target->CanBeDamaged())
 		{
 			UGameplayStatics::ApplyDamage(Target, Constants->RemoteBombDamage, Character->GetController(), Bomb, nullptr);
 		}
+
 		if (AKzPlayerCharacter* Player = Cast<AKzPlayerCharacter>(Target))
 		{
 			const FVector Direction = (Player->GetActorLocation() - Origin).GetSafeNormal();
@@ -281,17 +315,20 @@ void FRemoteBombAbility::ApplyExplosion(ARemoteBomb* Bomb, const FVector& Origin
 	}
 }
 
-FVector FRemoteBombAbility::FindDropLocation(ARemoteBomb* Bomb) const
+FVector FRemoteBombAbility::FindDropLocation(const ARemoteBomb* Bomb) const
 {
-	UWorld* World = Character ? Character->GetWorld() : nullptr;
+	const UWorld* World = Character ? Character->GetWorld() : nullptr;
+
 	if (!World || !Bomb)
 	{
 		return FVector::ZeroVector;
 	}
+
 	const float Radius = UGameConstantsDataAsset::Get()->RemoteBombRadius;
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(RemoteBombDrop), false, Character);
 	QueryParams.AddIgnoredActor(Character);
 	QueryParams.AddIgnoredActor(Bomb);
+
 	for (int32 Step = 0; Step < 4; ++Step)
 	{
 		const FVector Horizontal = Character->GetActorLocation() + Character->GetActorForwardVector() * (Radius + 35.0f + Step * Radius);
@@ -304,6 +341,7 @@ FVector FRemoteBombAbility::FindDropLocation(ARemoteBomb* Bomb) const
 			return Candidate;
 		}
 	}
+
 	return Character->GetActorLocation() + Character->GetActorForwardVector() * (Radius + 35.0f);
 }
 
@@ -313,40 +351,50 @@ bool FRemoteBombAbility::CanPickUp(const ARemoteBomb* Bomb) const
 	{
 		return false;
 	}
+
 	const float Range = UGameConstantsDataAsset::Get()->RemoteBombPickupRange;
+
 	if (FVector::DistSquared(Character->GetActorLocation(), Bomb->GetActorLocation()) > FMath::Square(Range))
 	{
 		return false;
 	}
+
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(RemoteBombPickup), false, Character);
 	QueryParams.AddIgnoredActor(Character);
 	FHitResult Hit;
+
 	return !Character->GetWorld()->LineTraceSingleByChannel(Hit, Character->GetPawnViewLocation(), Bomb->GetActorLocation(), ECC_Visibility, QueryParams) || Hit.GetActor() == Bomb;
 }
 
 void FRemoteBombAbility::PlaceHeldBomb(const bool bThrow)
 {
 	ARemoteBomb* Bomb = HeldBomb.Get();
+
 	if (!Bomb || !Character)
 	{
 		return;
 	}
+
 	const UGameConstantsDataAsset* Constants = UGameConstantsDataAsset::Get();
 	const FVector Direction = Character->GetController() ? Character->GetController()->GetControlRotation().Vector() : Character->GetActorForwardVector();
+
 	FVector Location = bThrow ? Bomb->GetActorLocation() + Direction * (Constants->RemoteBombRadius + 10.0f) : Bomb->GetActorLocation() + Character->GetActorForwardVector() * (Constants->RemoteBombRadius * 0.5f);
 	FVector Impulse = bThrow ? (Direction + FVector(0.0f, 0.0f, 0.2f)).GetSafeNormal() * Constants->RemoteBombThrowImpulse : FVector::ZeroVector;
+
 	if (bThrow)
 	{
 		FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(RemoteBombThrow), false, Character);
 		QueryParams.AddIgnoredActor(Character);
 		QueryParams.AddIgnoredActor(Bomb);
 		FHitResult Hit;
+
 		if (Character->GetWorld()->SweepSingleByChannel(Hit, Bomb->GetActorLocation(), Location, FQuat::Identity, ECC_Visibility, FCollisionShape::MakeSphere(Constants->RemoteBombRadius), QueryParams))
 		{
 			Location = Hit.bStartPenetrating ? FindDropLocation(Bomb) : Hit.Location;
 			Impulse = Hit.bStartPenetrating ? FVector::ZeroVector : Impulse;
 		}
 	}
+
 	Bomb->Place(Location, Impulse);
 	HeldBomb.Reset();
 }

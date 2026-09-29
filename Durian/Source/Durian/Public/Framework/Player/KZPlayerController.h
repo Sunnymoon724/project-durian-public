@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Abilities/Core/Ability.h"
 #include "Enums/PlayerEnums.h"
 #include "GameFramework/PlayerController.h"
 #include "InputActionValue.h"
@@ -63,7 +64,7 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UInputAction> GuardAction;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
-	TObjectPtr<UInputAction> IceTargetAtFeetAction;
+	TObjectPtr<UInputAction> CryonisTargetAtFeetAction;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UInputAction> RemoteBombThrowAction;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
@@ -99,18 +100,15 @@ private:
 
 	void OnJumpStarted();
 	void OnJumpCompleted();
+	void OnSprintStarted();
+	void OnSprintCompleted();
 	
-	void OnInteract();
-	void OnAbilityUse();
+	void OnAbilityInput(const FInputActionValue& Value, EAbilityInput Input);
 	void OnAttack();
 	void OnGuard();
-	void OnCancel();
 	void OnMenu();
 	void OnAbilityWheelPressDown();
 	void OnAbilityWheelPressUp();
-	void OnIceTargetAtFeet();
-	void OnRemoteBombThrow();
-	void OnMagnesisDistance(const FInputActionValue& Value);
 
 	UKzAbilityWheelViewModel* GetAbilityWheelViewModel() const;
 

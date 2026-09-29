@@ -45,7 +45,11 @@
 		},
 		{
 			"Name": "UECortex",
-			"Enabled": false
+			"Enabled": true
+		},
+		{
+			"Name": "TitanClimbing",
+			"Enabled": true
 		}
 	]
 }

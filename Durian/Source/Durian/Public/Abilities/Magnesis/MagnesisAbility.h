@@ -4,6 +4,7 @@
 #include "Abilities/Core/Ability.h"
 
 class UPrimitiveComponent;
+class UPhysicsHandleComponent;
 
 class FMagnesisAbility final : public FAbility
 {
@@ -11,14 +12,12 @@ public:
 	explicit FMagnesisAbility(AKzPlayerCharacter* InCharacter);
 
 	virtual void Tick(float DeltaTime) override;
-	virtual void HandleInteract() override;
-	virtual void HandleCancel() override;
-	virtual void HandleAbilityUse() override;
-	virtual void HandleDistance(float AxisValue) override;
+	virtual void HandleInput(EAbilityInput Input, float AxisValue = 0.0f) override;
 
 	void Release();
 
 private:
+	void EnterTargetingMode();
 	void UpdateTargeting();
 	void UpdateControl(float DeltaTime);
 	void SelectTarget();
@@ -32,4 +31,5 @@ private:
 	FVector CurrentHoldLocation = FVector::ZeroVector;
 
 	float MagnesisDistance = 0.0f;
+	UPhysicsHandleComponent* PhysicsHandle = nullptr;
 };

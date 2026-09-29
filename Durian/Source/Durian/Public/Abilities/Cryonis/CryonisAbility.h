@@ -13,11 +13,7 @@ public:
 	explicit FCryonisAbility(AKzPlayerCharacter* InCharacter) : FAbility(InCharacter) { }
 
 	virtual void Tick(float DeltaTime) override;
-	virtual void HandleInteract() override;
-	virtual void HandleCancel() override;
-	virtual void HandleAbilityUse() override;
-
-	void HandleTargetAtFeet();
+	virtual void HandleInput(EAbilityInput Input, float AxisValue = 0.0f) override;
 	float GetSpawnCooldownRemaining() const;
 
 private:

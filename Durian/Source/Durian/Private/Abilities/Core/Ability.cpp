@@ -1,5 +1,7 @@
 #include "Abilities/Core/Ability.h"
 #include "Abilities/Components/AbilityReactionComponent.h"
+#include "Abilities/Components/AbilityEffectComponent.h"
+#include "Abilities/Core/AbilityModeSubsystem.h"
 #include "Abilities/Core/AbilityModeTypes.h"
 #include "CollisionQueryParams.h"
 #include "Components/PrimitiveComponent.h"
@@ -7,6 +9,58 @@
 #include "Engine/World.h"
 #include "Framework/Player/KzPlayerCharacter.h"
 #include "GameFramework/Controller.h"
+#include "Engine/GameInstance.h"
+
+float FAbility::GetRemainingCooldown(const double CooldownEndTime) const
+{
+	const double CurrentTime = Character && Character->GetWorld() ? Character->GetWorld()->GetTimeSeconds() : 0.0;
+	return static_cast<float>(FMath::Max(0.0, CooldownEndTime - CurrentTime));
+}
+
+void FAbility::SetAbilityModeActive(const EAbilityVisualMode Mode, const bool bActive, const bool bUpdateScanDirection) const
+{
+	if (!Character)
+	{
+		return;
+	}
+
+	const UGameInstance* GameInstance = Character->GetGameInstance();
+	UAbilityModeSubsystem* AbilityModeSubsystem = GameInstance ? GameInstance->GetSubsystem<UAbilityModeSubsystem>() : nullptr;
+	if (!AbilityModeSubsystem)
+	{
+		return;
+	}
+
+	if (bActive && bUpdateScanDirection)
+	{
+		const FVector ViewDirection = Character->GetController() ? Character->GetController()->GetControlRotation().Vector() : Character->GetActorForwardVector();
+		AbilityModeSubsystem->SetModeScanDirection(FVector2D(ViewDirection.X, ViewDirection.Y));
+	}
+
+	AbilityModeSubsystem->SetAbilityModeActive(Mode, bActive);
+}
+
+void FAbility::SetAbilityVisionEnabled(const EAbilityType Ability, const bool bEnabled) const
+{
+	if (Character)
+	{
+		if (UAbilityEffectComponent* AbilityEffect = Character->GetAbilityEffect())
+		{
+			AbilityEffect->SetVisionEnabled(Ability, bEnabled);
+		}
+	}
+}
+
+void FAbility::ClearAbilityVisionEffects() const
+{
+	if (Character)
+	{
+		if (UAbilityEffectComponent* AbilityEffect = Character->GetAbilityEffect())
+		{
+			AbilityEffect->ClearVisionEffects();
+		}
+	}
+}
 
 bool FAbility::TraceAbilityTarget(const EAbilityReactionType ReactionType, const float TraceRange, FHitResult& OutHit, const bool bTargetAtFeet, const AActor* IgnoredActor, const bool bRequirePhysics) const
 {

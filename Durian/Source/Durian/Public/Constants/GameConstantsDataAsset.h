@@ -27,6 +27,18 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Magnesis")
 	float MagnesisFollowSpeed = 5.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Magnesis|Physics Handle")
+	float MagnesisPhysicsHandleLinearStiffness = 10000.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Magnesis|Physics Handle")
+	float MagnesisPhysicsHandleLinearDamping = 1000.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Magnesis|Physics Handle")
+	float MagnesisPhysicsHandleAngularStiffness = 5000.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Magnesis|Physics Handle")
+	float MagnesisPhysicsHandleAngularDamping = 500.0f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stasis")
 	float StasisTargetRange = 1500.0f;
 
@@ -41,12 +53,6 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stasis")
 	float StasisMaxImpulse = 5000.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stasis|Attack")
-	float StasisMeleeRange = 220.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stasis|Attack")
-	float StasisMeleeRadius = 45.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Cryonis|Animation")
 	float IcePillarSpawnAnimationDuration = 0.45f;

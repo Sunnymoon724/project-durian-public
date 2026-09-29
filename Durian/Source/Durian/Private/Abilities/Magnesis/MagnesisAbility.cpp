@@ -1,22 +1,36 @@
 // ReSharper disable All
 #include "Abilities/Magnesis/MagnesisAbility.h"
 
-#include "Abilities/Components/AbilityEffectComponent.h"
-#include "Abilities/Core/AbilityModeSubsystem.h"
 #include "Abilities/Components/AbilityReactionComponent.h"
+#include "Abilities/Core/AbilityModeTypes.h"
 #include "CollisionShape.h"
 #include "Constants/GameConstantsDataAsset.h"
+#include "Enums/PlayerEnums.h"
 #include "Engine/World.h"
 #include "Framework/Player/KzPlayerCharacter.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Engine/GameInstance.h"
 #include "Framework/Utility/NiagaraEffectUtility.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
 
 FMagnesisAbility::FMagnesisAbility(AKzPlayerCharacter* InCharacter) : FAbility(InCharacter)
 {
-	MagnesisDistance = UGameConstantsDataAsset::Get()->MagnesisDefaultDistance;
+	const UGameConstantsDataAsset* Constants = UGameConstantsDataAsset::Get();
+
+	MagnesisDistance = Constants->MagnesisDefaultDistance;
+
+	if (Character)
+	{
+		PhysicsHandle = NewObject<UPhysicsHandleComponent>(Character, TEXT("MagnesisPhysicsHandle"));
+
+		Character->AddInstanceComponent(PhysicsHandle);
+		PhysicsHandle->RegisterComponent();
+
+		PhysicsHandle->LinearStiffness = Constants->MagnesisPhysicsHandleLinearStiffness;
+		PhysicsHandle->LinearDamping = Constants->MagnesisPhysicsHandleLinearDamping;
+		PhysicsHandle->AngularStiffness = Constants->MagnesisPhysicsHandleAngularStiffness;
+		PhysicsHandle->AngularDamping = Constants->MagnesisPhysicsHandleAngularDamping;
+	}
 }
 
 void FMagnesisAbility::Tick(float DeltaTime)
@@ -27,9 +41,11 @@ void FMagnesisAbility::Tick(float DeltaTime)
 	}
 	
 	EPlayerState state = Character->GetCurrentState();
+
 	if ((state == EPlayerState::MagnesisTargeting || state == EPlayerState::MagnesisHolding) && Character->GetCharacterMovement() && Character->GetCharacterMovement()->IsFalling())
 	{
 		Release();
+
 		return;
 	}
 
@@ -47,57 +63,66 @@ void FMagnesisAbility::Tick(float DeltaTime)
 	}
 }
 
-void FMagnesisAbility::HandleInteract()
-{
-	if (Character && Character->GetCurrentState() == EPlayerState::MagnesisTargeting)
-	{
-		SelectTarget();
-	}
-}
-
-void FMagnesisAbility::HandleCancel()
-{
-	Release();
-}
-
-void FMagnesisAbility::HandleAbilityUse()
+void FMagnesisAbility::HandleInput(const EAbilityInput Input, const float AxisValue)
 {
 	if (!Character)
 	{
 		return;
 	}
 
-	if (Character->GetCurrentState() == EPlayerState::Normal)
+	switch (Input)
 	{
-		Character->SetPlayerState(EPlayerState::MagnesisTargeting);
-
-		if (UGameInstance* GameInstance = Character->GetGameInstance())
+	case EAbilityInput::Interact:
 		{
-			if (UAbilityModeSubsystem* AbilityModeSubsystem = GameInstance->GetSubsystem<UAbilityModeSubsystem>())
+			if (Character->GetCurrentState() == EPlayerState::MagnesisTargeting)
 			{
-				const FVector ViewDirection = Character->GetController() ? Character->GetController()->GetControlRotation().Vector() : Character->GetActorForwardVector();
-				AbilityModeSubsystem->SetModeScanDirection(FVector2D(ViewDirection.X, ViewDirection.Y));
-				AbilityModeSubsystem->SetAbilityModeActive(EAbilityVisualMode::Magnesis, true);
+				SelectTarget();
 			}
+			break;
 		}
-
-		if (UAbilityEffectComponent* AbilityEffect = Character->GetAbilityEffect())
+	case EAbilityInput::Cancel:
+	case EAbilityInput::Interrupt:
 		{
-			AbilityEffect->SetVisionEnabled(EAbilityType::Magnesis, true);
+			Release();
+			break;
 		}
-	}
-	else
-	{
-		Release();
+	case EAbilityInput::Use:
+		{
+			if (Character->GetCurrentState() == EPlayerState::Normal)
+			{
+				EnterTargetingMode();
+			}
+			else
+			{
+				Release();
+			}
+			break;
+		}
+	case EAbilityInput::MagnesisDistance:
+		{
+			if (Character->GetCurrentState() == EPlayerState::MagnesisHolding && !FMath::IsNearlyZero(AxisValue))
+			{
+				MagnesisDistance = FMath::Clamp(MagnesisDistance + AxisValue * 100.0f, UGameConstantsDataAsset::Get()->MagnesisMinDistance, UGameConstantsDataAsset::Get()->MagnesisMaxDistance);
+			}
+			break;
+		}
+	default:
+		UE_LOG(LogTemp, Log, TEXT("Unsupported Magnesis input: %d."), static_cast<int32>(Input));
+		break;
 	}
 }
 
-void FMagnesisAbility::HandleDistance(const float AxisValue)
+void FMagnesisAbility::EnterTargetingMode()
 {
-	if (Character && Character->GetCurrentState() == EPlayerState::MagnesisHolding && !FMath::IsNearlyZero(AxisValue))
+	if (!Character)
 	{
-		MagnesisDistance = FMath::Clamp(MagnesisDistance + AxisValue * 100.0f, UGameConstantsDataAsset::Get()->MagnesisMinDistance, UGameConstantsDataAsset::Get()->MagnesisMaxDistance);
+		return;
 	}
+
+	Character->SetPlayerState(EPlayerState::MagnesisTargeting);
+
+	SetAbilityModeActive(EAbilityVisualMode::Magnesis, true, true);
+	SetAbilityVisionEnabled(EAbilityType::Magnesis, true);
 }
 
 void FMagnesisAbility::UpdateTargeting()
@@ -117,17 +142,19 @@ void FMagnesisAbility::UpdateTargeting()
 
 void FMagnesisAbility::UpdateControl(const float DeltaTime)
 {
-	UPhysicsHandleComponent* PhysicsHandle = Character ? Character->GetPhysicsHandle() : nullptr;
+	UPhysicsHandleComponent* MagnesisPhysicsHandle = PhysicsHandle;
 
-	if (!Character || !PhysicsHandle || !Character->GetController())
+	if (!Character || !MagnesisPhysicsHandle || !Character->GetController())
 	{
 		Release();
+
 		return;
 	}
 
-	if (!PhysicsHandle->GetGrabbedComponent())
+	if (!MagnesisPhysicsHandle->GetGrabbedComponent())
 	{
 		Character->SetPlayerState(EPlayerState::Normal);
+
 		return;
 	}
 
@@ -140,7 +167,7 @@ void FMagnesisAbility::UpdateControl(const float DeltaTime)
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(MagnesisTargetSweep), false, Character);
 
-	QueryParams.AddIgnoredActor(PhysicsHandle->GetGrabbedComponent()->GetOwner());
+	QueryParams.AddIgnoredActor(MagnesisPhysicsHandle->GetGrabbedComponent()->GetOwner());
 
 	FHitResult SweepHit;
 
@@ -151,33 +178,37 @@ void FMagnesisAbility::UpdateControl(const float DeltaTime)
 
 	// Move the physics-handle target gradually so the object follows with a soft lag.
 	CurrentHoldLocation = FMath::VInterpTo(CurrentHoldLocation, SafeTargetLocation, DeltaTime, UGameConstantsDataAsset::Get()->MagnesisFollowSpeed);
-	PhysicsHandle->SetTargetLocation(CurrentHoldLocation);
+	MagnesisPhysicsHandle->SetTargetLocation(CurrentHoldLocation);
 
 }
 
 void FMagnesisAbility::SelectTarget()
 {
-	UPhysicsHandleComponent* PhysicsHandle = Character ? Character->GetPhysicsHandle() : nullptr;
+	UPhysicsHandleComponent* MagnesisPhysicsHandle = PhysicsHandle;
 	UPrimitiveComponent* HitComponent = nullptr;
 	FVector HitLocation = FVector::ZeroVector;
 
-	if (!Character || !PhysicsHandle)
+	if (!Character || !MagnesisPhysicsHandle)
 	{
 		return;
 	}
+
 	if (!TraceTarget(HitComponent, HitLocation))
 	{
 		ExitTargetingMode();
+
 		Character->SetPlayerState(EPlayerState::Normal);
+
 		return;
 	}
 
-	PhysicsHandle->GrabComponentAtLocation(HitComponent, NAME_None, HitLocation);
+	MagnesisPhysicsHandle->GrabComponentAtLocation(HitComponent, NAME_None, HitLocation);
 	ExitTargetingMode();
 
-	if (PhysicsHandle->GetGrabbedComponent())
+	if (MagnesisPhysicsHandle->GetGrabbedComponent())
 	{
 		FNiagaraEffectUtility::SpawnAtLocation(Character->GetWorld(), FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnesis/Niagara/NS_MagnesisGrabPulse.NS_MagnesisGrabPulse")), HitComponent->Bounds.Origin);
+
 		CurrentHoldLocation = HitLocation;
 
 		const FVector HoldLocation = Character->GetActorLocation() + FVector(0.0f, 0.0f, 100.0f);
@@ -201,15 +232,8 @@ void FMagnesisAbility::ExitTargetingMode()
 
 	ClearTargetedComponent();
 
-	if (UGameInstance* GameInstance = Character->GetGameInstance())
-	{
-		GameInstance->GetSubsystem<UAbilityModeSubsystem>()->SetAbilityModeActive(EAbilityVisualMode::Magnesis, false);
-	}
-
-	if (UAbilityEffectComponent* AbilityEffect = Character->GetAbilityEffect())
-	{
-		AbilityEffect->ClearVisionEffects();
-	}
+	SetAbilityModeActive(EAbilityVisualMode::Magnesis, false);
+	ClearAbilityVisionEffects();
 }
 
 bool FMagnesisAbility::TraceTarget(UPrimitiveComponent*& OutComponent, FVector& OutLocation) const
@@ -241,12 +265,12 @@ void FMagnesisAbility::Release()
 		return;
 	}
 
-	if (UPhysicsHandleComponent* PhysicsHandle = Character->GetPhysicsHandle())
+	if (UPhysicsHandleComponent* MagnesisPhysicsHandle = PhysicsHandle)
 	{
-		if (PhysicsHandle->GetGrabbedComponent())
+		if (MagnesisPhysicsHandle->GetGrabbedComponent())
 		{
-			const FVector ReleaseLocation = PhysicsHandle->GetGrabbedComponent()->Bounds.Origin;
-			PhysicsHandle->ReleaseComponent();
+			const FVector ReleaseLocation = MagnesisPhysicsHandle->GetGrabbedComponent()->Bounds.Origin;
+			MagnesisPhysicsHandle->ReleaseComponent();
 			FNiagaraEffectUtility::SpawnAtLocation(Character->GetWorld(), FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnesis/Niagara/NS_MagnesisReleasePulse.NS_MagnesisReleasePulse")), ReleaseLocation);
 		}
 	}
@@ -256,15 +280,8 @@ void FMagnesisAbility::Release()
 	CurrentHoldLocation = FVector::ZeroVector;
 	Character->SetPlayerState(EPlayerState::Normal);
 
-	if (UGameInstance* GameInstance = Character->GetGameInstance())
-	{
-		GameInstance->GetSubsystem<UAbilityModeSubsystem>()->SetAbilityModeActive(EAbilityVisualMode::Magnesis, false);
-	}
-
-	if (UAbilityEffectComponent* AbilityEffect = Character->GetAbilityEffect())
-	{
-		AbilityEffect->ClearVisionEffects();
-	}
+	SetAbilityModeActive(EAbilityVisualMode::Magnesis, false);
+	ClearAbilityVisionEffects();
 }
 
 void FMagnesisAbility::SetTargetedComponent(UPrimitiveComponent* NewTarget, const FVector& NewTargetLocation)

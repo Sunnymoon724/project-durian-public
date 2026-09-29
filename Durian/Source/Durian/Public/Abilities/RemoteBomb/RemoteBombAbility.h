@@ -9,10 +9,7 @@ public:
 	FRemoteBombAbility(AKzPlayerCharacter* InCharacter, TSubclassOf<ARemoteBomb> InSphereClass, TSubclassOf<ARemoteBomb> InCubeClass) : FAbility(InCharacter), BombClassArray{ InSphereClass, InCubeClass } { }
 
 	void Tick(float DeltaTime) override;
-	void HandleInteract() override;
-	void HandleCancel() override;
-	void HandleAbilityUse() override;
-	void HandleRemoteBombThrow();
+	void HandleInput(EAbilityInput Input, float AxisValue = 0.0f) override;
 	void HandleAbilityDeselected();
 	void DropHeldBomb();
 	void AbortForEndPlay();
@@ -22,12 +19,12 @@ public:
 	bool IsHoldingBomb() const { return HeldBomb.IsValid(); }
 
 private:
-	static int32 ToIndex(ERemoteBombShape Shape) { return Shape == ERemoteBombShape::Sphere ? 0 : 1; }
+	static int32 ToIndex(const ERemoteBombShape Shape) { return Shape == ERemoteBombShape::Sphere ? 0 : 1; }
 	bool GetSelectedShape(ERemoteBombShape& OutShape) const;
 	void SpawnBomb(ERemoteBombShape Shape);
 	void DetonateBomb(ERemoteBombShape Shape);
 	void ApplyExplosion(ARemoteBomb* Bomb, const FVector& Origin) const;
-	FVector FindDropLocation(ARemoteBomb* Bomb) const;
+	FVector FindDropLocation(const ARemoteBomb* Bomb) const;
 	bool CanPickUp(const ARemoteBomb* Bomb) const;
 	void PlaceHeldBomb(bool bThrow);
 

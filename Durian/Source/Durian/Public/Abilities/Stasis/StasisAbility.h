@@ -14,12 +14,11 @@ public:
 	{
 	}
 
-	void Tick(float DeltaTime) override;
+	virtual void Tick(float DeltaTime) override;
 	void TickPersistent(float DeltaTime);
-	void HandleInteract() override;
-	void HandleCancel() override;
-	void HandleAbilityUse() override;
-	void HandleAttackHit(const FHitResult& Hit, const FVector& AttackDirection);
+	virtual void HandleInput(EAbilityInput Input, float AxisValue = 0.0f) override;
+	void HandleAttackHit(const FHitResult& Hit, const FVector& AttackDirection) const;
+	void HandleAbilityDeselected();
 	void AbortForEndPlay();
 	bool IsStasisActive() const;
 	float GetRemainingTime() const { return RemainingTime; }

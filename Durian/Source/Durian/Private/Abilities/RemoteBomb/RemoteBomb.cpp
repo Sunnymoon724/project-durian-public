@@ -1,9 +1,11 @@
 #include "Abilities/RemoteBomb/RemoteBomb.h"
 
 #include "Components/PrimitiveComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Framework/Utility/NiagaraEffectUtility.h"
+#include "Framework/Player/KzPlayerCharacter.h"
 #include "NiagaraSystem.h"
 
 ARemoteBomb::ARemoteBomb()
@@ -62,8 +64,20 @@ void ARemoteBomb::Hold(const float Height)
 
 	CollisionRoot->SetSimulatePhysics(false);
 	CollisionRoot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	AttachToActor(BombOwner, FAttachmentTransformRules::KeepWorldTransform);
-	SetActorRelativeLocation(FVector(0.0f, 0.0f, Height));
+	if (const AKzPlayerCharacter* PlayerCharacter = Cast<AKzPlayerCharacter>(BombOwner);
+		PlayerCharacter && PlayerCharacter->GetMesh() && PlayerCharacter->GetMesh()->DoesSocketExist(HeldSocketName))
+	{
+		AttachToComponent(PlayerCharacter->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, HeldSocketName);
+		SetActorRelativeLocation(HeldSocketOffset);
+		SetActorRelativeRotation(HeldSocketRotation);
+	}
+	else
+	{
+		// Keep the legacy fallback for non-player owners or bombs whose mesh does
+		// not provide a hand socket.
+		AttachToActor(BombOwner, FAttachmentTransformRules::KeepWorldTransform);
+		SetActorRelativeLocation(FVector(0.0f, 0.0f, Height));
+	}
 	bHeld = true;
 }
 
