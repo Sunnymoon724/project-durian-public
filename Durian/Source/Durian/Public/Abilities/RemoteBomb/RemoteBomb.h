@@ -4,8 +4,6 @@
 #include "GameFramework/Actor.h"
 #include "RemoteBomb.generated.h"
 
-class UNiagaraSystem;
-
 UENUM(BlueprintType)
 enum class ERemoteBombShape : uint8
 {
@@ -31,9 +29,6 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
-	UPROPERTY(EditDefaultsOnly, Category = "Effects")
-	TSoftObjectPtr<UNiagaraSystem> ExplosionEffect;
-
 	UPROPERTY(EditDefaultsOnly, Category = "Shape")
 	ERemoteBombShape BombShape = ERemoteBombShape::None;
 

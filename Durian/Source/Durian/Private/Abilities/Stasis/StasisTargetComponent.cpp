@@ -100,8 +100,8 @@ void UStasisTargetComponent::UpdateFeedback(const float RemainingTime, const flo
 	const bool bHasImpulse = Strength > KINDA_SMALL_NUMBER;
 	if (DirectionShaft && DirectionTip)
 	{
-		DirectionShaft->SetVisibility(bHasImpulse);
-		DirectionTip->SetVisibility(bHasImpulse);
+		DirectionShaft->SetVisibility(bHasImpulse, true);
+		DirectionTip->SetVisibility(bHasImpulse, true);
 		if (bHasImpulse)
 		{
 			const FVector Direction = AccumulatedImpulse.GetSafeNormal();
@@ -159,17 +159,19 @@ void UStasisTargetComponent::CreateFeedback()
 		DirectionShaft->SetStaticMesh(Cylinder);
 		DirectionShaft->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		DirectionShaft->SetCastShadow(false);
+		DirectionShaft->SetHiddenInGame(false);
 		DirectionShaft->RegisterComponent();
 		DirectionShaft->AttachToComponent(Primitive, FAttachmentTransformRules::KeepWorldTransform);
-		DirectionShaft->SetVisibility(false);
+		DirectionShaft->SetVisibility(false, true);
 		DirectionTip = NewObject<UStaticMeshComponent>(Owner);
 		DirectionTip->ComponentTags.Add(TEXT("StasisFeedback"));
 		DirectionTip->SetStaticMesh(Cone);
 		DirectionTip->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		DirectionTip->SetCastShadow(false);
+		DirectionTip->SetHiddenInGame(false);
 		DirectionTip->RegisterComponent();
 		DirectionTip->AttachToComponent(Primitive, FAttachmentTransformRules::KeepWorldTransform);
-		DirectionTip->SetVisibility(false);
+		DirectionTip->SetVisibility(false, true);
 		if (MarkerMaterial)
 		{
 			DirectionShaft->SetMaterial(0, MarkerMaterial);

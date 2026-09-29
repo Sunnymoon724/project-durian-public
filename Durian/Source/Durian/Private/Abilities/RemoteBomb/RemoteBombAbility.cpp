@@ -97,6 +97,7 @@ void FRemoteBombAbility::HandleInput(const EAbilityInput Input, float)
 
 			if (GetSelectedShape(Shape) && HeldBomb.IsValid() && HeldBomb->GetShape() == Shape)
 			{
+				Character->PlayBombThrowAnimation();
 				PlaceHeldBomb(true);
 			}
 
@@ -231,14 +232,15 @@ void FRemoteBombAbility::DetonateBomb(const ERemoteBombShape Shape)
 		return;
 	}
 	const UGameConstantsDataAsset* Constants = UGameConstantsDataAsset::Get();
+	const float ExplosionRadius = Constants->RemoteBombExplosionRadius;
 	const FVector Origin = Bomb->GetActorLocation();
 	const int32 OtherIndex = 1 - Index;
 	const ARemoteBomb* OtherBomb = BombArray[OtherIndex].Get();
-	const bool bChain = OtherBomb && !OtherBomb->IsHeld() && FVector::DistSquared(Origin, OtherBomb->GetActorLocation()) <= FMath::Square(Constants->RemoteBombExplosionRadius);
+	const bool bChain = OtherBomb && !OtherBomb->IsHeld() && FVector::DistSquared(Origin, OtherBomb->GetActorLocation()) <= FMath::Square(ExplosionRadius);
 	BombArray[Index].Reset();
 	CooldownEndTimeArray[Index] = Character && Character->GetWorld() ? Character->GetWorld()->GetTimeSeconds() + Constants->RemoteBombCooldown : 0.0;
-	Bomb->PlayExplosionEffect(Constants->RemoteBombExplosionRadius);
-	ApplyExplosion(Bomb, Origin);
+	Bomb->PlayExplosionEffect(ExplosionRadius);
+	ApplyExplosion(Bomb, Origin, ExplosionRadius);
 	Bomb->Destroy();
 
 	if (bChain)
@@ -247,7 +249,7 @@ void FRemoteBombAbility::DetonateBomb(const ERemoteBombShape Shape)
 	}
 }
 
-void FRemoteBombAbility::ApplyExplosion(ARemoteBomb* Bomb, const FVector& Origin) const
+void FRemoteBombAbility::ApplyExplosion(ARemoteBomb* Bomb, const FVector& Origin, const float Radius) const
 {
 	UWorld* World = Character ? Character->GetWorld() : nullptr;
 
@@ -265,7 +267,7 @@ void FRemoteBombAbility::ApplyExplosion(ARemoteBomb* Bomb, const FVector& Origin
 	FCollisionQueryParams OverlapParams(SCENE_QUERY_STAT(RemoteBombExplosion), false, Bomb);
 	OverlapParams.AddIgnoredActor(Bomb);
 	TArray<FOverlapResult> Overlaps;
-	World->OverlapMultiByObjectType(Overlaps, Origin, FQuat::Identity, ObjectTypes, FCollisionShape::MakeSphere(Constants->RemoteBombExplosionRadius), OverlapParams);
+	World->OverlapMultiByObjectType(Overlaps, Origin, FQuat::Identity, ObjectTypes, FCollisionShape::MakeSphere(Radius), OverlapParams);
 	TSet<AActor*> DamagedActors;
 	TSet<UPrimitiveComponent*> ImpulsedComponents;
 
@@ -281,7 +283,7 @@ void FRemoteBombAbility::ApplyExplosion(ARemoteBomb* Bomb, const FVector& Origin
 
 		if (Primitive && Primitive->IsSimulatingPhysics() && !ImpulsedComponents.Contains(Primitive))
 		{
-			Primitive->AddRadialImpulse(Origin, Constants->RemoteBombExplosionRadius, Constants->RemoteBombImpulse, ERadialImpulseFalloff::RIF_Constant, true);
+			Primitive->AddRadialImpulse(Origin, Radius, Constants->RemoteBombImpulse, ERadialImpulseFalloff::RIF_Constant, true);
 			ImpulsedComponents.Add(Primitive);
 		}
 

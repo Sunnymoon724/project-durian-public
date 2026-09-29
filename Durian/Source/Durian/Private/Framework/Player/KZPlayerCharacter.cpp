@@ -65,14 +65,14 @@ AKzPlayerCharacter::AKzPlayerCharacter()
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> ClimbMantleMontageAsset(
 		TEXT("/Game/Resources/Soldier/Anims/Traversal/Titan/AM_Climb_Mantling_RM_Soldier.AM_Climb_Mantling_RM_Soldier"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> SwordAttack0Asset(
-		TEXT("/Game/Resources/Soldier/Anims/SwordAndShield/Combo_Attack_01_All_Seq.Combo_Attack_01_All_Seq"));
-	static ConstructorHelpers::FObjectFinder<UAnimSequence> SwordAttack1Asset(
-		TEXT("/Game/Resources/Soldier/Anims/SwordAndShield/Combo_Attack_02_All_Seq.Combo_Attack_02_All_Seq"));
+		TEXT("/Game/Resources/Soldier/Anims/SwordAndShield/Combo_Attack_01_01_Seq.Combo_Attack_01_01_Seq"));
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> SwordBlockAsset(
 		TEXT("/Game/Resources/Soldier/Anims/SwordAndShield/Block_Loop_Seq.Block_Loop_Seq"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> BombThrowAsset(
+		TEXT("/Game/Resources/Soldier/Anims/Abilities/Bomb/AS_Soldier_Bomb_AN_ANIM_ThrowING_Stealth.AS_Soldier_Bomb_AN_ANIM_ThrowING_Stealth"));
 	SwordAttack0Animation = SwordAttack0Asset.Object;
-	SwordAttack1Animation = SwordAttack1Asset.Object;
 	SwordBlockAnimation = SwordBlockAsset.Object;
+	BombThrowAnimation = BombThrowAsset.Object;
 	static ConstructorHelpers::FClassFinder<UAnimInstance> SoldierClimbAnimBlueprint(
 		TEXT("/Game/Resources/Soldier/ABP_Soldier"));
 	// Soldier locomotion and Titan climbing share this animation blueprint.
@@ -228,18 +228,31 @@ void AKzPlayerCharacter::HandleAttack()
 	}
 
 	StopGuard();
-	UAnimSequence* AttackAnimation = bUseSecondSwordAttack ? SwordAttack1Animation : SwordAttack0Animation;
-	bUseSecondSwordAttack = !bUseSecondSwordAttack;
-	if (AttackAnimation)
+	if (SwordAttack0Animation)
 	{
 		if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
 		{
 			ActiveCombatMontage = AnimInstance->PlaySlotAnimationAsDynamicMontage(
-				AttackAnimation, TEXT("DefaultSlot"), 0.08f, 0.08f);
+				SwordAttack0Animation, TEXT("DefaultSlot"), 0.08f, 0.08f);
 		}
 	}
 
 	PerformSwordHit();
+}
+
+void AKzPlayerCharacter::PlayBombThrowAnimation()
+{
+	if (IsWallClimbing() || !BombThrowAnimation)
+	{
+		return;
+	}
+
+	StopGuard();
+	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+	{
+		ActiveCombatMontage = AnimInstance->PlaySlotAnimationAsDynamicMontage(
+			BombThrowAnimation, TEXT("DefaultSlot"), 0.08f, 0.08f);
+	}
 }
 
 void AKzPlayerCharacter::PerformSwordHit()

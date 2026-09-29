@@ -87,7 +87,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Remote Bomb")
 	float RemoteBombThrowImpulse = 950.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Remote Bomb")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Remote Bomb", meta = (ClampMin = "0.0", UIMin = "0.0", Units = "cm"))
 	float RemoteBombExplosionRadius = 350.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Remote Bomb")

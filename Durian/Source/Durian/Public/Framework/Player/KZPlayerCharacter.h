@@ -96,6 +96,7 @@ public:
 	void HandleGuard();
 	void StopGuard();
 	void HandleAttack();
+	void PlayBombThrowAnimation();
 
 	void SetAbility(EAbilityType NewAbility) const;
 	UPlayerAbilityComponent* GetAbilityComponent() const { return AbilityComponent; }
@@ -140,11 +141,10 @@ private:
 	TObjectPtr<UAnimSequence> ActiveClimbAnimation;
 	TObjectPtr<UAnimMontage> ActiveClimbMontage;
 	TObjectPtr<UAnimSequence> SwordAttack0Animation;
-	TObjectPtr<UAnimSequence> SwordAttack1Animation;
 	TObjectPtr<UAnimSequence> SwordBlockAnimation;
+	TObjectPtr<UAnimSequence> BombThrowAnimation;
 	TObjectPtr<UAnimMontage> ActiveCombatMontage;
 	bool bGuarding = false;
-	bool bUseSecondSwordAttack = false;
 	bool bSprintRequested = false;
 	bool bSprinting = false;
 

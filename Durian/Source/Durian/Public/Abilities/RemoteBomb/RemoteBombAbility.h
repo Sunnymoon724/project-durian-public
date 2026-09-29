@@ -23,7 +23,7 @@ private:
 	bool GetSelectedShape(ERemoteBombShape& OutShape) const;
 	void SpawnBomb(ERemoteBombShape Shape);
 	void DetonateBomb(ERemoteBombShape Shape);
-	void ApplyExplosion(ARemoteBomb* Bomb, const FVector& Origin) const;
+	void ApplyExplosion(ARemoteBomb* Bomb, const FVector& Origin, float Radius) const;
 	FVector FindDropLocation(const ARemoteBomb* Bomb) const;
 	bool CanPickUp(const ARemoteBomb* Bomb) const;
 	void PlaceHeldBomb(bool bThrow);

@@ -7,7 +7,6 @@
 #include "Framework/Utility/NiagaraEffectUtility.h"
 #include "Framework/Player/KzPlayerCharacter.h"
 #include "NiagaraComponent.h"
-#include "NiagaraSystem.h"
 
 ARemoteBomb::ARemoteBomb()
 {
@@ -116,21 +115,10 @@ void ARemoteBomb::PlayExplosionEffect(const float Radius) const
 		RangeEffect->SetVariableFloat(TEXT("User.DamageRadius"), SafeRadius);
 		RangeEffect->SetVariableLinearColor(TEXT("User.RangeColor"), FLinearColor(0.015f, 0.08f, 0.65f, 1.0f));
 	}
-
-	if (ExplosionEffect)
-	{
-		FNiagaraEffectUtility::SpawnAtLocation(GetWorld(), ExplosionEffect, GetActorLocation());
-		return;
-	}
-
-	const FSoftObjectPath DefaultExplosionEffect(TEXT("/Game/Resources/VFX/RemoteBomb/Niagara/NS_RemoteBombExplosion.NS_RemoteBombExplosion"));
-
-	if (FNiagaraEffectUtility::SpawnAtLocation(GetWorld(), DefaultExplosionEffect, GetActorLocation()))
-	{
-		return;
-	}
-
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	DrawDebugSphere(GetWorld(), GetActorLocation(), Radius, 24, FColor::Orange, false, 0.75f, 0, 2.0f);
+	if (!RangeEffect)
+	{
+		DrawDebugSphere(GetWorld(), GetActorLocation(), Radius, 24, FColor::Orange, false, 0.75f, 0, 2.0f);
+	}
 #endif
 }
