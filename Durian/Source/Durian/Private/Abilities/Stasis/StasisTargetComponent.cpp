@@ -63,13 +63,16 @@ void UStasisTargetComponent::EndStasis(const bool bApplyImpulse)
 
 	if (UPrimitiveComponent* Primitive = FrozenPrimitive.Get())
 	{
+		const FVector ReleaseImpulse = bApplyImpulse ? AccumulatedImpulse : FVector::ZeroVector;
 		Primitive->SetSimulatePhysics(true);
 		Primitive->SetEnableGravity(bSavedGravityEnabled);
 		Primitive->SetPhysicsLinearVelocity(SavedLinearVelocity);
 		Primitive->SetPhysicsAngularVelocityInRadians(SavedAngularVelocity);
-		if (bApplyImpulse && !AccumulatedImpulse.IsNearlyZero())
+		if (!ReleaseImpulse.IsNearlyZero())
 		{
-			Primitive->AddImpulse(AccumulatedImpulse);
+			// Stasis force is an authored launch strength; mass-independent mode keeps
+			// large physics objects from barely moving when the lock expires.
+			Primitive->AddImpulse(ReleaseImpulse, NAME_None, true);
 		}
 	}
 

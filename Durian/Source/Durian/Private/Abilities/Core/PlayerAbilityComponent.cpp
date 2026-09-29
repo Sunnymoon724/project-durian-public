@@ -125,6 +125,14 @@ void UPlayerAbilityComponent::HandleInput(const EAbilityInput Input, const float
 	}
 }
 
+void UPlayerAbilityComponent::HandleAttackHit(const FHitResult& Hit, const FVector& AttackDirection) const
+{
+	if (StasisAbility)
+	{
+		StasisAbility->HandleAttackHit(Hit, AttackDirection);
+	}
+}
+
 float UPlayerAbilityComponent::GetRemoteBombCooldown(const ERemoteBombShape Shape) const
 {
 	return RemoteBombAbility ? RemoteBombAbility->GetCooldownRemaining(Shape) : 0.0f;

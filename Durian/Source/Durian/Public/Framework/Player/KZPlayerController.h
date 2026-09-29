@@ -106,6 +106,7 @@ private:
 	void OnAbilityInput(const FInputActionValue& Value, EAbilityInput Input);
 	void OnAttack();
 	void OnGuard();
+	void OnGuardReleased();
 	void OnMenu();
 	void OnAbilityWheelPressDown();
 	void OnAbilityWheelPressUp();

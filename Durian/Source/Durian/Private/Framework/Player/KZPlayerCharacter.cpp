@@ -11,11 +11,12 @@
 #include "Animation/Skeleton.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/PointLightComponent.h"
-#include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "TitanClimbing.h"
 #include "TitanClimbingComponent.h"
+#include "Framework/Player/WallClimbComponent.h"
 
 AKzPlayerCharacter::AKzPlayerCharacter()
 {
@@ -28,6 +29,7 @@ AKzPlayerCharacter::AKzPlayerCharacter()
 	Damageable->SetDestroyOwnerOnDepleted(false);
 
 	AbilityComponent = CreateDefaultSubobject<UPlayerAbilityComponent>(TEXT("PlayerAbilityComponent"));
+	WallClimb = CreateDefaultSubobject<UWallClimbComponent>(TEXT("WallClimb"));
 	TitanClimbing = CreateDefaultSubobject<UTitanClimbingComponent>(TEXT("TitanClimbing"));
 	HoverGlow = CreateDefaultSubobject<UPointLightComponent>(TEXT("HoverGlow"));
 	HoverGlow->SetupAttachment(GetRootComponent());
@@ -44,49 +46,42 @@ AKzPlayerCharacter::AKzPlayerCharacter()
 		TEXT("/Game/Resources/References/FirstParty/Characters/Mannequins/Anims/Unarmed/Jump/MM_Dash.MM_Dash"));
 	DashAnimation = DashAnimationAsset.Object;
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> ClimbIdleAsset(
-		TEXT("/Game/Resources/Soldier/Anims/Traversal/Titan/Source/AS_Climb_Idle.AS_Climb_Idle"));
+		TEXT("/Game/Resources/Soldier/Anims/Traversal/Titan/AS_Soldier_Titan_AS_Climb_Idle.AS_Soldier_Titan_AS_Climb_Idle"));
 	ClimbIdleAnimation = ClimbIdleAsset.Object;
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> ClimbUpAsset(
-		TEXT("/Game/Resources/Soldier/Anims/Traversal/Titan/Source/AS_Climb_Up.AS_Climb_Up"));
+		TEXT("/Game/Resources/Soldier/Anims/Traversal/Titan/AS_Soldier_Titan_AS_Climb_Up.AS_Soldier_Titan_AS_Climb_Up"));
 	ClimbUpAnimation = ClimbUpAsset.Object;
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> ClimbDownAsset(
-		TEXT("/Game/Resources/Soldier/Anims/Traversal/Titan/Source/AS_Climb_Down.AS_Climb_Down"));
+		TEXT("/Game/Resources/Soldier/Anims/Traversal/Titan/AS_Soldier_Titan_AS_Climb_Down.AS_Soldier_Titan_AS_Climb_Down"));
 	ClimbDownAnimation = ClimbDownAsset.Object;
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> ClimbLeftAsset(
-		TEXT("/Game/Resources/Soldier/Anims/Traversal/Titan/Source/AS_Climb_Left.AS_Climb_Left"));
+		TEXT("/Game/Resources/Soldier/Anims/Traversal/Titan/AS_Soldier_Titan_AS_Climb_Left.AS_Soldier_Titan_AS_Climb_Left"));
 	ClimbLeftAnimation = ClimbLeftAsset.Object;
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> ClimbRightAsset(
-		TEXT("/Game/Resources/Soldier/Anims/Traversal/Titan/Source/AS_Climb_Right.AS_Climb_Right"));
+		TEXT("/Game/Resources/Soldier/Anims/Traversal/Titan/AS_Soldier_Titan_AS_Climb_Right.AS_Soldier_Titan_AS_Climb_Right"));
 	ClimbRightAnimation = ClimbRightAsset.Object;
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> ClimbMantleSequenceAsset(
 		TEXT("/Game/Resources/Soldier/Anims/Traversal/Titan/AS_Climb_Mantling_RM_Soldier.AS_Climb_Mantling_RM_Soldier"));
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> ClimbMantleMontageAsset(
 		TEXT("/Game/Resources/Soldier/Anims/Traversal/Titan/AM_Climb_Mantling_RM_Soldier.AM_Climb_Mantling_RM_Soldier"));
-
-	// These are editor-created copies of Titan's original sequences.  Unlike the
-	// old file-copied Soldier variants, they retain their compressed key data.
-	// ReplaceSkeleton performs the required animation-data conversion as well.
-	USkeleton* SoldierSkeleton = LoadObject<USkeleton>(nullptr,
-		TEXT("/Game/Resources/References/FirstParty/Characters/Mannequins/Meshes/SK_Mannequin.SK_Mannequin"));
-	if (SoldierSkeleton)
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> SwordAttack0Asset(
+		TEXT("/Game/Resources/Soldier/Anims/SwordAndShield/Combo_Attack_01_All_Seq.Combo_Attack_01_All_Seq"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> SwordAttack1Asset(
+		TEXT("/Game/Resources/Soldier/Anims/SwordAndShield/Combo_Attack_02_All_Seq.Combo_Attack_02_All_Seq"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> SwordBlockAsset(
+		TEXT("/Game/Resources/Soldier/Anims/SwordAndShield/Block_Loop_Seq.Block_Loop_Seq"));
+	SwordAttack0Animation = SwordAttack0Asset.Object;
+	SwordAttack1Animation = SwordAttack1Asset.Object;
+	SwordBlockAnimation = SwordBlockAsset.Object;
+	static ConstructorHelpers::FClassFinder<UAnimInstance> SoldierClimbAnimBlueprint(
+		TEXT("/Game/Resources/Soldier/ABP_Soldier"));
+	// Soldier locomotion and Titan climbing share this animation blueprint.
+	// Keep it active for the full lifetime of the player; do not swap graphs
+	// when a climb begins, because that creates conflicting animation state.
+	if (SoldierClimbAnimBlueprint.Class)
 	{
-		for (UAnimSequence* Animation : { ClimbIdleAnimation, ClimbUpAnimation, ClimbDownAnimation, ClimbLeftAnimation, ClimbRightAnimation })
-		{
-			if (Animation && Animation->GetSkeleton() != SoldierSkeleton)
-			{
-				Animation->ReplaceSkeleton(SoldierSkeleton, false);
-			}
-		}
-		if (UAnimSequence* MantleSequence = ClimbMantleSequenceAsset.Object;
-			MantleSequence && MantleSequence->GetSkeleton() != SoldierSkeleton)
-		{
-			MantleSequence->ReplaceSkeleton(SoldierSkeleton, false);
-		}
-		if (UAnimMontage* MantleMontage = ClimbMantleMontageAsset.Object;
-			MantleMontage && MantleMontage->GetSkeleton() != SoldierSkeleton)
-		{
-			MantleMontage->ReplaceSkeleton(SoldierSkeleton, false);
-		}
+		GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+		GetMesh()->SetAnimInstanceClass(SoldierClimbAnimBlueprint.Class);
 	}
 
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
@@ -119,17 +114,19 @@ void AKzPlayerCharacter::BeginPlay()
 void AKzPlayerCharacter::Tick(const float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	const bool bWasClimbUp = TitanClimbing
-		&& TitanClimbing->GetClimbState() == ETitanClimbState::ClimbUp;
-	if (bWasClimbUp)
+
+	// The original Soldier character receives axis input every frame, including
+	// a zero value when W/A/S/D is released. Durian's enhanced-input bridge only
+	// calls SetTraversalInput while an action is triggered, so clear a stale
+	// climb direction here when no input arrived this frame.
+	if (TitanClimbing && TitanClimbing->IsClimbing())
 	{
-		bPendingClimbUpRecovery = true;
-		LastClimbSurfaceNormal = TitanClimbing->GetSurfaceNormal().GetSafeNormal();
-	}
-	else if (bPendingClimbUpRecovery && !IsWallClimbing())
-	{
-		RecoverFromClimbUp();
-		bPendingClimbUpRecovery = false;
+		if (!bReceivedTraversalInputThisFrame)
+		{
+			ClimbInput = FVector2D::ZeroVector;
+			TitanClimbing->SetClimbInput(ClimbInput);
+		}
+		bReceivedTraversalInputThisFrame = false;
 	}
 
 	UpdateClimbAnimation();
@@ -166,15 +163,43 @@ void AKzPlayerCharacter::Landed(const FHitResult& Hit)
 
 AKzPlayerCharacter::~AKzPlayerCharacter() = default;
 
-void AKzPlayerCharacter::HandleGuard() const
+void AKzPlayerCharacter::HandleGuard()
 {
 	if (AbilityComponent)
 	{
 		AbilityComponent->HandleInput(EAbilityInput::Interrupt);
 	}
 
-	// TODO: 현재 능력 또는 전투 상태에 따른 방어 처리를 구현한다.
-	UE_LOG(LogTemp, Log, TEXT("IA_Guard received: guard is not implemented yet."));
+	if (bGuarding || !SwordBlockAnimation || IsWallClimbing())
+	{
+		return;
+	}
+
+	bGuarding = true;
+	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+	{
+		ActiveCombatMontage = AnimInstance->PlaySlotAnimationAsDynamicMontage(
+			SwordBlockAnimation, TEXT("DefaultSlot"), 0.1f, 0.1f);
+		if (ActiveCombatMontage)
+		{
+			AnimInstance->Montage_SetNextSection(TEXT("Default"), TEXT("Default"), ActiveCombatMontage);
+		}
+	}
+}
+
+void AKzPlayerCharacter::StopGuard()
+{
+	if (!bGuarding)
+	{
+		return;
+	}
+
+	bGuarding = false;
+	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+	{
+		AnimInstance->Montage_Stop(0.1f, ActiveCombatMontage);
+	}
+	ActiveCombatMontage = nullptr;
 }
 
 float AKzPlayerCharacter::TakeDamage(const float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -190,11 +215,61 @@ float AKzPlayerCharacter::TakeDamage(const float DamageAmount, const FDamageEven
 	return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 }
 
-void AKzPlayerCharacter::HandleAttack() const
+void AKzPlayerCharacter::HandleAttack()
 {
 	if (AbilityComponent)
 	{
 		AbilityComponent->HandleInput(EAbilityInput::Interrupt);
+	}
+
+	if (IsWallClimbing())
+	{
+		return;
+	}
+
+	StopGuard();
+	UAnimSequence* AttackAnimation = bUseSecondSwordAttack ? SwordAttack1Animation : SwordAttack0Animation;
+	bUseSecondSwordAttack = !bUseSecondSwordAttack;
+	if (AttackAnimation)
+	{
+		if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+		{
+			ActiveCombatMontage = AnimInstance->PlaySlotAnimationAsDynamicMontage(
+				AttackAnimation, TEXT("DefaultSlot"), 0.08f, 0.08f);
+		}
+	}
+
+	PerformSwordHit();
+}
+
+void AKzPlayerCharacter::PerformSwordHit()
+{
+	UWorld* World = GetWorld();
+	if (!World || !Controller)
+	{
+		return;
+	}
+
+	const FVector AttackDirection = Controller->GetControlRotation().Vector().GetSafeNormal();
+	const FVector TraceStart = GetPawnViewLocation();
+	const FVector TraceEnd = TraceStart + AttackDirection * 275.0f;
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(SwordAttackTrace), false, this);
+	QueryParams.AddIgnoredActor(this);
+
+	FHitResult Hit;
+	if (!World->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Visibility, QueryParams))
+	{
+		return;
+	}
+
+	if (AActor* HitActor = Hit.GetActor())
+	{
+		UGameplayStatics::ApplyPointDamage(HitActor, 100.0f, AttackDirection, Hit, Controller, this, nullptr);
+	}
+
+	if (AbilityComponent)
+	{
+		AbilityComponent->HandleAttackHit(Hit, AttackDirection);
 	}
 }
 
@@ -251,6 +326,7 @@ void AKzPlayerCharacter::SetSprintRequested(const bool bRequested)
 void AKzPlayerCharacter::SetTraversalInput(const FVector2D& Input)
 {
 	ClimbInput = Input;
+	bReceivedTraversalInputThisFrame = true;
 	if (TitanClimbing && TitanClimbing->IsClimbing())
 	{
 		TitanClimbing->SetClimbInput(Input);
@@ -266,8 +342,9 @@ void AKzPlayerCharacter::UpdateClimbAnimation()
 		{
 			if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
 			{
-				AnimInstance->Montage_Stop(0.1f);
+				AnimInstance->Montage_Stop(0.12f, ActiveClimbMontage);
 			}
+			ActiveClimbMontage = nullptr;
 			ActiveClimbAnimation = nullptr;
 		}
 		bWasWallClimbing = false;
@@ -305,47 +382,14 @@ void AKzPlayerCharacter::PlayClimbAnimation(UAnimSequence* Animation)
 
 	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
 	{
-		// LoopCount 0 plays no iteration. Keep the selected climb clip alive until
-		// the climb state or direction changes, at which point we replace it.
-		AnimInstance->PlaySlotAnimationAsDynamicMontage(Animation, TEXT("DefaultSlot"), 0.1f, 0.1f, 1.0f, 999);
-		ActiveClimbAnimation = Animation;
-	}
-}
-
-void AKzPlayerCharacter::RecoverFromClimbUp()
-{
-	UCharacterMovementComponent* Movement = GetCharacterMovement();
-	UCapsuleComponent* Capsule = GetCapsuleComponent();
-	if (!Movement || !Capsule || !Movement->IsFalling() || LastClimbSurfaceNormal.IsNearlyZero())
-	{
-		return;
-	}
-
-	// The climb-up montage finishes in flying mode. For Soldier it may not carry
-	// enough root motion to place the capsule over the ledge, so find the real
-	// walkable top surface behind the climbed wall and settle the capsule on it.
-	const FVector IntoLedge = -LastClimbSurfaceNormal.GetSafeNormal2D();
-	if (IntoLedge.IsNearlyZero())
-	{
-		return;
-	}
-
-	const FVector TraceStart = GetActorLocation() + IntoLedge * 105.0f + FVector::UpVector * 180.0f;
-	const FVector TraceEnd = TraceStart - FVector::UpVector * 360.0f;
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(SoldierClimbUpRecovery), false, this);
-	FHitResult FloorHit;
-	if (!GetWorld()->LineTraceSingleByChannel(FloorHit, TraceStart, TraceEnd, ECC_Visibility, QueryParams)
-		|| FloorHit.ImpactNormal.Z < 0.7f)
-	{
-		return;
-	}
-
-	const float CapsuleHalfHeight = Capsule->GetScaledCapsuleHalfHeight();
-	const FVector LandingLocation = FloorHit.ImpactPoint + FVector::UpVector * CapsuleHalfHeight;
-	if (SetActorLocation(LandingLocation, true, nullptr, ETeleportType::TeleportPhysics))
-	{
-		Movement->StopMovementImmediately();
-		Movement->SetMovementMode(MOVE_Walking);
+		AnimInstance->Montage_Stop(0.08f, ActiveClimbMontage);
+		ActiveClimbMontage = AnimInstance->PlaySlotAnimationAsDynamicMontage(
+			Animation, TEXT("DefaultSlot"), 0.08f, 0.08f);
+		if (ActiveClimbMontage)
+		{
+			AnimInstance->Montage_SetNextSection(TEXT("Default"), TEXT("Default"), ActiveClimbMontage);
+			ActiveClimbAnimation = Animation;
+		}
 	}
 }
 

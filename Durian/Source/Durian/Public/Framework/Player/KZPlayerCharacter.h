@@ -11,6 +11,8 @@ class UPrimitiveComponent;
 class UAbilityEffectComponent;
 class UDamageableComponent;
 class UTitanClimbingComponent;
+class UWallClimbComponent;
+class UAnimMontage;
 class UAnimSequence;
 class UPointLightComponent;
 #include "KzPlayerCharacter.generated.h"
@@ -47,6 +49,10 @@ private:
 	/** Wall traversal is supplied by the installed Titan Climbing plugin. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Traversal", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UTitanClimbingComponent> TitanClimbing;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Traversal", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UWallClimbComponent> WallClimb;
+
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Traversal", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UPointLightComponent> HoverGlow;
@@ -87,8 +93,9 @@ private:
 public:
 	virtual float TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
-	void HandleGuard() const;
-	void HandleAttack() const;
+	void HandleGuard();
+	void StopGuard();
+	void HandleAttack();
 
 	void SetAbility(EAbilityType NewAbility) const;
 	UPlayerAbilityComponent* GetAbilityComponent() const { return AbilityComponent; }
@@ -104,10 +111,13 @@ public:
 	void HandleTraversalPressed();
 	/** Right mouse: hold to sprint; release returns to normal walking. */
 	void SetSprintRequested(bool bRequested);
+
+	UFUNCTION(BlueprintCallable, Category = "Traversal")
 	void SetTraversalInput(const FVector2D& Input);
 	void SetDashDirection(const FVector& Direction);
 	bool IsWallClimbing() const;
 	bool IsHovering() const { return bHovering; }
+	float GetForwardInputValue() const { return ClimbInput.Y; }
 
 	UFUNCTION(BlueprintCallable, Category = "State")
 	void SetPlayerState(const EPlayerState NewState);
@@ -117,18 +127,24 @@ private:
 	void StopHover(bool bLanded);
 	void UpdateClimbAnimation();
 	void PlayClimbAnimation(UAnimSequence* Animation);
-	void RecoverFromClimbUp();
+	void PerformSwordHit();
 	void RefreshSprintSpeed();
 
 	float SavedGravityScale = 1.0f;
 	float SavedAirControl = 0.0f;
 	bool bHovering = false;
 	bool bWasWallClimbing = false;
-	bool bPendingClimbUpRecovery = false;
+	bool bReceivedTraversalInputThisFrame = false;
 	FVector LastTraversalDirection = FVector::ZeroVector;
-	FVector LastClimbSurfaceNormal = FVector::ForwardVector;
 	FVector2D ClimbInput = FVector2D::ZeroVector;
 	TObjectPtr<UAnimSequence> ActiveClimbAnimation;
+	TObjectPtr<UAnimMontage> ActiveClimbMontage;
+	TObjectPtr<UAnimSequence> SwordAttack0Animation;
+	TObjectPtr<UAnimSequence> SwordAttack1Animation;
+	TObjectPtr<UAnimSequence> SwordBlockAnimation;
+	TObjectPtr<UAnimMontage> ActiveCombatMontage;
+	bool bGuarding = false;
+	bool bUseSecondSwordAttack = false;
 	bool bSprintRequested = false;
 	bool bSprinting = false;
 

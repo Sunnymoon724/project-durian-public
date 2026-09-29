@@ -5,6 +5,7 @@
 
 class UPrimitiveComponent;
 class UPhysicsHandleComponent;
+class UNiagaraComponent;
 
 class FMagnesisAbility final : public FAbility
 {
@@ -25,6 +26,8 @@ private:
 	bool TraceTarget(UPrimitiveComponent*& OutComponent, FVector& OutLocation) const;
 	void SetTargetedComponent(UPrimitiveComponent* NewTarget, const FVector& NewTargetLocation);
 	void ClearTargetedComponent();
+	void UpdateHoldBeam();
+	void StopHoldBeam();
 
 	TWeakObjectPtr<UPrimitiveComponent> TargetedComponent;
 	FVector TargetedLocation = FVector::ZeroVector;
@@ -32,4 +35,5 @@ private:
 
 	float MagnesisDistance = 0.0f;
 	UPhysicsHandleComponent* PhysicsHandle = nullptr;
+	TWeakObjectPtr<UNiagaraComponent> HoldBeam;
 };

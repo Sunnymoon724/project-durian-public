@@ -22,6 +22,7 @@ public:
 
 	void SetAbility(EAbilityType NewAbility);
 	void HandleInput(EAbilityInput Input, float AxisValue = 0.0f) const;
+	void HandleAttackHit(const FHitResult& Hit, const FVector& AttackDirection) const;
 
 	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
 	bool IsHoldingRemoteBomb() const;

@@ -103,7 +103,15 @@ void AIcePillar::PlayDestroyEffect(const bool bShatter) const
 		return;
 	}
 
-	const TSoftObjectPtr<UNiagaraSystem>& Effect = bShatter ? ShatterEffect : DissolveEffect;
+	if (bShatter)
+	{
+		const FSoftObjectPath FractureEffect(TEXT("/Game/Resources/VFX/Cryonis/Niagara/NS_IcePillarFracture.NS_IcePillarFracture"));
+		if (FNiagaraEffectUtility::SpawnAtLocation(GetWorld(), FractureEffect, GetActorLocation(), GetActorRotation(), GetActorScale3D()))
+		{
+			return;
+		}
+	}
 
+	const TSoftObjectPtr<UNiagaraSystem>& Effect = bShatter ? ShatterEffect : DissolveEffect;
 	FNiagaraEffectUtility::SpawnAtLocation(GetWorld(), Effect, GetActorLocation(), GetActorRotation(), GetActorScale3D());
 }

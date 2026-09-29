@@ -11,6 +11,7 @@
 #include "GameFramework/Controller.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Framework/Utility/NiagaraEffectUtility.h"
+#include "NiagaraComponent.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
 
 FMagnesisAbility::FMagnesisAbility(AKzPlayerCharacter* InCharacter) : FAbility(InCharacter)
@@ -153,6 +154,7 @@ void FMagnesisAbility::UpdateControl(const float DeltaTime)
 
 	if (!MagnesisPhysicsHandle->GetGrabbedComponent())
 	{
+		StopHoldBeam();
 		Character->SetPlayerState(EPlayerState::Normal);
 
 		return;
@@ -179,6 +181,7 @@ void FMagnesisAbility::UpdateControl(const float DeltaTime)
 	// Move the physics-handle target gradually so the object follows with a soft lag.
 	CurrentHoldLocation = FMath::VInterpTo(CurrentHoldLocation, SafeTargetLocation, DeltaTime, UGameConstantsDataAsset::Get()->MagnesisFollowSpeed);
 	MagnesisPhysicsHandle->SetTargetLocation(CurrentHoldLocation);
+	UpdateHoldBeam();
 
 }
 
@@ -207,7 +210,13 @@ void FMagnesisAbility::SelectTarget()
 
 	if (MagnesisPhysicsHandle->GetGrabbedComponent())
 	{
-		FNiagaraEffectUtility::SpawnAtLocation(Character->GetWorld(), FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnesis/Niagara/NS_MagnesisGrabPulse.NS_MagnesisGrabPulse")), HitComponent->Bounds.Origin);
+		if (USkeletalMeshComponent* CharacterMesh = Character->GetMesh())
+		{
+			HoldBeam = FNiagaraEffectUtility::SpawnAttachedRelative(
+				CharacterMesh,
+				FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnesis/Niagara/NS_MagnesisHoldBeam.NS_MagnesisHoldBeam")),
+				TEXT("hand_r"));
+		}
 
 		CurrentHoldLocation = HitLocation;
 
@@ -216,6 +225,7 @@ void FMagnesisAbility::SelectTarget()
 		MagnesisDistance = FMath::Clamp(FVector::DotProduct(HitLocation - HoldLocation, Character->GetController()->GetControlRotation().Vector()), UGameConstantsDataAsset::Get()->MagnesisMinDistance, UGameConstantsDataAsset::Get()->MagnesisMaxDistance);
 
 		Character->SetPlayerState(EPlayerState::MagnesisHolding);
+		UpdateHoldBeam();
 	}
 	else
 	{
@@ -269,11 +279,10 @@ void FMagnesisAbility::Release()
 	{
 		if (MagnesisPhysicsHandle->GetGrabbedComponent())
 		{
-			const FVector ReleaseLocation = MagnesisPhysicsHandle->GetGrabbedComponent()->Bounds.Origin;
 			MagnesisPhysicsHandle->ReleaseComponent();
-			FNiagaraEffectUtility::SpawnAtLocation(Character->GetWorld(), FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnesis/Niagara/NS_MagnesisReleasePulse.NS_MagnesisReleasePulse")), ReleaseLocation);
 		}
 	}
+	StopHoldBeam();
 
 	ClearTargetedComponent();
 
@@ -282,6 +291,25 @@ void FMagnesisAbility::Release()
 
 	SetAbilityModeActive(EAbilityVisualMode::Magnesis, false);
 	ClearAbilityVisionEffects();
+}
+
+void FMagnesisAbility::UpdateHoldBeam()
+{
+	const UPrimitiveComponent* GrabbedComponent = PhysicsHandle ? PhysicsHandle->GetGrabbedComponent() : nullptr;
+	if (HoldBeam.IsValid() && GrabbedComponent)
+	{
+		HoldBeam->SetVariablePosition(TEXT("User.beamEnd"), GrabbedComponent->Bounds.Origin);
+	}
+}
+
+void FMagnesisAbility::StopHoldBeam()
+{
+	if (UNiagaraComponent* Beam = HoldBeam.Get())
+	{
+		Beam->DeactivateImmediate();
+		Beam->DestroyComponent();
+	}
+	HoldBeam.Reset();
 }
 
 void FMagnesisAbility::SetTargetedComponent(UPrimitiveComponent* NewTarget, const FVector& NewTargetLocation)

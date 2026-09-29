@@ -134,6 +134,7 @@ void AKzPlayerController::SetupInputComponent()
 		if (GuardAction)
 		{
 			EnhancedInputComponent->BindAction(GuardAction, ETriggerEvent::Started, this, &AKzPlayerController::OnGuard);
+			EnhancedInputComponent->BindAction(GuardAction, ETriggerEvent::Completed, this, &AKzPlayerController::OnGuardReleased);
 		}
 
 		if (CryonisTargetAtFeetAction)
@@ -402,6 +403,14 @@ void AKzPlayerController::OnGuard()
 	if (AKzPlayerCharacter* ControlledCharacter = GetControlledCharacter())
 	{
 		ControlledCharacter->HandleGuard();
+	}
+}
+
+void AKzPlayerController::OnGuardReleased()
+{
+	if (AKzPlayerCharacter* ControlledCharacter = GetControlledCharacter())
+	{
+		ControlledCharacter->StopGuard();
 	}
 }
 

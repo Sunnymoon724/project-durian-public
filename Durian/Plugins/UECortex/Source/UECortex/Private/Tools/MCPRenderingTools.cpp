@@ -28,7 +28,7 @@
 //  Helpers
 // ─────────────────────────────────────────────
 
-static UWorld* GetEditorWorld()
+static UWorld* GetRenderingEditorWorld()
 {
 	return FUECortexModule::GetActiveWorld();
 }
@@ -293,7 +293,7 @@ FMCPToolResult FMCPRenderingTools::RenderSetNanite(const TSharedPtr<FJsonObject>
 	FMCPToolResult Result;
 	AsyncTask(ENamedThreads::GameThread, [ActorName, bEnabled, FallbackError, &Result]()
 	{
-		UWorld* World = GetEditorWorld();
+	UWorld* World = GetRenderingEditorWorld();
 		if (!World) { Result = FMCPToolResult::Error(TEXT("No editor world")); return; }
 
 		AActor* Actor = FindActorByName(World, ActorName);
@@ -330,7 +330,7 @@ FMCPToolResult FMCPRenderingTools::RenderGetNaniteSettings(const TSharedPtr<FJso
 	FMCPToolResult Result;
 	AsyncTask(ENamedThreads::GameThread, [ActorName, &Result]()
 	{
-		UWorld* World = GetEditorWorld();
+	UWorld* World = GetRenderingEditorWorld();
 		if (!World) { Result = FMCPToolResult::Error(TEXT("No editor world")); return; }
 
 		AActor* Actor = FindActorByName(World, ActorName);
@@ -380,7 +380,7 @@ FMCPToolResult FMCPRenderingTools::RenderSetLumen(const TSharedPtr<FJsonObject>&
 	FMCPToolResult Result;
 	AsyncTask(ENamedThreads::GameThread, [Args, VolumeName, &Result]()
 	{
-		UWorld* World = GetEditorWorld();
+	UWorld* World = GetRenderingEditorWorld();
 		if (!World) { Result = FMCPToolResult::Error(TEXT("No editor world")); return; }
 
 		APostProcessVolume* PPV = FindOrCreatePPV(World, VolumeName);
@@ -445,7 +445,7 @@ FMCPToolResult FMCPRenderingTools::RenderGetLumenSettings(const TSharedPtr<FJson
 	FMCPToolResult Result;
 	AsyncTask(ENamedThreads::GameThread, [VolumeName, &Result]()
 	{
-		UWorld* World = GetEditorWorld();
+	UWorld* World = GetRenderingEditorWorld();
 		if (!World) { Result = FMCPToolResult::Error(TEXT("No editor world")); return; }
 
 		APostProcessVolume* PPV = FindOrCreatePPV(World, VolumeName);
@@ -484,7 +484,7 @@ FMCPToolResult FMCPRenderingTools::RenderSetMaterial(const TSharedPtr<FJsonObjec
 	FMCPToolResult Result;
 	AsyncTask(ENamedThreads::GameThread, [ActorName, MaterialPath, SlotIndex, &Result]()
 	{
-		UWorld* World = GetEditorWorld();
+	UWorld* World = GetRenderingEditorWorld();
 		if (!World) { Result = FMCPToolResult::Error(TEXT("No editor world")); return; }
 
 		AActor* Actor = FindActorByName(World, ActorName);
@@ -517,7 +517,7 @@ FMCPToolResult FMCPRenderingTools::RenderGetMaterials(const TSharedPtr<FJsonObje
 	FMCPToolResult Result;
 	AsyncTask(ENamedThreads::GameThread, [ActorName, &Result]()
 	{
-		UWorld* World = GetEditorWorld();
+	UWorld* World = GetRenderingEditorWorld();
 		if (!World) { Result = FMCPToolResult::Error(TEXT("No editor world")); return; }
 
 		AActor* Actor = FindActorByName(World, ActorName);
@@ -650,7 +650,7 @@ FMCPToolResult FMCPRenderingTools::RenderSetPostProcess(const TSharedPtr<FJsonOb
 	FMCPToolResult Result;
 	AsyncTask(ENamedThreads::GameThread, [Args, VolumeName, &Result]()
 	{
-		UWorld* World = GetEditorWorld();
+	UWorld* World = GetRenderingEditorWorld();
 		if (!World) { Result = FMCPToolResult::Error(TEXT("No editor world")); return; }
 
 		APostProcessVolume* PPV = FindOrCreatePPV(World, VolumeName);
@@ -748,7 +748,7 @@ FMCPToolResult FMCPRenderingTools::RenderGetPostProcess(const TSharedPtr<FJsonOb
 	FMCPToolResult Result;
 	AsyncTask(ENamedThreads::GameThread, [VolumeName, &Result]()
 	{
-		UWorld* World = GetEditorWorld();
+	UWorld* World = GetRenderingEditorWorld();
 		if (!World) { Result = FMCPToolResult::Error(TEXT("No editor world")); return; }
 
 		APostProcessVolume* PPV = FindOrCreatePPV(World, VolumeName);
@@ -778,7 +778,7 @@ FMCPToolResult FMCPRenderingTools::RenderSetSkyLight(const TSharedPtr<FJsonObjec
 	FMCPToolResult Result;
 	AsyncTask(ENamedThreads::GameThread, [Args, &Result]()
 	{
-		UWorld* World = GetEditorWorld();
+	UWorld* World = GetRenderingEditorWorld();
 		if (!World) { Result = FMCPToolResult::Error(TEXT("No editor world")); return; }
 
 		ASkyLight* SkyLight = FindActorOfClass<ASkyLight>(World);
@@ -826,7 +826,7 @@ FMCPToolResult FMCPRenderingTools::RenderSetFog(const TSharedPtr<FJsonObject>& A
 	FMCPToolResult Result;
 	AsyncTask(ENamedThreads::GameThread, [Args, &Result]()
 	{
-		UWorld* World = GetEditorWorld();
+	UWorld* World = GetRenderingEditorWorld();
 		if (!World) { Result = FMCPToolResult::Error(TEXT("No editor world")); return; }
 
 		AExponentialHeightFog* FogActor = FindActorOfClass<AExponentialHeightFog>(World);
@@ -888,7 +888,7 @@ FMCPToolResult FMCPRenderingTools::RenderSetSkyAtmosphere(const TSharedPtr<FJson
 	FMCPToolResult Result;
 	AsyncTask(ENamedThreads::GameThread, [Args, &Result]()
 	{
-		UWorld* World = GetEditorWorld();
+	UWorld* World = GetRenderingEditorWorld();
 		if (!World) { Result = FMCPToolResult::Error(TEXT("No editor world")); return; }
 
 		// Find actor with SkyAtmosphereComponent
@@ -940,7 +940,7 @@ FMCPToolResult FMCPRenderingTools::RenderSetShadows(const TSharedPtr<FJsonObject
 	FMCPToolResult Result;
 	AsyncTask(ENamedThreads::GameThread, [Args, ActorName, &Result]()
 	{
-		UWorld* World = GetEditorWorld();
+	UWorld* World = GetRenderingEditorWorld();
 		if (!World) { Result = FMCPToolResult::Error(TEXT("No editor world")); return; }
 
 		AActor* Actor = FindActorByName(World, ActorName);
@@ -982,7 +982,7 @@ FMCPToolResult FMCPRenderingTools::RenderSetAmbientOcclusion(const TSharedPtr<FJ
 	FMCPToolResult Result;
 	AsyncTask(ENamedThreads::GameThread, [Args, VolumeName, &Result]()
 	{
-		UWorld* World = GetEditorWorld();
+	UWorld* World = GetRenderingEditorWorld();
 		if (!World) { Result = FMCPToolResult::Error(TEXT("No editor world")); return; }
 
 		APostProcessVolume* PPV = FindOrCreatePPV(World, VolumeName);
