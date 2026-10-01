@@ -4,7 +4,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "DrawDebugHelpers.h"
-#include "Framework/Utility/NiagaraEffectUtility.h"
+#include "Utilities/NiagaraEffectUtility.h"
 #include "Framework/Player/KzPlayerCharacter.h"
 #include "NiagaraComponent.h"
 
@@ -79,6 +79,7 @@ void ARemoteBomb::Hold(const float Height)
 		SetActorRelativeLocation(FVector(0.0f, 0.0f, Height));
 	}
 	bHeld = true;
+
 }
 
 void ARemoteBomb::Place(const FVector& Location, const FVector& Impulse)
@@ -105,12 +106,13 @@ void ARemoteBomb::PlayExplosionEffect(const float Radius) const
 {
 	const float SafeRadius = FMath::Max(0.0f, Radius);
 	const float RadiusScale = SafeRadius / 500.0f;
-	if (UNiagaraComponent* RangeEffect = FNiagaraEffectUtility::SpawnAtLocation(
+	UNiagaraComponent* RangeEffect = FNiagaraEffectUtility::SpawnAtLocation(
 		GetWorld(),
 		FSoftObjectPath(TEXT("/Game/Resources/VFX/RemoteBomb/Niagara/NS_RemoteBombRangeSphere.NS_RemoteBombRangeSphere")),
 		GetActorLocation(),
 		GetActorRotation(),
-		FVector(RadiusScale)))
+		FVector(RadiusScale));
+	if (RangeEffect)
 	{
 		RangeEffect->SetVariableFloat(TEXT("User.DamageRadius"), SafeRadius);
 		RangeEffect->SetVariableLinearColor(TEXT("User.RangeColor"), FLinearColor(0.015f, 0.08f, 0.65f, 1.0f));

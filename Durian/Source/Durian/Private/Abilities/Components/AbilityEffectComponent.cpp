@@ -2,7 +2,7 @@
 
 #include "Abilities/Core/AbilityModeVisualProfile.h"
 #include "Abilities/Core/AbilityVisualModeUtility.h"
-#include "Framework/Utility/NiagaraEffectUtility.h"
+#include "Utilities/NiagaraEffectUtility.h"
 #include "Camera/CameraComponent.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Components/PrimitiveComponent.h"

@@ -11,10 +11,9 @@ class UPrimitiveComponent;
 class UAbilityEffectComponent;
 class UDamageableComponent;
 class UTitanClimbingComponent;
-class UWallClimbComponent;
-class UAnimMontage;
-class UAnimSequence;
 class UPointLightComponent;
+class UAnimSequence;
+class UAnimMontage;
 #include "KzPlayerCharacter.generated.h"
 
 UCLASS()
@@ -32,6 +31,7 @@ public:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void Landed(const FHitResult& Hit) override;
+	virtual void StopJumping() override;
 	
 protected:
 private:
@@ -51,32 +51,26 @@ private:
 	TObjectPtr<UTitanClimbingComponent> TitanClimbing;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Traversal", meta = (AllowPrivateAccess = true))
-	TObjectPtr<UWallClimbComponent> WallClimb;
-
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Traversal", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UPointLightComponent> HoverGlow;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Hover", meta = (AllowPrivateAccess = true))
-	TObjectPtr<UAnimSequence> HoverAnimation;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Movement|Dash", meta = (AllowPrivateAccess = true))
-	TObjectPtr<UAnimSequence> DashAnimation;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Climb", meta = (AllowPrivateAccess = true))
+	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Climb")
 	TObjectPtr<UAnimSequence> ClimbIdleAnimation;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Climb", meta = (AllowPrivateAccess = true))
+	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Climb")
 	TObjectPtr<UAnimSequence> ClimbUpAnimation;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Climb", meta = (AllowPrivateAccess = true))
+	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Climb")
 	TObjectPtr<UAnimSequence> ClimbDownAnimation;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Climb", meta = (AllowPrivateAccess = true))
+	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Climb")
 	TObjectPtr<UAnimSequence> ClimbLeftAnimation;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Climb", meta = (AllowPrivateAccess = true))
+	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Climb")
 	TObjectPtr<UAnimSequence> ClimbRightAnimation;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Climb")
+	TObjectPtr<UAnimSequence> ClimbJumpAnimation;
+
 
 	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Hover", meta = (AllowPrivateAccess = true))
 	float HoverFallSpeed = 35.0f;
@@ -110,15 +104,23 @@ public:
 
 	/** Space: climb when attached, toggle hover while falling, otherwise jump. */
 	void HandleTraversalPressed();
+	/** The contextual cancel input releases the wall without starting a sprint. */
+	UFUNCTION(BlueprintCallable, Category = "Traversal")
+	bool CancelWallClimb();
 	/** Right mouse: hold to sprint; release returns to normal walking. */
 	void SetSprintRequested(bool bRequested);
 
 	UFUNCTION(BlueprintCallable, Category = "Traversal")
 	void SetTraversalInput(const FVector2D& Input);
 	void SetDashDirection(const FVector& Direction);
+	/** Starts a distance-matched GASP stop while CharacterMovement is still braking. */
+	void HandleMovementReleased();
 	bool IsWallClimbing() const;
+	bool IsWallClimbJumping() const;
+	float GetWallClimbJumpProgress() const;
 	bool IsHovering() const { return bHovering; }
 	float GetForwardInputValue() const { return ClimbInput.Y; }
+	FVector2D GetClimbInput() const { return ClimbInput; }
 
 	UFUNCTION(BlueprintCallable, Category = "State")
 	void SetPlayerState(const EPlayerState NewState);
@@ -126,24 +128,26 @@ public:
 private:
 	bool StartHover();
 	void StopHover(bool bLanded);
-	void UpdateClimbAnimation();
-	void PlayClimbAnimation(UAnimSequence* Animation);
 	void PerformSwordHit();
 	void RefreshSprintSpeed();
+	void UpdateRunStop(float DeltaSeconds);
+	void UpdateClimbAnimation();
+	void CancelRunStop();
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimSequence> ActiveClimbAnimation;
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimMontage> ActiveClimbMontage;
+	float SavedStopBrakingDeceleration = 0.0f;
+	float SavedStopBrakingFrictionFactor = 0.0f;
+	bool bRunStopOwnsBraking = false;
+	static constexpr float RunStopDeceleration = 2000.0f;
 
 	float SavedGravityScale = 1.0f;
 	float SavedAirControl = 0.0f;
 	bool bHovering = false;
-	bool bWasWallClimbing = false;
 	bool bReceivedTraversalInputThisFrame = false;
 	FVector LastTraversalDirection = FVector::ZeroVector;
 	FVector2D ClimbInput = FVector2D::ZeroVector;
-	TObjectPtr<UAnimSequence> ActiveClimbAnimation;
-	TObjectPtr<UAnimMontage> ActiveClimbMontage;
-	TObjectPtr<UAnimSequence> SwordAttack0Animation;
-	TObjectPtr<UAnimSequence> SwordBlockAnimation;
-	TObjectPtr<UAnimSequence> BombThrowAnimation;
-	TObjectPtr<UAnimMontage> ActiveCombatMontage;
 	bool bGuarding = false;
 	bool bSprintRequested = false;
 	bool bSprinting = false;

@@ -2,7 +2,7 @@
 #include "Constants/GameConstantsDataAsset.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
-#include "Framework/Utility/NiagaraEffectUtility.h"
+#include "Utilities/NiagaraEffectUtility.h"
 #include "Materials/MaterialInterface.h"
 #include "NiagaraSystem.h"
 #include "UObject/ConstructorHelpers.h"

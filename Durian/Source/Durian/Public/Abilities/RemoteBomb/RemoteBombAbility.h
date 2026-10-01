@@ -32,6 +32,8 @@ private:
 	TSubclassOf<ARemoteBomb> BombClassArray[2];
 
 	TWeakObjectPtr<ARemoteBomb> HeldBomb;
+	bool bThrowPending = false;
+	float ThrowElapsed = 0.0f;
 
 	double CooldownEndTimeArray[2] = { 0.0, 0.0 };
 };

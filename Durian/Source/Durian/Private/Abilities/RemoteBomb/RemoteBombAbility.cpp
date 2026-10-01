@@ -9,11 +9,20 @@
 #include "GameFramework/Controller.h"
 #include "Kismet/GameplayStatics.h"
 
-void FRemoteBombAbility::Tick(const float)
+void FRemoteBombAbility::Tick(const float DeltaTime)
 {
-	if (HeldBomb.IsValid() && (!Character || !Character->GetCharacterMovement() || Character->GetCharacterMovement()->IsFalling()))
+	if (HeldBomb.IsValid() && (!Character || !Character->GetCharacterMovement() ||
+		Character->GetCharacterMovement()->IsFalling() || Character->IsWallClimbing()))
 	{
 		DropHeldBomb();
+	}
+	else if (bThrowPending && HeldBomb.IsValid())
+	{
+		ThrowElapsed += DeltaTime;
+		if (ThrowElapsed >= 0.32f)
+		{
+			PlaceHeldBomb(true);
+		}
 	}
 }
 
@@ -55,6 +64,7 @@ void FRemoteBombAbility::HandleInput(const EAbilityInput Input, float)
 			{
 				BombArray[ToIndex(Bomb->GetShape())].Reset();
 				HeldBomb.Reset();
+				bThrowPending = false;
 				Bomb->Destroy();
 			}
 			break;
@@ -95,10 +105,11 @@ void FRemoteBombAbility::HandleInput(const EAbilityInput Input, float)
 		{
 			ERemoteBombShape Shape;
 
-			if (GetSelectedShape(Shape) && HeldBomb.IsValid() && HeldBomb->GetShape() == Shape)
+			if (GetSelectedShape(Shape) && HeldBomb.IsValid() && HeldBomb->GetShape() == Shape && !bThrowPending)
 			{
 				Character->PlayBombThrowAnimation();
-				PlaceHeldBomb(true);
+				bThrowPending = true;
+				ThrowElapsed = 0.0f;
 			}
 
 			break;
@@ -116,11 +127,15 @@ void FRemoteBombAbility::HandleAbilityDeselected()
 void FRemoteBombAbility::DropHeldBomb()
 {
 	PlaceHeldBomb(false);
+	bThrowPending = false;
+	ThrowElapsed = 0.0f;
 }
 
 void FRemoteBombAbility::AbortForEndPlay()
 {
 	HeldBomb.Reset();
+	bThrowPending = false;
+	ThrowElapsed = 0.0f;
 
 	for (int32 Index = 0; Index < 2; ++Index)
 	{
@@ -380,7 +395,7 @@ void FRemoteBombAbility::PlaceHeldBomb(const bool bThrow)
 	const UGameConstantsDataAsset* Constants = UGameConstantsDataAsset::Get();
 	const FVector Direction = Character->GetController() ? Character->GetController()->GetControlRotation().Vector() : Character->GetActorForwardVector();
 
-	FVector Location = bThrow ? Bomb->GetActorLocation() + Direction * (Constants->RemoteBombRadius + 10.0f) : Bomb->GetActorLocation() + Character->GetActorForwardVector() * (Constants->RemoteBombRadius * 0.5f);
+	FVector Location = bThrow ? Bomb->GetActorLocation() : FindDropLocation(Bomb);
 	FVector Impulse = bThrow ? (Direction + FVector(0.0f, 0.0f, 0.2f)).GetSafeNormal() * Constants->RemoteBombThrowImpulse : FVector::ZeroVector;
 
 	if (bThrow)
@@ -399,4 +414,6 @@ void FRemoteBombAbility::PlaceHeldBomb(const bool bThrow)
 
 	Bomb->Place(Location, Impulse);
 	HeldBomb.Reset();
+	bThrowPending = false;
+	ThrowElapsed = 0.0f;
 }

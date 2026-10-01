@@ -94,6 +94,7 @@ private:
 	void OnLookUp(const float Value);
 
 	void OnMove(const FInputActionValue& Value);
+	void OnMoveCompleted();
 	void OnMoveForward(const float Value);
 	void OnMoveRight(const float Value);
 	void OnTurn(const float Value);

@@ -7,7 +7,7 @@
 #include "Enums/PlayerEnums.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
-#include "Framework/Utility/NiagaraEffectUtility.h"
+#include "Utilities/NiagaraEffectUtility.h"
 #include "Framework/Player/KzPlayerCharacter.h"
 #include "CollisionQueryParams.h"
 #include "CollisionShape.h"

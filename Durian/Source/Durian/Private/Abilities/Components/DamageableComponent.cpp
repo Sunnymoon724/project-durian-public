@@ -2,7 +2,7 @@
 
 #include "GameFramework/Actor.h"
 #include "Framework/Player/KzPlayerCharacter.h"
-#include "Framework/Utility/NiagaraEffectUtility.h"
+#include "Utilities/NiagaraEffectUtility.h"
 
 UDamageableComponent::UDamageableComponent()
 {

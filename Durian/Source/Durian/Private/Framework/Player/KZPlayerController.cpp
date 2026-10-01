@@ -97,6 +97,8 @@ void AKzPlayerController::SetupInputComponent()
 		if (MoveAction)
 		{
 			EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AKzPlayerController::OnMove);
+			EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Completed, this, &AKzPlayerController::OnMoveCompleted);
+			EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Canceled, this, &AKzPlayerController::OnMoveCompleted);
 		}
 
 		if (InteractAction)
@@ -188,6 +190,14 @@ void AKzPlayerController::OnMove(const FInputActionValue& Value)
 		const FRotator MovementRotation(0.f, DesiredDirection.Rotation().Yaw, 0.f);
 
 		ControlledCharacter->SetActorRotation(MovementRotation);
+	}
+}
+
+void AKzPlayerController::OnMoveCompleted()
+{
+	if (AKzPlayerCharacter* ControlledCharacter = GetControlledCharacter())
+	{
+		ControlledCharacter->HandleMovementReleased();
 	}
 }
 
@@ -304,6 +314,10 @@ void AKzPlayerController::OnSprintStarted()
 {
 	if (AKzPlayerCharacter* ControlledCharacter = GetControlledCharacter())
 	{
+		if (ControlledCharacter->CancelWallClimb())
+		{
+			return;
+		}
 		ControlledCharacter->SetSprintRequested(true);
 	}
 }

@@ -1,0 +1,16 @@
+{
+	"BuildId": "55116800",
+	"Modules": 
+	{
+		"UECortex": "UnrealEditor-UECortex.dll",
+		"UECortexAnim": "UnrealEditor-UECortexAnim.dll",
+		"UECortexAsset": "UnrealEditor-UECortexAsset.dll",
+		"UECortexGAS": "UnrealEditor-UECortexGAS.dll",
+		"UECortexIKRetarget": "UnrealEditor-UECortexIKRetarget.dll",
+		"UECortexNiagara": "UnrealEditor-UECortexNiagara.dll",
+		"UECortexPCG": "UnrealEditor-UECortexPCG.dll",
+		"UECortexPython": "UnrealEditor-UECortexPython.dll",
+		"UECortexSequencer": "UnrealEditor-UECortexSequencer.dll",
+		"UECortexUMG": "UnrealEditor-UECortexUMG.dll"
+	}
+}

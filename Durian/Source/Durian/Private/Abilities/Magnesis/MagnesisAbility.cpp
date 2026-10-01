@@ -10,7 +10,7 @@
 #include "Framework/Player/KzPlayerCharacter.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Framework/Utility/NiagaraEffectUtility.h"
+#include "Utilities/NiagaraEffectUtility.h"
 #include "NiagaraComponent.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
 

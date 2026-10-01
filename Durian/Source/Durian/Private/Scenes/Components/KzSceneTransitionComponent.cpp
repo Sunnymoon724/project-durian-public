@@ -1,7 +1,7 @@
 #include "Scenes/Components/KzSceneTransitionComponent.h"
 
 #include "Framework/Game/KzGameInstance.h"
-#include "Framework/Utility/NiagaraEffectUtility.h"
+#include "Utilities/NiagaraEffectUtility.h"
 #include "Scenes/Core/KZSceneDefinition.h"
 #include "Scenes/Core/KzSceneSubsystem.h"
 #include "TimerManager.h"

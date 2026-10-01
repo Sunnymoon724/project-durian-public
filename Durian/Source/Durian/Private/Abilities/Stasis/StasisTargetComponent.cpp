@@ -6,7 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
-#include "Framework/Utility/NiagaraEffectUtility.h"
+#include "Utilities/NiagaraEffectUtility.h"
 #include "Materials/MaterialInterface.h"
 #include "NiagaraComponent.h"
 
