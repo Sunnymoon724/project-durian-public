@@ -121,7 +121,11 @@ void UAbilityEffectComponent::ApplyVisionProfile(UMaterialInstanceDynamic* Mater
 	const FAbilityModeVisualCommonProfile& Common = FAbilityModeVisualProfiles::GetCommon();
 
 	MaterialInstance->SetVectorParameterValue(TEXT("WorldGradeColor"), Profile.WorldGradeColor);
-	MaterialInstance->SetVectorParameterValue(TEXT("TargetGlowColor"), Profile.ScanColor);
+	MaterialInstance->SetVectorParameterValue(TEXT("ScanColor"), Profile.ScanColor);
+	MaterialInstance->SetVectorParameterValue(TEXT("CandidateGradeColor"), Profile.CandidateGradeColor);
+	MaterialInstance->SetVectorParameterValue(TEXT("CandidateGlowColor"), Profile.CandidateGlowColor);
+	MaterialInstance->SetVectorParameterValue(TEXT("TargetGradeColor"), Profile.TargetScanColor);
+	MaterialInstance->SetVectorParameterValue(TEXT("TargetGlowColor"), Profile.TargetEdgeColor);
 	MaterialInstance->SetScalarParameterValue(TEXT("WorldBlend"), Common.WorldBlend);
 	MaterialInstance->SetScalarParameterValue(TEXT("CandidateBlend"), Common.CandidateBlend);
 	MaterialInstance->SetScalarParameterValue(TEXT("TargetBlend"), Common.TargetBlend);
