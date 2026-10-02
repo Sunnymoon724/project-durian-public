@@ -187,7 +187,8 @@ void AKzPlayerController::OnMove(const FInputActionValue& Value)
 		ControlledCharacter->SetDashDirection(DesiredDirection);
 		ControlledCharacter->AddMovementInput(DesiredDirection, 1.0f);
 
-		const FRotator MovementRotation(0.f, DesiredDirection.Rotation().Yaw, 0.f);
+		const FRotator MovementRotation(0.f,
+			ControlledCharacter->IsSurfaceSwimming() ? CameraRotation.Yaw : DesiredDirection.Rotation().Yaw, 0.f);
 
 		ControlledCharacter->SetActorRotation(MovementRotation);
 	}

@@ -1,11 +1,13 @@
 #include "Abilities/Components/AbilityEffectComponent.h"
 
+#include "Abilities/Core/AbilityModeSubsystem.h"
 #include "Abilities/Core/AbilityModeVisualProfile.h"
 #include "Abilities/Core/AbilityVisualModeUtility.h"
 #include "Utilities/NiagaraEffectUtility.h"
 #include "Camera/CameraComponent.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Components/PrimitiveComponent.h"
+#include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
@@ -102,7 +104,7 @@ void UAbilityEffectComponent::SetVisionEnabled(const EAbilityType Ability, const
 
 }
 
-void UAbilityEffectComponent::ApplyVisionProfile(UMaterialInstanceDynamic* MaterialInstance, const EAbilityType Ability)
+void UAbilityEffectComponent::ApplyVisionProfile(UMaterialInstanceDynamic* MaterialInstance, const EAbilityType Ability) const
 {
 	if (!MaterialInstance)
 	{
@@ -119,9 +121,22 @@ void UAbilityEffectComponent::ApplyVisionProfile(UMaterialInstanceDynamic* Mater
 	const FAbilityModeVisualCommonProfile& Common = FAbilityModeVisualProfiles::GetCommon();
 
 	MaterialInstance->SetVectorParameterValue(TEXT("WorldGradeColor"), Profile.WorldGradeColor);
+	MaterialInstance->SetVectorParameterValue(TEXT("TargetGlowColor"), Profile.ScanColor);
 	MaterialInstance->SetScalarParameterValue(TEXT("WorldBlend"), Common.WorldBlend);
 	MaterialInstance->SetScalarParameterValue(TEXT("CandidateBlend"), Common.CandidateBlend);
 	MaterialInstance->SetScalarParameterValue(TEXT("TargetBlend"), Common.TargetBlend);
+
+	FVector2D ScanDirection(1.0f, 0.0f);
+	const UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	if (GameInstance)
+	{
+		if (const UAbilityModeSubsystem* AbilityModeSubsystem = GameInstance->GetSubsystem<UAbilityModeSubsystem>())
+		{
+			ScanDirection = AbilityModeSubsystem->GetModeScanDirection();
+		}
+	}
+
+	MaterialInstance->SetScalarParameterValue(TEXT("ScanAngle"), FMath::Atan2(ScanDirection.Y, ScanDirection.X));
 }
 
 void UAbilityEffectComponent::ClearVisionEffects()

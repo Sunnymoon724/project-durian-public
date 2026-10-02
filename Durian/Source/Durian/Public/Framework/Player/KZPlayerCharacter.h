@@ -71,6 +71,18 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Climb")
 	TObjectPtr<UAnimSequence> ClimbJumpAnimation;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Swim")
+	TObjectPtr<UAnimSequence> SwimIdleAnimation;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Swim")
+	TObjectPtr<UAnimSequence> SwimForwardAnimation;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Swim")
+	TObjectPtr<UAnimSequence> SwimLeftAnimation;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Swim")
+	TObjectPtr<UAnimSequence> SwimRightAnimation;
+
 
 	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Hover", meta = (AllowPrivateAccess = true))
 	float HoverFallSpeed = 35.0f;
@@ -119,6 +131,7 @@ public:
 	bool IsWallClimbJumping() const;
 	float GetWallClimbJumpProgress() const;
 	bool IsHovering() const { return bHovering; }
+	bool IsSurfaceSwimming() const;
 	float GetForwardInputValue() const { return ClimbInput.Y; }
 	FVector2D GetClimbInput() const { return ClimbInput; }
 
@@ -132,11 +145,18 @@ private:
 	void RefreshSprintSpeed();
 	void UpdateRunStop(float DeltaSeconds);
 	void UpdateClimbAnimation();
+	void UpdateSurfaceSwimming();
 	void CancelRunStop();
 	UPROPERTY(Transient)
 	TObjectPtr<UAnimSequence> ActiveClimbAnimation;
 	UPROPERTY(Transient)
 	TObjectPtr<UAnimMontage> ActiveClimbMontage;
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimSequence> ActiveSwimAnimation;
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimMontage> ActiveSwimMontage;
+	bool bWasSwimming = false;
+	bool bSavedOrientRotationToMovement = true;
 	float SavedStopBrakingDeceleration = 0.0f;
 	float SavedStopBrakingFrictionFactor = 0.0f;
 	bool bRunStopOwnsBraking = false;

@@ -1,15 +1,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Abilities/Core/AbilityModeTypes.h"
 
 class AKzPlayerCharacter;
 class AActor;
 class UPrimitiveComponent;
 struct FHitResult;
 
-enum class EAbilityReactionType : uint8;
 enum class EAbilityType : uint8;
-enum class EAbilityVisualMode : uint8;
 
 enum class EAbilityInput : uint8
 {

@@ -210,6 +210,14 @@ void FMagnesisAbility::SelectTarget()
 
 	if (MagnesisPhysicsHandle->GetGrabbedComponent())
 	{
+		if (AActor* GrabbedActor = MagnesisPhysicsHandle->GetGrabbedComponent()->GetOwner())
+		{
+			if (UAbilityReactionComponent* Reaction = GrabbedActor->FindComponentByClass<UAbilityReactionComponent>())
+			{
+				Reaction->SetMagnesisHeld(true);
+			}
+		}
+
 		if (USkeletalMeshComponent* CharacterMesh = Character->GetMesh())
 		{
 			HoldBeam = FNiagaraEffectUtility::SpawnAttachedRelative(
@@ -277,9 +285,17 @@ void FMagnesisAbility::Release()
 
 	if (UPhysicsHandleComponent* MagnesisPhysicsHandle = PhysicsHandle)
 	{
-		if (MagnesisPhysicsHandle->GetGrabbedComponent())
+		if (UPrimitiveComponent* GrabbedComponent = MagnesisPhysicsHandle->GetGrabbedComponent())
 		{
 			MagnesisPhysicsHandle->ReleaseComponent();
+
+			if (AActor* GrabbedActor = GrabbedComponent->GetOwner())
+			{
+				if (UAbilityReactionComponent* Reaction = GrabbedActor->FindComponentByClass<UAbilityReactionComponent>())
+				{
+					Reaction->SetMagnesisHeld(false);
+				}
+			}
 		}
 	}
 	StopHoldBeam();

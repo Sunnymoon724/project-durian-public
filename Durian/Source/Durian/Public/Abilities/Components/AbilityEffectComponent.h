@@ -40,7 +40,7 @@ public:
 private:
 	UMaterialInstanceDynamic* GetOrCreateVisionMaterial(EAbilityType Ability);
 	UMaterialInstanceDynamic* GetOrCreateHighlightMaterial(EAbilityType Ability);
-	static void ApplyVisionProfile(UMaterialInstanceDynamic* MaterialInstance, EAbilityType Ability);
+	void ApplyVisionProfile(UMaterialInstanceDynamic* MaterialInstance, EAbilityType Ability) const;
 	void SetBlendableWeight(UMaterialInstanceDynamic* MaterialInstance, const float Weight) const;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Ability VFX|Vision")

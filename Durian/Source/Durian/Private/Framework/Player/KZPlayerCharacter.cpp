@@ -14,6 +14,7 @@
 #include "Components/PointLightComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/PhysicsVolume.h"
 #include "Kismet/GameplayStatics.h"
 #include "TitanClimbing.h"
 #include "TitanClimbingComponent.h"
@@ -73,6 +74,19 @@ AKzPlayerCharacter::AKzPlayerCharacter()
 	ClimbRightAnimation = ClimbRightAsset.Object;
 	ClimbJumpAnimation = ClimbJumpAsset.Object;
 
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> SwimIdleAsset(TEXT("/Game/Resources/Soldier/Anims/Swim/anim_SwimIdle_Soldier"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> SwimForwardAsset(TEXT("/Game/Resources/Soldier/Anims/Swim/anim_Swim_Surface_Fwd_Soldier"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> SwimLeftAsset(TEXT("/Game/Resources/Soldier/Anims/Swim/anim_Swim_Surface_Left_Soldier"));
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> SwimRightAsset(TEXT("/Game/Resources/Soldier/Anims/Swim/anim_Swim_Surface_Right_Soldier"));
+	SwimIdleAnimation = SwimIdleAsset.Object;
+	SwimForwardAnimation = SwimForwardAsset.Object;
+	SwimLeftAnimation = SwimLeftAsset.Object;
+	SwimRightAnimation = SwimRightAsset.Object;
+
+	GetCharacterMovement()->MaxSwimSpeed = 250.0f;
+	GetCharacterMovement()->BrakingDecelerationSwimming = 600.0f;
+	GetCharacterMovement()->Buoyancy = 1.0f;
+
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->MaxWalkSpeed = NormalWalkSpeed;
@@ -122,6 +136,7 @@ void AKzPlayerCharacter::Tick(const float DeltaSeconds)
 		bReceivedTraversalInputThisFrame = false;
 	}
 	UpdateClimbAnimation();
+	UpdateSurfaceSwimming();
 
 	RefreshSprintSpeed();
 	UpdateRunStop(DeltaSeconds);
@@ -284,6 +299,10 @@ void AKzPlayerCharacter::SetPlayerState(const EPlayerState NewState)
 void AKzPlayerCharacter::HandleTraversalPressed()
 {
 	CancelRunStop();
+	if (IsSurfaceSwimming())
+	{
+		return;
+	}
 	if (TitanClimbing && TitanClimbing->IsClimbing())
 	{
 		if (TitanClimbing->GetClimbState() == ETitanClimbState::Climb)
@@ -446,6 +465,94 @@ void AKzPlayerCharacter::RefreshSprintSpeed()
 bool AKzPlayerCharacter::IsWallClimbing() const
 {
 	return TitanClimbing && TitanClimbing->IsClimbing();
+}
+
+bool AKzPlayerCharacter::IsSurfaceSwimming() const
+{
+	return GetCharacterMovement()->IsSwimming();
+}
+
+void AKzPlayerCharacter::UpdateSurfaceSwimming()
+{
+	UCharacterMovementComponent* Movement = GetCharacterMovement();
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	const bool bSwimming = Movement->IsSwimming();
+
+	if (bSwimming != bWasSwimming)
+	{
+		if (bSwimming)
+		{
+			StopHover(false);
+			CancelRunStop();
+			bSavedOrientRotationToMovement = Movement->bOrientRotationToMovement;
+			Movement->bOrientRotationToMovement = false;
+		}
+		else
+		{
+			Movement->bOrientRotationToMovement = bSavedOrientRotationToMovement;
+		}
+		bWasSwimming = bSwimming;
+	}
+
+	if (!bSwimming)
+	{
+		if (AnimInstance && ActiveSwimMontage)
+		{
+			AnimInstance->Montage_Stop(0.15f, ActiveSwimMontage);
+		}
+		ActiveSwimAnimation = nullptr;
+		ActiveSwimMontage = nullptr;
+		return;
+	}
+
+	// A PhysicsVolume marked as water supplies native swimming collision and
+	// movement. Keep the capsule close to its surface; there is no dive input.
+	const APhysicsVolume* WaterVolume = GetPhysicsVolume();
+	if (WaterVolume && WaterVolume->bWaterVolume)
+	{
+		FVector Origin, Extent;
+		WaterVolume->GetActorBounds(false, Origin, Extent);
+		const float SurfaceZ = Origin.Z + Extent.Z;
+		const float TargetZ = SurfaceZ - GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 0.55f;
+		Movement->Velocity.Z = FMath::Clamp((TargetZ - GetActorLocation().Z) * 3.0f, -100.0f, 160.0f);
+	}
+
+	if (!AnimInstance)
+	{
+		return;
+	}
+
+	UAnimSequence* DesiredAnimation = SwimIdleAnimation;
+	if (ClimbInput.SizeSquared() > 0.04f && Movement->Velocity.SizeSquared2D() > 400.0f)
+	{
+		if (FMath::Abs(ClimbInput.X) > FMath::Abs(ClimbInput.Y))
+		{
+			DesiredAnimation = ClimbInput.X > 0.0f ? SwimRightAnimation : SwimLeftAnimation;
+		}
+		else
+		{
+			DesiredAnimation = SwimForwardAnimation;
+		}
+	}
+
+	if (!DesiredAnimation)
+	{
+		return;
+	}
+	if (ActiveSwimAnimation != DesiredAnimation || !AnimInstance->Montage_IsPlaying(ActiveSwimMontage))
+	{
+		if (ActiveSwimMontage)
+		{
+			AnimInstance->Montage_Stop(0.12f, ActiveSwimMontage);
+		}
+		ActiveSwimMontage = AnimInstance->PlaySlotAnimationAsDynamicMontage(
+			DesiredAnimation, TEXT("DefaultSlot"), 0.12f, 0.12f);
+		ActiveSwimAnimation = ActiveSwimMontage ? DesiredAnimation : nullptr;
+		if (ActiveSwimMontage)
+		{
+			AnimInstance->Montage_SetNextSection(TEXT("Default"), TEXT("Default"), ActiveSwimMontage);
+		}
+	}
 }
 
 void AKzPlayerCharacter::UpdateClimbAnimation()
