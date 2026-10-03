@@ -11,6 +11,7 @@
 
 class AKzPlayerCharacter;
 class ARemoteBomb;
+class AActor;
 
 UCLASS(ClassGroup = (Abilities), meta = (BlueprintSpawnableComponent))
 class DURIAN_API UPlayerAbilityComponent : public UActorComponent
@@ -23,6 +24,8 @@ public:
 	void SetAbility(EAbilityType NewAbility);
 	void HandleInput(EAbilityInput Input, float AxisValue = 0.0f) const;
 	void HandleAttackHit(const FHitResult& Hit, const FVector& AttackDirection) const;
+	AActor* GetMagnesisHeldActor() const { return MagnesisHeldActor.Get(); }
+	void SetMagnesisHeldActor(AActor* Actor);
 
 	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
 	bool IsHoldingRemoteBomb() const;
@@ -65,6 +68,7 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<AKzPlayerCharacter> Character = nullptr;
+	TWeakObjectPtr<AActor> MagnesisHeldActor;
 
 	TUniquePtr<FMagnesisAbility> MagnesisAbility;
 	TUniquePtr<FStasisAbility> StasisAbility;

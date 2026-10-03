@@ -2,44 +2,18 @@
 
 #include "Abilities/Core/AbilityModeSubsystem.h"
 #include "Abilities/Core/AbilityModeVisualProfile.h"
+#include "Abilities/Core/AbilityVisualModeUtility.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/GameInstance.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
 
-namespace
-{
-	EAbilityReactionType GetTargetReactionType(const EAbilityVisualMode Mode)
-	{
-		switch (Mode)
-		{
-		case EAbilityVisualMode::Magnesis: return EAbilityReactionType::MagnesisTarget;
-		case EAbilityVisualMode::Cryonis: return EAbilityReactionType::CryonicTarget;
-		case EAbilityVisualMode::Stasis: return EAbilityReactionType::StasisTarget;
-		default: return EAbilityReactionType::Normal;
-		}
-	}
-
-}
-
 UAbilityReactionComponent::UAbilityReactionComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
-	PrimaryComponentTick.bStartWithTickEnabled = false;
 
 	TargetSurfaceHighlightMaterial = TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Game/Resources/VFX/AbilityMode/Materials/M_AbilityModeTargetSurface.M_AbilityModeTargetSurface")));
-}
-
-void UAbilityReactionComponent::SetMagnesisHeld(const bool bIsHeld)
-{
-	if (bIsMagnesisHeld == bIsHeld)
-	{
-		return;
-	}
-
-	bIsMagnesisHeld = bIsHeld;
-	OnMagnesisHeldStateChanged.Broadcast(bIsMagnesisHeld);
 }
 
 void UAbilityReactionComponent::BeginPlay()
@@ -65,7 +39,7 @@ void UAbilityReactionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason
 
 	SetTargetStencilEnabled(false);
 
-	for (UStaticMeshComponent* Overlay : TargetSurfaceHighlightOverlays)
+	for (UStaticMeshComponent* Overlay : TargetSurfaceHighlightOverlayArray)
 	{
 		if (IsValid(Overlay))
 		{
@@ -73,8 +47,8 @@ void UAbilityReactionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason
 		}
 	}
 
-	TargetSurfaceHighlightOverlays.Empty();
-	TargetSurfaceHighlightMaterials.Empty();
+	TargetSurfaceHighlightOverlayArray.Empty();
+	TargetSurfaceHighlightMaterialArray.Empty();
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -93,7 +67,7 @@ void UAbilityReactionComponent::OnAbilityModeChanged_Implementation(const EAbili
 		bAimedTarget = false;
 	}
 
-	const bool bIsMatchingTarget = ReactionType == GetTargetReactionType(Mode);
+	const bool bIsMatchingTarget = ReactionType == FAbilityVisualModeUtility::TargetReactionForMode(Mode);
 
 	if (bIsMatchingTarget)
 	{
@@ -111,7 +85,7 @@ void UAbilityReactionComponent::SetAimedTarget(const bool bAimed)
 {
 	bAimedTarget = bAimed;
 
-	const bool bIsMatchingTarget = ReactionType == GetTargetReactionType(ActiveMode);
+	const bool bIsMatchingTarget = ReactionType == FAbilityVisualModeUtility::TargetReactionForMode(ActiveMode);
 
 	if (ActiveMode != EAbilityVisualMode::None && bIsMatchingTarget)
 	{
@@ -162,26 +136,26 @@ void UAbilityReactionComponent::SetTargetSurfaceHighlightEnabled(const bool bEna
 	const FAbilityModeVisualProfile& VisualProfile = FAbilityModeVisualProfiles::Get(Mode);
 	const FAbilityModeVisualCommonProfile& CommonProfile = FAbilityModeVisualProfiles::GetCommon();
 
-	for (int32 Index = 0; Index < TargetSurfaceHighlightOverlays.Num(); ++Index)
+	for (int32 Index = 0; Index < TargetSurfaceHighlightOverlayArray.Num(); ++Index)
 	{
-		if (UStaticMeshComponent* Overlay = TargetSurfaceHighlightOverlays[Index])
+		if (UStaticMeshComponent* Overlay = TargetSurfaceHighlightOverlayArray[Index])
 		{
 			Overlay->SetHiddenInGame(!bEnabled, true);
 			Overlay->SetVisibility(bEnabled, true);
 		}
 
-		if (TargetSurfaceHighlightMaterials.IsValidIndex(Index) && TargetSurfaceHighlightMaterials[Index])
+		if (TargetSurfaceHighlightMaterialArray.IsValidIndex(Index) && TargetSurfaceHighlightMaterialArray[Index])
 		{
-			TargetSurfaceHighlightMaterials[Index]->SetVectorParameterValue(TEXT("TargetEdgeColor"), bAimedTarget ? VisualProfile.TargetEdgeColor : VisualProfile.CandidateGlowColor);
-			TargetSurfaceHighlightMaterials[Index]->SetVectorParameterValue(TEXT("TargetFillColor"), bAimedTarget ? VisualProfile.TargetScanColor : VisualProfile.CandidateGradeColor);
-			TargetSurfaceHighlightMaterials[Index]->SetScalarParameterValue(TEXT("TargetEdgeOpacity"), CommonProfile.TargetEdgeOpacity);
+			TargetSurfaceHighlightMaterialArray[Index]->SetVectorParameterValue(TEXT("TargetEdgeColor"), bAimedTarget ? VisualProfile.TargetEdgeColor : VisualProfile.CandidateGlowColor);
+			TargetSurfaceHighlightMaterialArray[Index]->SetVectorParameterValue(TEXT("TargetFillColor"), bAimedTarget ? VisualProfile.TargetScanColor : VisualProfile.CandidateGradeColor);
+			TargetSurfaceHighlightMaterialArray[Index]->SetScalarParameterValue(TEXT("TargetEdgeOpacity"), CommonProfile.TargetEdgeOpacity);
 		}
 	}
 }
 
 void UAbilityReactionComponent::CreateTargetSurfaceHighlightOverlays()
 {
-	if (TargetSurfaceHighlightOverlays.Num() || !GetOwner())
+	if (TargetSurfaceHighlightOverlayArray.Num() || !GetOwner())
 	{
 		return;
 	}
@@ -200,7 +174,7 @@ void UAbilityReactionComponent::CreateTargetSurfaceHighlightOverlays()
 
 	for (UStaticMeshComponent* Source : SourceArray)
 	{
-		if (!Source || !Source->GetStaticMesh() || TargetSurfaceHighlightOverlays.Contains(Source))
+		if (!Source || !Source->GetStaticMesh() || TargetSurfaceHighlightOverlayArray.Contains(Source))
 		{
 			continue;
 		}
@@ -227,7 +201,7 @@ void UAbilityReactionComponent::CreateTargetSurfaceHighlightOverlays()
 		Overlay->SetHiddenInGame(true, true);
 		Overlay->RegisterComponent();
 
-		TargetSurfaceHighlightOverlays.Add(Overlay);
-		TargetSurfaceHighlightMaterials.Add(DynamicMaterial);
+		TargetSurfaceHighlightOverlayArray.Add(Overlay);
+		TargetSurfaceHighlightMaterialArray.Add(DynamicMaterial);
 	}
 }

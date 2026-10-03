@@ -49,8 +49,19 @@ void UPlayerAbilityComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		RemoteBombAbility->AbortForEndPlay();
 	}
+	SetMagnesisHeldActor(nullptr);
 
 	Super::EndPlay(EndPlayReason);
+}
+
+void UPlayerAbilityComponent::SetMagnesisHeldActor(AActor* Actor)
+{
+	if (MagnesisHeldActor.Get() == Actor)
+	{
+		return;
+	}
+
+	MagnesisHeldActor = Actor;
 }
 
 void UPlayerAbilityComponent::TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

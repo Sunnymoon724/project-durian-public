@@ -1,14 +1,16 @@
 #include "World/Trigger/TriggerSourcePlate.h"
-
-#include "Abilities/Components/AbilityReactionComponent.h"
+#include "Abilities/Core/PlayerAbilityComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Engine/World.h"
+#include "Framework/Player/KzPlayerCharacter.h"
+#include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 
 ATriggerSourcePlate::ATriggerSourcePlate()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
 }
 
 void ATriggerSourcePlate::BeginPlay()
@@ -17,35 +19,11 @@ void ATriggerSourcePlate::BeginPlay()
 
 	// The plate volume is authored in the Blueprint so it can be sized and positioned there.
 	BoxCollision = Cast<UBoxComponent>(GetDefaultSubobjectByName(TEXT("Box")));
+
 	if (!BoxCollision)
 	{
 		UE_LOG(LogTemp, Error, TEXT("ATriggerSourcePlate requires a UBoxComponent named Box."));
 		return;
-	}
-
-	BoxCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	BoxCollision->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
-	BoxCollision->SetCollisionResponseToChannel(ECC_PhysicsBody, ECR_Overlap);
-	BoxCollision->SetGenerateOverlapEvents(true);
-	BoxCollision->OnComponentBeginOverlap.AddDynamic(this, &ATriggerSourcePlate::HandleBoxBeginOverlap);
-	BoxCollision->OnComponentEndOverlap.AddDynamic(this, &ATriggerSourcePlate::HandleBoxEndOverlap);
-
-	if (IsValid(RequiredBlock))
-	{
-		TArray<UPrimitiveComponent*> BlockComponents;
-		RequiredBlock->GetComponents<UPrimitiveComponent>(BlockComponents);
-		for (UPrimitiveComponent* BlockComponent : BlockComponents)
-		{
-			if (BlockComponent)
-			{
-				BlockComponent->SetGenerateOverlapEvents(true);
-			}
-		}
-
-		if (UAbilityReactionComponent* Reaction = RequiredBlock->FindComponentByClass<UAbilityReactionComponent>())
-		{
-			MagnesisHeldChangedHandle = Reaction->OnMagnesisHeldStateChanged.AddUObject(this, &ATriggerSourcePlate::HandleRequiredBlockHeldChanged);
-		}
 	}
 
 	// Let the Blueprint target components subscribe before publishing an initially pressed state.
@@ -57,65 +35,78 @@ void ATriggerSourcePlate::BeginPlay()
 
 void ATriggerSourcePlate::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (IsValid(RequiredBlock))
-	{
-		if (UAbilityReactionComponent* Reaction = RequiredBlock->FindComponentByClass<UAbilityReactionComponent>())
-		{
-			Reaction->OnMagnesisHeldStateChanged.Remove(MagnesisHeldChangedHandle);
-		}
-	}
-
 	Super::EndPlay(EndPlayReason);
+}
+
+void ATriggerSourcePlate::Tick(const float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	UpdatePlateState();
 }
 
 void ATriggerSourcePlate::Initialize()
 {
+	if (AKzPlayerCharacter* Player = Cast<AKzPlayerCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
+	{
+		PlayerAbilityComponent = Player->GetAbilityComponent();
+	}
+
 	bInitialized = true;
 	bPlateEnabled = StartMode != ETriggerPlateStartMode::Off;
 
-	if (!bPlateEnabled || !IsRequiredBlockOverlapping())
+	if (!bPlateEnabled)
+	{
+		SetActorTickEnabled(false);
+		return;
+	}
+
+	UpdatePlateState();
+}
+
+void ATriggerSourcePlate::HandleBoxBeginOverlap(UPrimitiveComponent*, AActor*, UPrimitiveComponent*, int32, bool, const FHitResult&)
+{
+	if (!bInitialized || !bPlateEnabled)
 	{
 		return;
 	}
 
-	const UAbilityReactionComponent* Reaction = RequiredBlock->FindComponentByClass<UAbilityReactionComponent>();
-	if (!Reaction || !Reaction->IsMagnesisHeld())
+	UpdatePlateState();
+}
+
+void ATriggerSourcePlate::HandleBoxEndOverlap(UPrimitiveComponent*, AActor*, UPrimitiveComponent*, int32)
+{
+	if (bInitialized && bPlateEnabled)
 	{
-		BroadcastTriggerState(true);
+		UpdatePlateState();
 	}
 }
 
-void ATriggerSourcePlate::HandleBoxBeginOverlap(UPrimitiveComponent*, AActor* OtherActor, UPrimitiveComponent*, int32, bool, const FHitResult&)
+void ATriggerSourcePlate::UpdatePlateState()
 {
-	if (!bInitialized || !bPlateEnabled || OtherActor != RequiredBlock)
+	if (!bInitialized || !bPlateEnabled)
 	{
+		SetActorTickEnabled(false);
 		return;
 	}
 
-	const UAbilityReactionComponent* Reaction = RequiredBlock->FindComponentByClass<UAbilityReactionComponent>();
-	if (!Reaction || !Reaction->IsMagnesisHeld())
-	{
-		BroadcastTriggerState(true);
-	}
-}
+	const UPlayerAbilityComponent* AbilityComponent = PlayerAbilityComponent.Get();
+	const AActor* HeldActor = AbilityComponent ? AbilityComponent->GetMagnesisHeldActor() : nullptr;
+	TArray<UPrimitiveComponent*> OverlappingComponents;
+	BoxCollision->GetOverlappingComponents(OverlappingComponents);
+	bool bHasPhysicsObjectOverlapping = false;
+	bool bHasUnheldPhysicsObjectOverlapping = false;
 
-void ATriggerSourcePlate::HandleBoxEndOverlap(UPrimitiveComponent*, AActor* OtherActor, UPrimitiveComponent*, int32)
-{
-	if (bInitialized && bPlateEnabled && OtherActor == RequiredBlock && !IsRequiredBlockOverlapping())
+	for (const UPrimitiveComponent* Component : OverlappingComponents)
 	{
-		BroadcastTriggerState(false);
-	}
-}
+		if (!IsValid(Component) || !Component->IsSimulatingPhysics())
+		{
+			continue;
+		}
 
-void ATriggerSourcePlate::HandleRequiredBlockHeldChanged(const bool bIsHeld)
-{
-	if (bInitialized && bPlateEnabled && IsRequiredBlockOverlapping())
-	{
-		BroadcastTriggerState(!bIsHeld);
+		bHasPhysicsObjectOverlapping = true;
+		bHasUnheldPhysicsObjectOverlapping |= Component->GetOwner() != HeldActor;
 	}
-}
 
-bool ATriggerSourcePlate::IsRequiredBlockOverlapping() const
-{
-	return IsValid(RequiredBlock) && BoxCollision && BoxCollision->IsOverlappingActor(RequiredBlock);
+	BroadcastTriggerState(bHasUnheldPhysicsObjectOverlapping);
+	SetActorTickEnabled(bHasPhysicsObjectOverlapping);
 }

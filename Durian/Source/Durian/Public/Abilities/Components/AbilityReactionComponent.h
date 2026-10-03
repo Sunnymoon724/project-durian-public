@@ -10,8 +10,6 @@ class UMaterialInstanceDynamic;
 class UMaterialInterface;
 class UStaticMeshComponent;
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FMagnesisHeldStateChanged, bool /* bIsHeld */);
-
 UCLASS(ClassGroup = (Abilities), meta = (BlueprintSpawnableComponent))
 class DURIAN_API UAbilityReactionComponent : public UActorComponent, public IAbilityModeListener
 {
@@ -19,14 +17,14 @@ class DURIAN_API UAbilityReactionComponent : public UActorComponent, public IAbi
 
 public:
 	UAbilityReactionComponent();
+
 	EAbilityReactionType GetReactionType() const { return ReactionType; }
+
 	void SetAimedTarget(bool bAimed);
-	bool IsMagnesisHeld() const { return bIsMagnesisHeld; }
-	void SetMagnesisHeld(bool bIsHeld);
-	FMagnesisHeldStateChanged OnMagnesisHeldStateChanged;
 
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 	virtual TArray<EAbilityVisualMode> GetSupportedAbilityModes_Implementation() const override;
 	virtual void OnAbilityModeChanged_Implementation(EAbilityVisualMode Mode, bool bEnabled) override;
 
@@ -42,12 +40,11 @@ private:
 	TSoftObjectPtr<UMaterialInterface> TargetSurfaceHighlightMaterial;
 
 	UPROPERTY(Transient)
-	TArray<TObjectPtr<UStaticMeshComponent>> TargetSurfaceHighlightOverlays;
+	TArray<TObjectPtr<UStaticMeshComponent>> TargetSurfaceHighlightOverlayArray;
 
 	UPROPERTY(Transient)
-	TArray<TObjectPtr<UMaterialInstanceDynamic>> TargetSurfaceHighlightMaterials;
+	TArray<TObjectPtr<UMaterialInstanceDynamic>> TargetSurfaceHighlightMaterialArray;
 
 	bool bAimedTarget = false;
-	bool bIsMagnesisHeld = false;
 	EAbilityVisualMode ActiveMode = EAbilityVisualMode::None;
 };

@@ -6,5 +6,6 @@
 class DURIAN_API FAbilityVisualModeUtility final
 {
 public:
-	static EAbilityVisualMode FromAbilityType(EAbilityType Ability);
+	static EAbilityVisualMode FromAbilityType(EAbilityType AbilityType);
+	static EAbilityReactionType TargetReactionForMode(EAbilityVisualMode VisualMode);
 };

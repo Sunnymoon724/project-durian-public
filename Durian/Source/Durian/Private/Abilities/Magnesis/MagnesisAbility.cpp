@@ -154,6 +154,10 @@ void FMagnesisAbility::UpdateControl(const float DeltaTime)
 
 	if (!MagnesisPhysicsHandle->GetGrabbedComponent())
 	{
+		if (UPlayerAbilityComponent* AbilityComponent = Character->GetAbilityComponent())
+		{
+			AbilityComponent->SetMagnesisHeldActor(nullptr);
+		}
 		StopHoldBeam();
 		Character->SetPlayerState(EPlayerState::Normal);
 
@@ -210,12 +214,9 @@ void FMagnesisAbility::SelectTarget()
 
 	if (MagnesisPhysicsHandle->GetGrabbedComponent())
 	{
-		if (AActor* GrabbedActor = MagnesisPhysicsHandle->GetGrabbedComponent()->GetOwner())
+		if (UPlayerAbilityComponent* AbilityComponent = Character->GetAbilityComponent())
 		{
-			if (UAbilityReactionComponent* Reaction = GrabbedActor->FindComponentByClass<UAbilityReactionComponent>())
-			{
-				Reaction->SetMagnesisHeld(true);
-			}
+			AbilityComponent->SetMagnesisHeldActor(MagnesisPhysicsHandle->GetGrabbedComponent()->GetOwner());
 		}
 
 		if (USkeletalMeshComponent* CharacterMesh = Character->GetMesh())
@@ -285,18 +286,14 @@ void FMagnesisAbility::Release()
 
 	if (UPhysicsHandleComponent* MagnesisPhysicsHandle = PhysicsHandle)
 	{
-		if (UPrimitiveComponent* GrabbedComponent = MagnesisPhysicsHandle->GetGrabbedComponent())
+		if (MagnesisPhysicsHandle->GetGrabbedComponent())
 		{
 			MagnesisPhysicsHandle->ReleaseComponent();
-
-			if (AActor* GrabbedActor = GrabbedComponent->GetOwner())
-			{
-				if (UAbilityReactionComponent* Reaction = GrabbedActor->FindComponentByClass<UAbilityReactionComponent>())
-				{
-					Reaction->SetMagnesisHeld(false);
-				}
-			}
 		}
+	}
+	if (UPlayerAbilityComponent* AbilityComponent = Character->GetAbilityComponent())
+	{
+		AbilityComponent->SetMagnesisHeldActor(nullptr);
 	}
 	StopHoldBeam();
 

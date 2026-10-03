@@ -6,6 +6,7 @@
 
 class UBoxComponent;
 class UPrimitiveComponent;
+class UPlayerAbilityComponent;
 struct FHitResult;
 
 UENUM(BlueprintType)
@@ -16,7 +17,7 @@ enum class ETriggerPlateStartMode : uint8
 	Active
 };
 
-/** Trigger source activated only by its configured block resting in the plate volume. */
+/** Trigger source activated by an unheld physics object inside the plate volume. */
 UCLASS(Blueprintable)
 class DURIAN_API ATriggerSourcePlate : public ATriggerSource
 {
@@ -28,28 +29,27 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void Tick(float DeltaSeconds) override;
 
 private:
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category = "Trigger Plate")
 	void HandleBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category = "Trigger Plate")
 	void HandleBoxEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex);
 
-	void HandleRequiredBlockHeldChanged(bool bIsHeld);
 	void Initialize();
-	bool IsRequiredBlockOverlapping() const;
+
+	void UpdatePlateState();
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UBoxComponent> BoxCollision;
-
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Trigger Plate", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<AActor> RequiredBlock;
 
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Trigger Plate", meta = (AllowPrivateAccess = "true"))
 	ETriggerPlateStartMode StartMode = ETriggerPlateStartMode::Ready;
 
 	bool bPlateEnabled = false;
 	bool bInitialized = false;
-	FDelegateHandle MagnesisHeldChangedHandle;
+
+	TWeakObjectPtr<UPlayerAbilityComponent> PlayerAbilityComponent;
 };
