@@ -4,6 +4,8 @@
 #include "GameFramework/Actor.h"
 #include "RemoteBomb.generated.h"
 
+class USkeletalMeshComponent;
+
 UENUM(BlueprintType)
 enum class ERemoteBombShape : uint8
 {
@@ -19,6 +21,7 @@ class DURIAN_API ARemoteBomb : public AActor
 
 public:
 	ARemoteBomb();
+	virtual void Tick(float DeltaSeconds) override;
 	void Hold(float Height);
 	void Place(const FVector& Location, const FVector& Impulse);
 	bool IsHeld() const { return bHeld; }
@@ -42,6 +45,16 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Carry")
 	FRotator HeldSocketRotation = FRotator::ZeroRotator;
+
+	/** Keep an overhead bomb centered between both animated palms. */
+	UPROPERTY(EditDefaultsOnly, Category = "Carry")
+	bool bUseTwoHandCarry = true;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Carry")
+	FVector TwoHandCarryOffset = FVector(0.0f, 0.0f, 15.0f);
+
+	TWeakObjectPtr<USkeletalMeshComponent> HeldMesh;
+	void FollowHeldHands();
 
 	bool bHeld = false;
 	

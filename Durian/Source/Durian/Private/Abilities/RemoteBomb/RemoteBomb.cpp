@@ -10,8 +10,9 @@
 
 ARemoteBomb::ARemoteBomb()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
+	PrimaryActorTick.TickGroup = TG_PostPhysics;
 
 	SetCanBeDamaged(false);
 }
@@ -64,7 +65,18 @@ void ARemoteBomb::Hold(const float Height)
 
 	CollisionRoot->SetSimulatePhysics(false);
 	CollisionRoot->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	if (const AKzPlayerCharacter* PlayerCharacter = Cast<AKzPlayerCharacter>(BombOwner);
+	const AKzPlayerCharacter* PlayerCharacter = Cast<AKzPlayerCharacter>(BombOwner);
+	if (bUseTwoHandCarry && PlayerCharacter && PlayerCharacter->GetMesh()
+		&& PlayerCharacter->GetMesh()->DoesSocketExist(TEXT("hand_l"))
+		&& PlayerCharacter->GetMesh()->DoesSocketExist(TEXT("hand_r")))
+	{
+		HeldMesh = PlayerCharacter->GetMesh();
+		AttachToActor(BombOwner, FAttachmentTransformRules::KeepWorldTransform);
+		AddTickPrerequisiteComponent(HeldMesh.Get());
+		SetActorTickEnabled(true);
+		FollowHeldHands();
+	}
+	else if (
 		PlayerCharacter && PlayerCharacter->GetMesh() && PlayerCharacter->GetMesh()->DoesSocketExist(HeldSocketName))
 	{
 		AttachToComponent(PlayerCharacter->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, HeldSocketName);
@@ -82,6 +94,24 @@ void ARemoteBomb::Hold(const float Height)
 
 }
 
+void ARemoteBomb::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	if (bHeld) FollowHeldHands();
+}
+
+void ARemoteBomb::FollowHeldHands()
+{
+	if (const USkeletalMeshComponent* Mesh = HeldMesh.Get())
+	{
+		const FVector Midpoint = (Mesh->GetSocketLocation(TEXT("hand_l"))
+			+ Mesh->GetSocketLocation(TEXT("hand_r"))) * 0.5f;
+		SetActorLocation(Midpoint + Mesh->GetComponentTransform().TransformVectorNoScale(TwoHandCarryOffset),
+			false, nullptr, ETeleportType::TeleportPhysics);
+		if (const AActor* BombOwner = GetOwner()) SetActorRotation(BombOwner->GetActorRotation());
+	}
+}
+
 void ARemoteBomb::Place(const FVector& Location, const FVector& Impulse)
 {
 	UPrimitiveComponent* CollisionRoot = Cast<UPrimitiveComponent>(GetRootComponent());
@@ -89,6 +119,9 @@ void ARemoteBomb::Place(const FVector& Location, const FVector& Impulse)
 	{
 		return;
 	}
+	if (HeldMesh.IsValid()) RemoveTickPrerequisiteComponent(HeldMesh.Get());
+	HeldMesh.Reset();
+	SetActorTickEnabled(false);
 
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	SetActorLocation(Location, false, nullptr, ETeleportType::TeleportPhysics);

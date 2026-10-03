@@ -53,6 +53,18 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Traversal", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UPointLightComponent> HoverGlow;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Combat")
+	TObjectPtr<UAnimSequence> UnarmedAttackAnimation;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Abilities|Magnesis")
+	TSoftObjectPtr<UAnimSequence> MagnesisHoldAnimation;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Abilities|Scan")
+	TSoftObjectPtr<UAnimMontage> ScanSensorMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Abilities|RemoteBomb")
+	TSoftObjectPtr<UAnimMontage> BombOverheadMontage;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Climb")
 	TObjectPtr<UAnimSequence> ClimbIdleAnimation;
 
@@ -99,10 +111,12 @@ private:
 public:
 	virtual float TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
-	void HandleGuard();
-	void StopGuard();
 	void HandleAttack();
-	void PlayBombThrowAnimation();
+	bool PlayBombThrowAnimation();
+	bool IsScanPoseReady() const;
+	bool IsBombThrowAnimationPlaying() const;
+	bool HasBombThrowReachedRelease() const;
+	void StopBombCarryAnimation();
 
 	void SetAbility(EAbilityType NewAbility) const;
 	UPlayerAbilityComponent* GetAbilityComponent() const { return AbilityComponent; }
@@ -142,11 +156,22 @@ public:
 private:
 	bool StartHover();
 	void StopHover(bool bLanded);
-	void PerformSwordHit();
+	void PerformUnarmedHit();
 	void RefreshSprintSpeed();
 	void UpdateRunStop(float DeltaSeconds);
 	void UpdateClimbAnimation();
 	void UpdateSurfaceSwimming();
+	void UpdateMagnesisAnimation();
+	void UpdateScanAndBombAnimation();
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimMontage> ActiveScanMontage;
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimMontage> ActiveBombMontage;
+	bool bBombThrowRequested = false;
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimMontage> ActiveMagnesisMontage;
+	bool bOrientToMovementBeforeMagnesis = true;
+	bool bUseDesiredRotationBeforeMagnesis = false;
 	void CancelRunStop();
 	UPROPERTY(Transient)
 	TObjectPtr<UAnimSequence> ActiveClimbAnimation;
@@ -169,7 +194,6 @@ private:
 	bool bReceivedTraversalInputThisFrame = false;
 	FVector LastTraversalDirection = FVector::ZeroVector;
 	FVector2D ClimbInput = FVector2D::ZeroVector;
-	bool bGuarding = false;
 	bool bSprintRequested = false;
 	bool bSprinting = false;
 

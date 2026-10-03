@@ -72,7 +72,7 @@ void FStasisAbility::HandleInput(const EAbilityInput Input, float)
 	{
 	case EAbilityInput::Interact:
 		{
-			if (Character->GetCurrentState() == EPlayerState::StasisTargeting)
+			if (Character->GetCurrentState() == EPlayerState::StasisTargeting && Character->IsScanPoseReady())
 			{
 				StartStasis();
 			}
@@ -110,8 +110,6 @@ void FStasisAbility::HandleInput(const EAbilityInput Input, float)
 			}
 
 			Character->SetPlayerState(EPlayerState::StasisTargeting);
-			SetAbilityModeActive(EAbilityVisualMode::Stasis, true);
-			SetAbilityVisionEnabled(EAbilityType::Stasis, true);
 
 			break;
 		}
@@ -144,6 +142,11 @@ void FStasisAbility::HandleAttackHit(const FHitResult& Hit, const FVector& Attac
 
 void FStasisAbility::UpdateTargeting()
 {
+	if (!UpdateScanActivation(EAbilityVisualMode::Stasis, EAbilityType::Stasis))
+	{
+		ClearTarget();
+		return;
+	}
 	UPrimitiveComponent* NewTarget = nullptr;
 
 	if (!TraceTarget(NewTarget))

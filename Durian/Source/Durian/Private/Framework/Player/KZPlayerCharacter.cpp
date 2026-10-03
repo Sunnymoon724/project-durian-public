@@ -9,6 +9,7 @@
 #include "Abilities/Core/Ability.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "Animation/AnimSequence.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/PointLightComponent.h"
@@ -51,6 +52,16 @@ AKzPlayerCharacter::AKzPlayerCharacter()
 	HoverGlow->SetIntensity(1800.0f);
 	HoverGlow->SetAttenuationRadius(180.0f);
 	HoverGlow->SetVisibility(false);
+
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> UnarmedAttackAsset(
+		TEXT("/Game/Resources/Soldier/Anims/Unarmed/Attack/AS_Soldier_Punch_InPlace"));
+	UnarmedAttackAnimation = UnarmedAttackAsset.Object;
+	MagnesisHoldAnimation = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(
+		TEXT("/Game/Resources/Soldier/Anims/Abilities/Magnesis/AS_Soldier_Magnesis_Hold.AS_Soldier_Magnesis_Hold")));
+	ScanSensorMontage = TSoftObjectPtr<UAnimMontage>(FSoftObjectPath(
+		TEXT("/Game/Resources/Soldier/Anims/Abilities/Scan/AM_Soldier_ScanSensor.AM_Soldier_ScanSensor")));
+	BombOverheadMontage = TSoftObjectPtr<UAnimMontage>(FSoftObjectPath(
+		TEXT("/Game/Resources/Soldier/Anims/Abilities/Bomb/Overhead/AM_Soldier_Bomb_Overhead.AM_Soldier_Bomb_Overhead")));
 
 	static ConstructorHelpers::FClassFinder<UAnimInstance> SoldierClimbAnimBlueprint(
 		TEXT("/Game/Resources/Soldier/ABP_Soldier"));
@@ -137,6 +148,8 @@ void AKzPlayerCharacter::Tick(const float DeltaSeconds)
 	}
 	UpdateClimbAnimation();
 	UpdateSurfaceSwimming();
+	UpdateScanAndBombAnimation();
+	UpdateMagnesisAnimation();
 
 	RefreshSprintSpeed();
 	UpdateRunStop(DeltaSeconds);
@@ -172,39 +185,6 @@ void AKzPlayerCharacter::Landed(const FHitResult& Hit)
 
 AKzPlayerCharacter::~AKzPlayerCharacter() = default;
 
-void AKzPlayerCharacter::HandleGuard()
-{
-	if (AbilityComponent)
-	{
-		AbilityComponent->HandleInput(EAbilityInput::Interrupt);
-	}
-
-	if (bGuarding || IsWallClimbing() || IsWaterExitInProgress())
-	{
-		return;
-	}
-
-	bGuarding = true;
-	if (UKZPlayerAnimInstance* AnimInstance = Cast<UKZPlayerAnimInstance>(GetMesh()->GetAnimInstance()))
-	{
-		AnimInstance->PlayGuardAnimation();
-	}
-}
-
-void AKzPlayerCharacter::StopGuard()
-{
-	if (!bGuarding)
-	{
-		return;
-	}
-
-	bGuarding = false;
-	if (UKZPlayerAnimInstance* AnimInstance = Cast<UKZPlayerAnimInstance>(GetMesh()->GetAnimInstance()))
-	{
-		AnimInstance->StopCombatAnimation();
-	}
-}
-
 float AKzPlayerCharacter::TakeDamage(const float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	if (DamageAmount > 0.0f)
@@ -230,29 +210,64 @@ void AKzPlayerCharacter::HandleAttack()
 		return;
 	}
 
-	StopGuard();
-	if (UKZPlayerAnimInstance* AnimInstance = Cast<UKZPlayerAnimInstance>(GetMesh()->GetAnimInstance()))
+	// Soldier may use Titan's AnimInstance parent. Play through its existing
+	// DefaultSlot without requiring a different parent or breaking climbing.
+	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance(); AnimInstance && UnarmedAttackAnimation)
 	{
-		AnimInstance->PlaySwordAttackAnimation();
+		AnimInstance->PlaySlotAnimationAsDynamicMontage(UnarmedAttackAnimation, TEXT("DefaultSlot"), 0.08f, 0.12f);
 	}
 
-	PerformSwordHit();
+	PerformUnarmedHit();
 }
 
-void AKzPlayerCharacter::PlayBombThrowAnimation()
+bool AKzPlayerCharacter::PlayBombThrowAnimation()
 {
-	if (IsWallClimbing() || IsWaterExitInProgress())
+	UpdateScanAndBombAnimation();
+	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (!AnimInstance || !ActiveBombMontage || !AnimInstance->Montage_IsPlaying(ActiveBombMontage))
 	{
-		return;
+		return false;
 	}
-
-	if (UKZPlayerAnimInstance* AnimInstance = Cast<UKZPlayerAnimInstance>(GetMesh()->GetAnimInstance()))
+	bBombThrowRequested = true;
+	if (AnimInstance->Montage_GetCurrentSection(ActiveBombMontage) == TEXT("Lift"))
 	{
-		AnimInstance->PlayBombThrowAnimation();
+		// A quick second press queues the throw after lifting, not a pose jump.
+		AnimInstance->Montage_SetNextSection(TEXT("Lift"), TEXT("Throw"), ActiveBombMontage);
 	}
+	else
+	{
+		AnimInstance->Montage_JumpToSection(TEXT("Throw"), ActiveBombMontage);
+	}
+	return true;
 }
 
-void AKzPlayerCharacter::PerformSwordHit()
+bool AKzPlayerCharacter::IsBombThrowAnimationPlaying() const
+{
+	const UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	return bBombThrowRequested && ActiveBombMontage && AnimInstance
+		&& AnimInstance->Montage_IsPlaying(ActiveBombMontage);
+}
+
+bool AKzPlayerCharacter::HasBombThrowReachedRelease() const
+{
+	if (!IsBombThrowAnimationPlaying()) return false;
+	const int32 ThrowSection = ActiveBombMontage->GetSectionIndex(TEXT("Throw"));
+	return ThrowSection != INDEX_NONE && GetMesh()->GetAnimInstance()->Montage_GetPosition(ActiveBombMontage)
+		>= ActiveBombMontage->CompositeSections[ThrowSection].GetTime() + 0.32f;
+}
+
+void AKzPlayerCharacter::StopBombCarryAnimation()
+{
+	if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+		AnimInstance && ActiveBombMontage)
+	{
+		AnimInstance->Montage_Stop(0.15f, ActiveBombMontage);
+	}
+	ActiveBombMontage = nullptr;
+	bBombThrowRequested = false;
+}
+
+void AKzPlayerCharacter::PerformUnarmedHit()
 {
 	UWorld* World = GetWorld();
 	if (!World || !Controller)
@@ -263,7 +278,7 @@ void AKzPlayerCharacter::PerformSwordHit()
 	const FVector AttackDirection = Controller->GetControlRotation().Vector().GetSafeNormal();
 	const FVector TraceStart = GetPawnViewLocation();
 	const FVector TraceEnd = TraceStart + AttackDirection * 275.0f;
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(SwordAttackTrace), false, this);
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(UnarmedAttackTrace), false, this);
 	QueryParams.AddIgnoredActor(this);
 
 	FHitResult Hit;
@@ -293,7 +308,159 @@ void AKzPlayerCharacter::SetAbility(const EAbilityType NewAbility) const
 
 void AKzPlayerCharacter::SetPlayerState(const EPlayerState NewState)
 {
+	if (CurrentState != NewState)
+	{
+		UCharacterMovementComponent* Movement = GetCharacterMovement();
+		if (NewState == EPlayerState::MagnesisHolding)
+		{
+			// Swimming temporarily owns bOrientRotationToMovement. Preserve the
+			// underlying ground policy as well so entering/leaving water is reversible.
+			bOrientToMovementBeforeMagnesis = bWasSwimming
+				? bSavedOrientRotationToMovement : Movement->bOrientRotationToMovement;
+			bUseDesiredRotationBeforeMagnesis = Movement->bUseControllerDesiredRotation;
+			Movement->bOrientRotationToMovement = false;
+			Movement->bUseControllerDesiredRotation = true;
+			if (bWasSwimming) bSavedOrientRotationToMovement = false;
+		}
+		else if (CurrentState == EPlayerState::MagnesisHolding)
+		{
+			Movement->bOrientRotationToMovement = Movement->IsSwimming()
+				? false : bOrientToMovementBeforeMagnesis;
+			Movement->bUseControllerDesiredRotation = bUseDesiredRotationBeforeMagnesis;
+			if (bWasSwimming) bSavedOrientRotationToMovement = bOrientToMovementBeforeMagnesis;
+		}
+	}
 	CurrentState = NewState;
+	// Release the upper-body pose immediately on cancel/interrupt, before an attack starts.
+	UpdateScanAndBombAnimation();
+	UpdateMagnesisAnimation();
+}
+
+bool AKzPlayerCharacter::IsScanPoseReady() const
+{
+	// Swimming owns the whole-body pose and has no sensor gesture. Preserve
+	// water targeting instead of waiting forever for a montage that cannot run.
+	if (IsSurfaceSwimming()) return true;
+	const UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	return AnimInstance && ActiveScanMontage && AnimInstance->Montage_IsPlaying(ActiveScanMontage)
+		&& AnimInstance->Montage_GetCurrentSection(ActiveScanMontage) == TEXT("Hold");
+}
+
+void AKzPlayerCharacter::UpdateScanAndBombAnimation()
+{
+	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (!AnimInstance)
+	{
+		ActiveScanMontage = nullptr;
+		ActiveBombMontage = nullptr;
+		bBombThrowRequested = false;
+		return;
+	}
+	auto Stop = [AnimInstance](TObjectPtr<UAnimMontage>& Montage)
+	{
+		if (Montage) AnimInstance->Montage_Stop(0.15f, Montage);
+		Montage = nullptr;
+	};
+	// Let traversal, swimming and full-body combat keep ownership of the arms.
+	if (!GetCharacterMovement()->IsMovingOnGround() || IsWallClimbing()
+		|| IsWaterExitInProgress() || AnimInstance->IsSlotActive(TEXT("DefaultSlot")))
+	{
+		Stop(ActiveScanMontage);
+		Stop(ActiveBombMontage);
+		bBombThrowRequested = false;
+		return;
+	}
+	const bool bHoldingBomb = AbilityComponent && AbilityComponent->IsHoldingRemoteBomb();
+	if (bHoldingBomb)
+	{
+		Stop(ActiveScanMontage);
+		if (!ActiveBombMontage || !AnimInstance->Montage_IsPlaying(ActiveBombMontage))
+		{
+			ActiveBombMontage = BombOverheadMontage.LoadSynchronous();
+			bBombThrowRequested = false;
+			if (ActiveBombMontage && AnimInstance->Montage_Play(ActiveBombMontage,
+				1.5f, EMontagePlayReturnType::MontageLength, 0.0f, false) <= 0.0f)
+			{
+				ActiveBombMontage = nullptr;
+			}
+		}
+		return;
+	}
+	if (ActiveBombMontage)
+	{
+		// After release, finish the throw's follow-through; placing/cancelling a
+		// held bomb instead blends out immediately and never throws it.
+		if (bBombThrowRequested && AnimInstance->Montage_IsPlaying(ActiveBombMontage)
+			&& AnimInstance->Montage_GetCurrentSection(ActiveBombMontage) == TEXT("Throw")) return;
+		Stop(ActiveBombMontage);
+		bBombThrowRequested = false;
+	}
+	const bool bScanning = CurrentState == EPlayerState::MagnesisTargeting
+		|| CurrentState == EPlayerState::StasisTargeting || CurrentState == EPlayerState::IceTargeting;
+	if (bScanning)
+	{
+		if (!ActiveScanMontage || !AnimInstance->Montage_IsPlaying(ActiveScanMontage)
+			|| AnimInstance->Montage_GetCurrentSection(ActiveScanMontage) == TEXT("Exit"))
+		{
+			ActiveScanMontage = ScanSensorMontage.LoadSynchronous();
+			if (ActiveScanMontage && AnimInstance->Montage_Play(ActiveScanMontage,
+				1.0f, EMontagePlayReturnType::MontageLength, 0.0f, false) <= 0.0f)
+			{
+				ActiveScanMontage = nullptr;
+			}
+		}
+	}
+	else if (ActiveScanMontage)
+	{
+		const FName Section = AnimInstance->Montage_GetCurrentSection(ActiveScanMontage);
+		if (CurrentState == EPlayerState::MagnesisHolding || !AnimInstance->Montage_IsPlaying(ActiveScanMontage)
+			|| Section == TEXT("Enter"))
+		{
+			Stop(ActiveScanMontage);
+		}
+		else if (Section == TEXT("Hold"))
+		{
+			AnimInstance->Montage_JumpToSection(TEXT("Exit"), ActiveScanMontage);
+		}
+	}
+}
+
+void AKzPlayerCharacter::UpdateMagnesisAnimation()
+{
+	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (!AnimInstance)
+	{
+		ActiveMagnesisMontage = nullptr;
+		return;
+	}
+	const bool bHolding = CurrentState == EPlayerState::MagnesisHolding
+		&& !IsWallClimbing() && !IsWaterExitInProgress() && !GetCharacterMovement()->IsFalling();
+	if (!bHolding)
+	{
+		if (ActiveMagnesisMontage)
+		{
+			AnimInstance->Montage_Stop(0.2f, ActiveMagnesisMontage);
+			ActiveMagnesisMontage = nullptr;
+		}
+		return;
+	}
+	if (!ActiveMagnesisMontage || !AnimInstance->Montage_IsPlaying(ActiveMagnesisMontage))
+	{
+		if (UAnimSequence* Animation = MagnesisHoldAnimation.LoadSynchronous())
+		{
+			ActiveMagnesisMontage = UAnimMontage::CreateSlotAnimationAsDynamicMontage(
+				Animation, TEXT("MagnesisUpperBody"), 0.25f, 0.2f, 1.0f, 1);
+			if (ActiveMagnesisMontage && AnimInstance->Montage_Play(ActiveMagnesisMontage,
+				1.0f, EMontagePlayReturnType::MontageLength, 0.0f, false) > 0.0f)
+			{
+				AnimInstance->Montage_SetNextSection(TEXT("Default"), TEXT("Default"), ActiveMagnesisMontage);
+			}
+			else
+			{
+				ActiveMagnesisMontage = nullptr;
+			}
+		}
+	}
 }
 
 void AKzPlayerCharacter::HandleTraversalPressed()

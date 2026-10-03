@@ -53,6 +53,21 @@ void FAbility::SetAbilityVisionEnabled(const EAbilityType Ability, const bool bE
 	}
 }
 
+bool FAbility::UpdateScanActivation(const EAbilityVisualMode Mode, const EAbilityType Ability, const bool bUpdateScanDirection) const
+{
+	if (!Character || !Character->IsScanPoseReady()) return false;
+	const UGameInstance* GameInstance = Character->GetGameInstance();
+	const UAbilityModeSubsystem* Subsystem = GameInstance ? GameInstance->GetSubsystem<UAbilityModeSubsystem>() : nullptr;
+	if (Subsystem && !Subsystem->IsAbilityModeActive(Mode))
+	{
+		// Called only while targeting. Cancelling/changing abilities during Enter
+		// cannot leave a delayed timer that later switches the scan back on.
+		SetAbilityModeActive(Mode, true, bUpdateScanDirection);
+		SetAbilityVisionEnabled(Ability, true);
+	}
+	return true;
+}
+
 void FAbility::ClearAbilityVisionEffects() const
 {
 	if (Character)

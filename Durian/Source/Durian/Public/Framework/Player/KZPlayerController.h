@@ -62,8 +62,6 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input",meta = (AllowPrivateAccess = true))
 	TObjectPtr<UInputAction> AbilityWheelAction;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
-	TObjectPtr<UInputAction> GuardAction;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UInputAction> CryonisTargetAtFeetAction;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UInputAction> RemoteBombThrowAction;
@@ -106,8 +104,6 @@ private:
 	
 	void OnAbilityInput(const FInputActionValue& Value, EAbilityInput Input);
 	void OnAttack();
-	void OnGuard();
-	void OnGuardReleased();
 	void OnMenu();
 	void OnAbilityWheelPressDown();
 	void OnAbilityWheelPressUp();

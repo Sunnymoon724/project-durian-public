@@ -29,12 +29,6 @@ UKZPlayerAnimInstance::UKZPlayerAnimInstance()
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> ClimbJumpAsset(
 		TEXT("/Game/Resources/Soldier/Anims/Traversal/Titan/AS_Jump_Up_Soldier.AS_Jump_Up_Soldier"));
 	ClimbJumpAnimation = ClimbJumpAsset.Object;
-	static ConstructorHelpers::FObjectFinder<UAnimSequence> SwordAttackAsset(
-		TEXT("/Game/Resources/Soldier/Anims/SwordAndShield/Combo_Attack_01_01_Seq.Combo_Attack_01_01_Seq"));
-	SwordAttack0Animation = SwordAttackAsset.Object;
-	static ConstructorHelpers::FObjectFinder<UAnimSequence> SwordBlockAsset(
-		TEXT("/Game/Resources/Soldier/Anims/SwordAndShield/Block_Loop_Seq.Block_Loop_Seq"));
-	SwordBlockAnimation = SwordBlockAsset.Object;
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> BombThrowAsset(
 		TEXT("/Game/Resources/Soldier/Anims/Abilities/Bomb/AS_Soldier_Bomb_AN_ANIM_ThrowING_Stealth.AS_Soldier_Bomb_AN_ANIM_ThrowING_Stealth"));
 	BombThrowAnimation = BombThrowAsset.Object;
@@ -94,36 +88,6 @@ void UKZPlayerAnimInstance::StopHoverAnimation()
 	{
 		Montage_Stop(0.12f, ActiveHoverMontage);
 		ActiveHoverMontage = nullptr;
-	}
-}
-
-void UKZPlayerAnimInstance::PlayGuardAnimation()
-{
-	if (!SwordBlockAnimation)
-	{
-		return;
-	}
-	ActiveCombatMontage = PlaySlotAnimationAsDynamicMontage(SwordBlockAnimation, TEXT("DefaultSlot"), 0.1f, 0.1f);
-	if (ActiveCombatMontage)
-	{
-		Montage_SetNextSection(TEXT("Default"), TEXT("Default"), ActiveCombatMontage);
-	}
-}
-
-void UKZPlayerAnimInstance::StopCombatAnimation()
-{
-	if (ActiveCombatMontage)
-	{
-		Montage_Stop(0.1f, ActiveCombatMontage);
-		ActiveCombatMontage = nullptr;
-	}
-}
-
-void UKZPlayerAnimInstance::PlaySwordAttackAnimation()
-{
-	if (SwordAttack0Animation)
-	{
-		ActiveCombatMontage = PlaySlotAnimationAsDynamicMontage(SwordAttack0Animation, TEXT("DefaultSlot"), 0.08f, 0.08f);
 	}
 }
 

@@ -35,6 +35,7 @@ protected:
 	void SetAbilityModeActive(EAbilityVisualMode Mode, bool bActive, bool bUpdateScanDirection = false) const;
 	void SetAbilityVisionEnabled(EAbilityType Ability, bool bEnabled) const;
 	void ClearAbilityVisionEffects() const;
+	bool UpdateScanActivation(EAbilityVisualMode Mode, EAbilityType Ability, bool bUpdateScanDirection = false) const;
 	bool TraceAbilityTarget(EAbilityReactionType ReactionType, float TraceRange, FHitResult& OutHit, bool bTargetAtFeet = false, const AActor* IgnoredActor = nullptr, bool bRequirePhysics = false) const;
 
 	AKzPlayerCharacter* Character = nullptr;

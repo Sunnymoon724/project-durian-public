@@ -1,6 +1,7 @@
 #include "Abilities/RemoteBomb/RemoteBombAbility.h"
 
 #include "Constants/GameConstantsDataAsset.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
@@ -18,8 +19,11 @@ void FRemoteBombAbility::Tick(const float DeltaTime)
 	}
 	else if (bThrowPending && HeldBomb.IsValid())
 	{
-		ThrowElapsed += DeltaTime;
-		if (ThrowElapsed >= 0.32f)
+		if (!Character->IsBombThrowAnimationPlaying())
+		{
+			DropHeldBomb();
+		}
+		else if (Character->HasBombThrowReachedRelease())
 		{
 			PlaceHeldBomb(true);
 		}
@@ -65,6 +69,7 @@ void FRemoteBombAbility::HandleInput(const EAbilityInput Input, float)
 				BombArray[ToIndex(Bomb->GetShape())].Reset();
 				HeldBomb.Reset();
 				bThrowPending = false;
+				Character->StopBombCarryAnimation();
 				Bomb->Destroy();
 			}
 			break;
@@ -107,9 +112,7 @@ void FRemoteBombAbility::HandleInput(const EAbilityInput Input, float)
 
 			if (GetSelectedShape(Shape) && HeldBomb.IsValid() && HeldBomb->GetShape() == Shape && !bThrowPending)
 			{
-				Character->PlayBombThrowAnimation();
-				bThrowPending = true;
-				ThrowElapsed = 0.0f;
+				bThrowPending = Character->PlayBombThrowAnimation();
 			}
 
 			break;
@@ -126,16 +129,15 @@ void FRemoteBombAbility::HandleAbilityDeselected()
 
 void FRemoteBombAbility::DropHeldBomb()
 {
+	if (Character) Character->StopBombCarryAnimation();
 	PlaceHeldBomb(false);
 	bThrowPending = false;
-	ThrowElapsed = 0.0f;
 }
 
 void FRemoteBombAbility::AbortForEndPlay()
 {
 	HeldBomb.Reset();
 	bThrowPending = false;
-	ThrowElapsed = 0.0f;
 
 	for (int32 Index = 0; Index < 2; ++Index)
 	{
@@ -346,9 +348,15 @@ FVector FRemoteBombAbility::FindDropLocation(const ARemoteBomb* Bomb) const
 	QueryParams.AddIgnoredActor(Character);
 	QueryParams.AddIgnoredActor(Bomb);
 
+	// The overhead carry keeps the cube upright. Leave clearance for its full
+	// collision bounds, not just the nominal bomb radius, when placing it.
+	const UPrimitiveComponent* BombRoot = Cast<UPrimitiveComponent>(Bomb->GetRootComponent());
+	const float Clearance = Character->GetCapsuleComponent()->GetScaledCapsuleRadius()
+		+ FMath::Max(Radius, BombRoot ? static_cast<float>(BombRoot->Bounds.SphereRadius) : Radius) + 5.0f;
+	const float DropDistance = FMath::Max(Radius + 35.0f, Clearance);
 	for (int32 Step = 0; Step < 4; ++Step)
 	{
-		const FVector Horizontal = Character->GetActorLocation() + Character->GetActorForwardVector() * (Radius + 35.0f + Step * Radius);
+		const FVector Horizontal = Character->GetActorLocation() + Character->GetActorForwardVector() * (DropDistance + Step * Radius);
 		FHitResult GroundHit;
 		const FVector TraceStart = Horizontal + FVector(0.0f, 0.0f, 80.0f);
 		const FVector TraceEnd = Horizontal - FVector(0.0f, 0.0f, 220.0f);
@@ -359,7 +367,7 @@ FVector FRemoteBombAbility::FindDropLocation(const ARemoteBomb* Bomb) const
 		}
 	}
 
-	return Character->GetActorLocation() + Character->GetActorForwardVector() * (Radius + 35.0f);
+	return Character->GetActorLocation() + Character->GetActorForwardVector() * DropDistance;
 }
 
 bool FRemoteBombAbility::CanPickUp(const ARemoteBomb* Bomb) const
@@ -413,7 +421,7 @@ void FRemoteBombAbility::PlaceHeldBomb(const bool bThrow)
 	}
 
 	Bomb->Place(Location, Impulse);
+	if (!bThrow) Character->StopBombCarryAnimation();
 	HeldBomb.Reset();
 	bThrowPending = false;
-	ThrowElapsed = 0.0f;
 }

@@ -29,7 +29,6 @@ AKzPlayerController::AKzPlayerController()
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Move.IA_Move"), MoveAction);
 
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Attack.IA_Attack"), AttackAction);
-	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Guard.IA_Guard"), GuardAction);
 	
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_AbilityUse.IA_AbilityUse"), AbilityUseAction);
 	SetObjectPtrImpl(TEXT("/Game/Inputs/IA_Interact.IA_Interact"),InteractAction);
@@ -133,12 +132,6 @@ void AKzPlayerController::SetupInputComponent()
 			EnhancedInputComponent->BindAction(AbilityWheelAction, ETriggerEvent::Completed, this, &AKzPlayerController::OnAbilityWheelPressUp);
 		}
 
-		if (GuardAction)
-		{
-			EnhancedInputComponent->BindAction(GuardAction, ETriggerEvent::Started, this, &AKzPlayerController::OnGuard);
-			EnhancedInputComponent->BindAction(GuardAction, ETriggerEvent::Completed, this, &AKzPlayerController::OnGuardReleased);
-		}
-
 		if (CryonisTargetAtFeetAction)
 		{
 			EnhancedInputComponent->BindAction(CryonisTargetAtFeetAction, ETriggerEvent::Started, this, &AKzPlayerController::OnAbilityInput, EAbilityInput::CryonisTargetAtFeet);
@@ -186,6 +179,13 @@ void AKzPlayerController::OnMove(const FInputActionValue& Value)
 	{
 		ControlledCharacter->SetDashDirection(DesiredDirection);
 		ControlledCharacter->AddMovementInput(DesiredDirection, 1.0f);
+
+		// Magnesis keeps facing the aimed object; movement becomes backpedal/strafe.
+		// CharacterMovement handles smooth controller-yaw rotation in this state.
+		if (ControlledCharacter->GetCurrentState() == EPlayerState::MagnesisHolding)
+		{
+			return;
+		}
 
 		const FRotator MovementRotation(0.f, DesiredDirection.Rotation().Yaw, 0.f);
 		ControlledCharacter->SetActorRotation(ControlledCharacter->IsSurfaceSwimming()
@@ -412,22 +412,6 @@ void AKzPlayerController::OnAttack()
 	}
 
 	AttackRequested();
-}
-
-void AKzPlayerController::OnGuard()
-{
-	if (AKzPlayerCharacter* ControlledCharacter = GetControlledCharacter())
-	{
-		ControlledCharacter->HandleGuard();
-	}
-}
-
-void AKzPlayerController::OnGuardReleased()
-{
-	if (AKzPlayerCharacter* ControlledCharacter = GetControlledCharacter())
-	{
-		ControlledCharacter->StopGuard();
-	}
 }
 
 AKzPlayerCharacter* AKzPlayerController::GetControlledCharacter()

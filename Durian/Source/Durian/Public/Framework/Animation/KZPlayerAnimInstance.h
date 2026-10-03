@@ -19,9 +19,6 @@ public:
 
 	void PlayHoverAnimation();
 	void StopHoverAnimation();
-	void PlayGuardAnimation();
-	void StopCombatAnimation();
-	void PlaySwordAttackAnimation();
 	void PlayBombThrowAnimation();
 	bool StartRunStop(float CurrentSpeed, float Deceleration);
 	bool UpdateRunStop(float CurrentSpeed, float Deceleration, float DeltaSeconds);
@@ -66,12 +63,6 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Traversal|Climb")
 	TObjectPtr<class UAnimSequence> ClimbJumpAnimation;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Combat")
-	TObjectPtr<class UAnimSequence> SwordAttack0Animation;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Combat")
-	TObjectPtr<class UAnimSequence> SwordBlockAnimation;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 	TObjectPtr<class UAnimSequence> BombThrowAnimation;

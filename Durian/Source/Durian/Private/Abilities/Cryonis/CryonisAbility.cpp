@@ -53,7 +53,7 @@ void FCryonisAbility::HandleInput(const EAbilityInput Input, float)
 	{
 	case EAbilityInput::Interact:
 		{
-			if (Character->GetCurrentState() != EPlayerState::IceTargeting)
+			if (Character->GetCurrentState() != EPlayerState::IceTargeting || !Character->IsScanPoseReady())
 			{
 				return;
 			}
@@ -84,9 +84,6 @@ void FCryonisAbility::HandleInput(const EAbilityInput Input, float)
 			{
 				Character->SetPlayerState(EPlayerState::IceTargeting);
 				bTargetAtFeet = false;
-				EnsurePreview();
-				SetAbilityModeActive(EAbilityVisualMode::Cryonis, true, true);
-				SetAbilityVisionEnabled(EAbilityType::Cryonis, true);
 			}
 			else if (PreviousState == EPlayerState::IceTargeting)
 			{
@@ -114,6 +111,12 @@ bool FCryonisAbility::IsIcePillarTarget(const AActor* Actor)
 
 void FCryonisAbility::UpdateTargeting()
 {
+	if (!UpdateScanActivation(EAbilityVisualMode::Cryonis, EAbilityType::Cryonis, true))
+	{
+		ClearTarget();
+		if (PlacementPreview.IsValid()) PlacementPreview->SetPreviewState(FVector::ZeroVector, false, false);
+		return;
+	}
 	TargetSurface.Reset();
 	TargetPillar.Reset();
 

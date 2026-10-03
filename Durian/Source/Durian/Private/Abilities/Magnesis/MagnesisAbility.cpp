@@ -4,6 +4,7 @@
 #include "Abilities/Components/AbilityReactionComponent.h"
 #include "Abilities/Core/AbilityModeTypes.h"
 #include "CollisionShape.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Constants/GameConstantsDataAsset.h"
 #include "Enums/PlayerEnums.h"
 #include "Engine/World.h"
@@ -75,7 +76,7 @@ void FMagnesisAbility::HandleInput(const EAbilityInput Input, const float AxisVa
 	{
 	case EAbilityInput::Interact:
 		{
-			if (Character->GetCurrentState() == EPlayerState::MagnesisTargeting)
+			if (Character->GetCurrentState() == EPlayerState::MagnesisTargeting && Character->IsScanPoseReady())
 			{
 				SelectTarget();
 			}
@@ -122,12 +123,15 @@ void FMagnesisAbility::EnterTargetingMode()
 
 	Character->SetPlayerState(EPlayerState::MagnesisTargeting);
 
-	SetAbilityModeActive(EAbilityVisualMode::Magnesis, true, true);
-	SetAbilityVisionEnabled(EAbilityType::Magnesis, true);
 }
 
 void FMagnesisAbility::UpdateTargeting()
 {
+	if (!UpdateScanActivation(EAbilityVisualMode::Magnesis, EAbilityType::Magnesis, true))
+	{
+		ClearTargetedComponent();
+		return;
+	}
 	UPrimitiveComponent* HitComponent = nullptr;
 	FVector HitLocation = FVector::ZeroVector;
 
@@ -224,7 +228,15 @@ void FMagnesisAbility::SelectTarget()
 			HoldBeam = FNiagaraEffectUtility::SpawnAttachedRelative(
 				CharacterMesh,
 				FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnesis/Niagara/NS_MagnesisHoldBeam.NS_MagnesisHoldBeam")),
-				TEXT("hand_r"));
+				TEXT("hand_r"), FVector::ZeroVector, FRotator::ZeroRotator, true, false);
+			if (UNiagaraComponent* Beam = HoldBeam.Get())
+			{
+				// Follow the hand position while keeping the field's up axis in world space.
+				Beam->SetAbsolute(false, true, true);
+				Beam->SetWorldRotation(FRotator::ZeroRotator);
+				Beam->SetWorldScale3D(FVector::OneVector);
+				Beam->SetRelativeLocation(FVector::ZeroVector);
+			}
 		}
 
 		CurrentHoldLocation = HitLocation;
@@ -235,6 +247,11 @@ void FMagnesisAbility::SelectTarget()
 
 		Character->SetPlayerState(EPlayerState::MagnesisHolding);
 		UpdateHoldBeam();
+		if (UNiagaraComponent* Beam = HoldBeam.Get())
+		{
+			// Set the target before the first frame of the persistent beam.
+			Beam->Activate(true);
+		}
 	}
 	else
 	{
@@ -311,7 +328,13 @@ void FMagnesisAbility::UpdateHoldBeam()
 	const UPrimitiveComponent* GrabbedComponent = PhysicsHandle ? PhysicsHandle->GetGrabbedComponent() : nullptr;
 	if (HoldBeam.IsValid() && GrabbedComponent)
 	{
-		HoldBeam->SetVariablePosition(TEXT("User.beamEnd"), GrabbedComponent->Bounds.Origin);
+		if (Character && Character->GetMesh())
+		{
+			HoldBeam->SetWorldLocation(Character->GetMesh()->GetSocketLocation(TEXT("hand_r")));
+		}
+		// The approved Niagara system expects a component-local target position.
+		const FVector LocalTarget = HoldBeam->GetComponentTransform().InverseTransformPosition(GrabbedComponent->Bounds.Origin);
+		HoldBeam->SetVariablePosition(TEXT("User.TargetPosition"), LocalTarget);
 	}
 }
 
