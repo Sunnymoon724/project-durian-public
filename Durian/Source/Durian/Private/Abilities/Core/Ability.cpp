@@ -9,6 +9,8 @@
 #include "Engine/World.h"
 #include "Framework/Player/KzPlayerCharacter.h"
 #include "GameFramework/Controller.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/PhysicsVolume.h"
 #include "Engine/GameInstance.h"
 
 float FAbility::GetRemainingCooldown(const double CooldownEndTime) const
@@ -76,6 +78,26 @@ bool FAbility::TraceAbilityTarget(const EAbilityReactionType ReactionType, const
 	{
 		TraceStart = Character->GetActorLocation() + FVector(0.0f, 0.0f, 50.0f);
 		TraceEnd = Character->GetActorLocation() - FVector(0.0f, 0.0f, 200.0f);
+	}
+
+	// Swimming puts the pawn's eye/feet probe below the water plane. A downward
+	// trace would then see the pool floor instead of the Cryonis surface.
+	// Keep other abilities and grounded aiming unchanged; still require a real
+	// visible CryonicTarget hit rather than accepting the PhysicsVolume itself.
+	if (ReactionType == EAbilityReactionType::CryonicTarget
+		&& Character->GetCharacterMovement()->IsSwimming())
+	{
+		const APhysicsVolume* Water = Character->GetPhysicsVolume();
+		if (Water && Water->bWaterVolume)
+		{
+			FVector Origin, Extent;
+			Water->GetActorBounds(false, Origin, Extent);
+			TraceStart.Z = FMath::Max(TraceStart.Z, Origin.Z + Extent.Z + 50.0f);
+			if (!bTargetAtFeet)
+			{
+				TraceEnd = TraceStart + Character->GetController()->GetControlRotation().Vector() * TraceRange;
+			}
+		}
 	}
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(AbilityTargetTrace), false, Character);

@@ -179,7 +179,7 @@ void AKzPlayerCharacter::HandleGuard()
 		AbilityComponent->HandleInput(EAbilityInput::Interrupt);
 	}
 
-	if (bGuarding || IsWallClimbing())
+	if (bGuarding || IsWallClimbing() || IsWaterExitInProgress())
 	{
 		return;
 	}
@@ -225,7 +225,7 @@ void AKzPlayerCharacter::HandleAttack()
 		AbilityComponent->HandleInput(EAbilityInput::Interrupt);
 	}
 
-	if (IsWallClimbing())
+	if (IsWallClimbing() || IsWaterExitInProgress())
 	{
 		return;
 	}
@@ -241,7 +241,7 @@ void AKzPlayerCharacter::HandleAttack()
 
 void AKzPlayerCharacter::PlayBombThrowAnimation()
 {
-	if (IsWallClimbing())
+	if (IsWallClimbing() || IsWaterExitInProgress())
 	{
 		return;
 	}
@@ -299,7 +299,7 @@ void AKzPlayerCharacter::SetPlayerState(const EPlayerState NewState)
 void AKzPlayerCharacter::HandleTraversalPressed()
 {
 	CancelRunStop();
-	if (IsSurfaceSwimming())
+	if (IsSurfaceSwimming() || IsWaterExitInProgress())
 	{
 		return;
 	}
@@ -348,6 +348,13 @@ void AKzPlayerCharacter::StopJumping()
 
 bool AKzPlayerCharacter::CancelWallClimb()
 {
+	if (UKzTitanClimbingComponent* Climbing = Cast<UKzTitanClimbingComponent>(TitanClimbing);
+		Climbing && Climbing->IsSwimmingExitActive())
+	{
+		Climbing->CancelSwimmingExit();
+		SetTraversalInput(FVector2D::ZeroVector);
+		return true;
+	}
 	if (!TitanClimbing || TitanClimbing->GetClimbState() == ETitanClimbState::Idle)
 	{
 		return false;
@@ -376,7 +383,7 @@ void AKzPlayerCharacter::SetTraversalInput(const FVector2D& Input)
 	bReceivedTraversalInputThisFrame = true;
 	if (TitanClimbing && TitanClimbing->IsClimbing())
 	{
-		TitanClimbing->SetClimbInput(Input);
+		TitanClimbing->SetClimbInput(ClimbInput);
 	}
 }
 
@@ -472,10 +479,30 @@ bool AKzPlayerCharacter::IsSurfaceSwimming() const
 	return GetCharacterMovement()->IsSwimming();
 }
 
+bool AKzPlayerCharacter::IsWaterExitInProgress() const
+{
+	const UKzTitanClimbingComponent* Climbing = Cast<UKzTitanClimbingComponent>(TitanClimbing);
+	return Climbing && Climbing->IsSwimmingExitActive();
+}
+
 void AKzPlayerCharacter::UpdateSurfaceSwimming()
 {
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (Movement->IsSwimming() && CurrentState == EPlayerState::Normal
+		&& ClimbInput.SizeSquared() > 0.04f
+		&& FVector::DotProduct(GetActorForwardVector(), LastTraversalDirection) > 0.9f)
+	{
+		if (UKzTitanClimbingComponent* Climbing = Cast<UKzTitanClimbingComponent>(TitanClimbing))
+		{
+			const bool bSwimmingOrientation = Movement->bOrientRotationToMovement;
+			Movement->bOrientRotationToMovement = bSavedOrientRotationToMovement;
+			if (!Climbing->TryStartSwimmingExit())
+			{
+				Movement->bOrientRotationToMovement = bSwimmingOrientation;
+			}
+		}
+	}
 	const bool bSwimming = Movement->IsSwimming();
 
 	if (bSwimming != bWasSwimming)
@@ -487,7 +514,7 @@ void AKzPlayerCharacter::UpdateSurfaceSwimming()
 			bSavedOrientRotationToMovement = Movement->bOrientRotationToMovement;
 			Movement->bOrientRotationToMovement = false;
 		}
-		else
+		else if (!IsWaterExitInProgress())
 		{
 			Movement->bOrientRotationToMovement = bSavedOrientRotationToMovement;
 		}
@@ -525,14 +552,8 @@ void AKzPlayerCharacter::UpdateSurfaceSwimming()
 	UAnimSequence* DesiredAnimation = SwimIdleAnimation;
 	if (ClimbInput.SizeSquared() > 0.04f && Movement->Velocity.SizeSquared2D() > 400.0f)
 	{
-		if (FMath::Abs(ClimbInput.X) > FMath::Abs(ClimbInput.Y))
-		{
-			DesiredAnimation = ClimbInput.X > 0.0f ? SwimRightAnimation : SwimLeftAnimation;
-		}
-		else
-		{
-			DesiredAnimation = SwimForwardAnimation;
-		}
+		// The body now faces travel, so strafing clips would move sideways twice.
+		DesiredAnimation = SwimForwardAnimation;
 	}
 
 	if (!DesiredAnimation)

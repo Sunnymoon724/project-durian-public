@@ -132,6 +132,7 @@ public:
 	float GetWallClimbJumpProgress() const;
 	bool IsHovering() const { return bHovering; }
 	bool IsSurfaceSwimming() const;
+	bool IsWaterExitInProgress() const;
 	float GetForwardInputValue() const { return ClimbInput.Y; }
 	FVector2D GetClimbInput() const { return ClimbInput; }
 
