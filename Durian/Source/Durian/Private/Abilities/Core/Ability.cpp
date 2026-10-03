@@ -1,25 +1,40 @@
 #include "Abilities/Core/Ability.h"
+
 #include "Abilities/Components/AbilityReactionComponent.h"
-#include "Abilities/Components/AbilityEffectComponent.h"
 #include "Abilities/Core/AbilityModeSubsystem.h"
 #include "Abilities/Core/AbilityModeTypes.h"
+#include "DataAssets/AbilityModeVisualProfile.h"
+#include "Abilities/Core/AbilityVisualModeUtility.h"
 #include "CollisionQueryParams.h"
 #include "Components/PrimitiveComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/World.h"
 #include "Framework/Player/KzPlayerCharacter.h"
+#include "Framework/Camera/CameraPostProcessComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PhysicsVolume.h"
 #include "Engine/GameInstance.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
-float FAbility::GetRemainingCooldown(const double CooldownEndTime) const
+namespace
+{
+	const FName AbilityVisionMaterialName(TEXT("M_PP_AbilityModeWorldScan"));
+}
+
+void UAbility::OnDeselected()
+{
+	HandleInput(EAbilityInput::Cancel);
+}
+
+float UAbility::GetRemainingCooldown(const double CooldownEndTime) const
 {
 	const double CurrentTime = Character && Character->GetWorld() ? Character->GetWorld()->GetTimeSeconds() : 0.0;
+
 	return static_cast<float>(FMath::Max(0.0, CooldownEndTime - CurrentTime));
 }
 
-void FAbility::SetAbilityModeActive(const EAbilityVisualMode Mode, const bool bActive, const bool bUpdateScanDirection) const
+void UAbility::SetAbilityModeActive(const EAbilityVisualMode VisualMode, const bool IsActive, const bool bUpdateScanDirection) const
 {
 	if (!Character)
 	{
@@ -27,37 +42,104 @@ void FAbility::SetAbilityModeActive(const EAbilityVisualMode Mode, const bool bA
 	}
 
 	const UGameInstance* GameInstance = Character->GetGameInstance();
+
 	UAbilityModeSubsystem* AbilityModeSubsystem = GameInstance ? GameInstance->GetSubsystem<UAbilityModeSubsystem>() : nullptr;
+
 	if (!AbilityModeSubsystem)
 	{
 		return;
 	}
 
-	if (bActive && bUpdateScanDirection)
+	if (IsActive && bUpdateScanDirection)
 	{
 		const FVector ViewDirection = Character->GetController() ? Character->GetController()->GetControlRotation().Vector() : Character->GetActorForwardVector();
+
 		AbilityModeSubsystem->SetModeScanDirection(FVector2D(ViewDirection.X, ViewDirection.Y));
 	}
 
-	AbilityModeSubsystem->SetAbilityModeActive(Mode, bActive);
+	AbilityModeSubsystem->SetAbilityModeActive(VisualMode, IsActive);
 }
 
-void FAbility::SetAbilityVisionEnabled(const EAbilityType Ability, const bool bEnabled) const
+void UAbility::SetAbilityVisionEnabled(const EAbilityType Ability, const bool bEnabled) const
 {
-	if (Character)
+	if (!Character)
 	{
-		if (UAbilityEffectComponent* AbilityEffect = Character->GetAbilityEffect())
+		return;
+	}
+
+	const UCameraPostProcessComponent* CameraPostProcess = Character->GetCameraPostProcess();
+
+	if (!CameraPostProcess)
+	{
+		return;
+	}
+
+	if (!bEnabled)
+	{
+		CameraPostProcess->DisableMaterial(AbilityVisionMaterialName);
+
+		return;
+	}
+
+	const EAbilityVisualMode AbilityMode = FAbilityVisualModeUtility::FromAbilityType(Ability);
+
+	if (AbilityMode == EAbilityVisualMode::None)
+	{
+		return;
+	}
+
+	CameraPostProcess->EnableMaterial(AbilityVisionMaterialName, [this, AbilityMode](UMaterialInstanceDynamic* MaterialInstance)
+	{
+		const auto& [ScanColor, CandidateGradeColor, CandidateGlowColor, TargetScanColor, TargetEdgeColor, WorldGradeColor] = FAbilityModeVisualProfiles::Get(AbilityMode);
+		const FAbilityModeVisualCommonProfile& Common = FAbilityModeVisualProfiles::GetCommon();
+
+		MaterialInstance->SetVectorParameterValue(TEXT("WorldGradeColor"), WorldGradeColor);
+		MaterialInstance->SetVectorParameterValue(TEXT("ScanColor"), ScanColor);
+		MaterialInstance->SetVectorParameterValue(TEXT("CandidateGradeColor"), CandidateGradeColor);
+		MaterialInstance->SetVectorParameterValue(TEXT("CandidateGlowColor"), CandidateGlowColor);
+		MaterialInstance->SetVectorParameterValue(TEXT("TargetGradeColor"), TargetScanColor);
+		MaterialInstance->SetVectorParameterValue(TEXT("TargetGlowColor"), TargetEdgeColor);
+		MaterialInstance->SetScalarParameterValue(TEXT("WorldBlend"), Common.WorldBlend);
+		MaterialInstance->SetScalarParameterValue(TEXT("CandidateBlend"), Common.CandidateBlend);
+		MaterialInstance->SetScalarParameterValue(TEXT("TargetBlend"), Common.TargetBlend);
+
+		FVector2D ScanDirection(1.0f, 0.0f);
+
+		if (const UGameInstance* GameInstance = Character->GetGameInstance())
 		{
-			AbilityEffect->SetVisionEnabled(Ability, bEnabled);
+			if (const UAbilityModeSubsystem* AbilityModeSubsystem = GameInstance->GetSubsystem<UAbilityModeSubsystem>())
+			{
+				ScanDirection = AbilityModeSubsystem->GetModeScanDirection();
+			}
 		}
+
+		MaterialInstance->SetScalarParameterValue(TEXT("ScanAngle"), FMath::Atan2(ScanDirection.Y, ScanDirection.X));
+	});
+}
+
+void UAbility::ClearAbilityVisionEffects() const
+{
+	if (!Character)
+	{
+		return;
+	}
+
+	if (UCameraPostProcessComponent* CameraPostProcess = Character->GetCameraPostProcess())
+	{
+		CameraPostProcess->DisableMaterial(AbilityVisionMaterialName);
 	}
 }
 
-bool FAbility::UpdateScanActivation(const EAbilityVisualMode Mode, const EAbilityType Ability, const bool bUpdateScanDirection) const
+bool UAbility::UpdateScanActivation(const EAbilityVisualMode Mode, const EAbilityType Ability, const bool bUpdateScanDirection) const
 {
-	if (!Character || !Character->IsScanPoseReady()) return false;
+	if (!Character || !Character->IsScanPoseReady())
+	{
+		return false;
+	}
+
 	const UGameInstance* GameInstance = Character->GetGameInstance();
 	const UAbilityModeSubsystem* Subsystem = GameInstance ? GameInstance->GetSubsystem<UAbilityModeSubsystem>() : nullptr;
+
 	if (Subsystem && !Subsystem->IsAbilityModeActive(Mode))
 	{
 		// Called only while targeting. Cancelling/changing abilities during Enter
@@ -65,21 +147,11 @@ bool FAbility::UpdateScanActivation(const EAbilityVisualMode Mode, const EAbilit
 		SetAbilityModeActive(Mode, true, bUpdateScanDirection);
 		SetAbilityVisionEnabled(Ability, true);
 	}
+
 	return true;
 }
 
-void FAbility::ClearAbilityVisionEffects() const
-{
-	if (Character)
-	{
-		if (UAbilityEffectComponent* AbilityEffect = Character->GetAbilityEffect())
-		{
-			AbilityEffect->ClearVisionEffects();
-		}
-	}
-}
-
-bool FAbility::TraceAbilityTarget(const EAbilityReactionType ReactionType, const float TraceRange, FHitResult& OutHit, const bool bTargetAtFeet, const AActor* IgnoredActor, const bool bRequirePhysics) const
+bool UAbility::TraceAbilityTarget(const EAbilityReactionType ReactionType, const float TraceRange, FHitResult& OutHit, const bool bTargetAtFeet, const AActor* IgnoredActor, const bool bRequirePhysics) const
 {
 	if (!Character || !Character->GetWorld() || !Character->GetController())
 	{

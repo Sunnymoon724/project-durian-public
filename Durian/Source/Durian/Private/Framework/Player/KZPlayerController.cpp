@@ -339,6 +339,7 @@ void AKzPlayerController::OnAbilityInput(const FInputActionValue& Value, const E
 		if (UPlayerAbilityComponent* AbilityComponent = ControlledCharacter->GetAbilityComponent())
 		{
 			const float AxisValue = Input == EAbilityInput::MagnesisDistance ? Value.Get<float>() : 0.0f;
+
 			AbilityComponent->HandleInput(Input, AxisValue);
 		}
 	}

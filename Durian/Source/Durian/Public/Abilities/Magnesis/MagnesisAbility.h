@@ -2,15 +2,20 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/Core/Ability.h"
+#include "Engine/EngineTypes.h"
+#include "MagnesisAbility.generated.h"
 
 class UPrimitiveComponent;
 class UPhysicsHandleComponent;
 class UNiagaraComponent;
 
-class FMagnesisAbility final : public FAbility
+UCLASS(BlueprintType)
+class DURIAN_API UMagnesisAbility final : public UAbility
 {
+	GENERATED_BODY()
+
 public:
-	explicit FMagnesisAbility(AKzPlayerCharacter* InCharacter);
+	virtual void Initialize(AKzPlayerCharacter* InCharacter) override;
 
 	virtual void Tick(float DeltaTime) override;
 	virtual void HandleInput(EAbilityInput Input, float AxisValue = 0.0f) override;
@@ -28,12 +33,16 @@ private:
 	void ClearTargetedComponent();
 	void UpdateHoldBeam();
 	void StopHoldBeam();
+	void RestoreHeldPawnCollision();
 
 	TWeakObjectPtr<UPrimitiveComponent> TargetedComponent;
+	TWeakObjectPtr<UPrimitiveComponent> HeldComponent;
+	TEnumAsByte<ECollisionResponse> HeldPawnCollisionResponse = ECR_Block;
 	FVector TargetedLocation = FVector::ZeroVector;
 	FVector CurrentHoldLocation = FVector::ZeroVector;
 
 	float MagnesisDistance = 0.0f;
-	UPhysicsHandleComponent* PhysicsHandle = nullptr;
+	UPROPERTY(Transient)
+	TObjectPtr<UPhysicsHandleComponent> PhysicsHandle = nullptr;
 	TWeakObjectPtr<UNiagaraComponent> HoldBeam;
 };

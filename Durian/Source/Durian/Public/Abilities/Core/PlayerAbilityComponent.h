@@ -22,44 +22,19 @@ public:
 	UPlayerAbilityComponent();
 
 	void SetAbility(EAbilityType NewAbility);
+	UAbility* GetAbility(EAbilityType AbilityType) const;
+
 	void HandleInput(EAbilityInput Input, float AxisValue = 0.0f) const;
 	void HandleAttackHit(const FHitResult& Hit, const FVector& AttackDirection) const;
+
 	AActor* GetMagnesisHeldActor() const { return MagnesisHeldActor.Get(); }
 	void SetMagnesisHeldActor(AActor* Actor);
-
-	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	bool IsHoldingRemoteBomb() const;
-	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	float GetRemoteBombSphereCooldown() const;
-	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	float GetRemoteBombCubeCooldown() const;
-	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	bool HasRemoteBombSphere() const;
-	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	bool HasRemoteBombCube() const;
-	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	bool IsRemoteBombSphereInstalled() const;
-	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
-	bool IsRemoteBombCubeInstalled() const;
-
-	UFUNCTION(BlueprintPure, Category = "Stasis")
-	float GetStasisRemainingTime() const;
-	UFUNCTION(BlueprintPure, Category = "Stasis")
-	float GetStasisCooldownRemaining() const;
-	UFUNCTION(BlueprintPure, Category = "Stasis")
-	FVector GetStasisAccumulatedImpulse() const;
-	UFUNCTION(BlueprintPure, Category = "Stasis")
-	bool IsStasisActive() const;
 
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 private:
-	float GetRemoteBombCooldown(ERemoteBombShape Shape) const;
-	bool HasRemoteBomb(ERemoteBombShape Shape) const;
-	bool IsRemoteBombInstalled(ERemoteBombShape Shape) const;
-
 	UPROPERTY(EditDefaultsOnly, Category = "Remote Bomb")
 	TSubclassOf<ARemoteBomb> RemoteBombSphereClass;
 
@@ -70,10 +45,15 @@ private:
 	TObjectPtr<AKzPlayerCharacter> Character = nullptr;
 	TWeakObjectPtr<AActor> MagnesisHeldActor;
 
-	TUniquePtr<FMagnesisAbility> MagnesisAbility;
-	TUniquePtr<FStasisAbility> StasisAbility;
-	TUniquePtr<FRemoteBombAbility> RemoteBombAbility;
-	TUniquePtr<FCryonisAbility> CryonisAbility;
+	UPROPERTY(Transient)
+	TObjectPtr<UMagnesisAbility> MagnesisAbility;
+	UPROPERTY(Transient)
+	TObjectPtr<UStasisAbility> StasisAbility;
+	UPROPERTY(Transient)
+	TObjectPtr<URemoteBombAbility> RemoteBombAbility;
+	UPROPERTY(Transient)
+	TObjectPtr<UCryonisAbility> CryonisAbility;
 
-	FAbility* CurrentAbility = nullptr;
+	UPROPERTY(Transient)
+	TObjectPtr<UAbility> CurrentAbility;
 };

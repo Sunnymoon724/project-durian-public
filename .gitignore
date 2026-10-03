@@ -16,10 +16,6 @@
 *.xcodeworkspace
 *.VSCodeCounter
 
-# Clangd / compilation database
-.cache/
-compile_commands.json
-
 # Visual Studio / Rider / VS Code user settings
 .vs/
 .vscode/
@@ -45,10 +41,6 @@ compile_commands.json
 .DS_Store
 Thumbs.db
 Desktop.ini
-
-# Local service credentials
-.env
-Tools/NotionUpdater/RefreshReport/Config.env
 
 # Temporary generated content
 .generated-content/

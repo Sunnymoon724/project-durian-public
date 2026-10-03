@@ -1,5 +1,5 @@
 #include "Abilities/Cryonis/IcePlacementPreview.h"
-#include "Constants/GameConstantsDataAsset.h"
+#include "DataAssets/GameConstantsDataAsset.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"

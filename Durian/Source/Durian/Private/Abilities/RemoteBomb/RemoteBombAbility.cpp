@@ -1,6 +1,6 @@
 #include "Abilities/RemoteBomb/RemoteBombAbility.h"
 
-#include "Constants/GameConstantsDataAsset.h"
+#include "DataAssets/GameConstantsDataAsset.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Engine/OverlapResult.h"
@@ -10,10 +10,15 @@
 #include "GameFramework/Controller.h"
 #include "Kismet/GameplayStatics.h"
 
-void FRemoteBombAbility::Tick(const float DeltaTime)
+void URemoteBombAbility::SetBombClasses(TSubclassOf<ARemoteBomb> InSphereClass, TSubclassOf<ARemoteBomb> InCubeClass)
 {
-	if (HeldBomb.IsValid() && (!Character || !Character->GetCharacterMovement() ||
-		Character->GetCharacterMovement()->IsFalling() || Character->IsWallClimbing()))
+	BombClassArray[0] = InSphereClass;
+	BombClassArray[1] = InCubeClass;
+}
+
+void URemoteBombAbility::Tick(float)
+{
+	if (HeldBomb.IsValid() && (!Character || !Character->GetCharacterMovement() || Character->GetCharacterMovement()->IsFalling() || Character->IsWallClimbing()))
 	{
 		DropHeldBomb();
 	}
@@ -30,7 +35,7 @@ void FRemoteBombAbility::Tick(const float DeltaTime)
 	}
 }
 
-void FRemoteBombAbility::HandleInput(const EAbilityInput Input, float)
+void URemoteBombAbility::HandleInput(const EAbilityInput Input, float)
 {
 	if (!Character)
 	{
@@ -122,19 +127,19 @@ void FRemoteBombAbility::HandleInput(const EAbilityInput Input, float)
 	}
 }
 
-void FRemoteBombAbility::HandleAbilityDeselected()
+void URemoteBombAbility::OnDeselected()
 {
 	DropHeldBomb();
 }
 
-void FRemoteBombAbility::DropHeldBomb()
+void URemoteBombAbility::DropHeldBomb()
 {
 	if (Character) Character->StopBombCarryAnimation();
 	PlaceHeldBomb(false);
 	bThrowPending = false;
 }
 
-void FRemoteBombAbility::AbortForEndPlay()
+void URemoteBombAbility::AbortForEndPlay()
 {
 	HeldBomb.Reset();
 	bThrowPending = false;
@@ -151,24 +156,24 @@ void FRemoteBombAbility::AbortForEndPlay()
 	}
 }
 
-float FRemoteBombAbility::GetCooldownRemaining(const ERemoteBombShape Shape) const
+float URemoteBombAbility::GetCooldownRemaining(const ERemoteBombShape Shape) const
 {
 	return GetRemainingCooldown(CooldownEndTimeArray[ToIndex(Shape)]);
 }
 
-bool FRemoteBombAbility::HasBomb(const ERemoteBombShape Shape) const
+bool URemoteBombAbility::HasBomb(const ERemoteBombShape Shape) const
 {
 	return BombArray[ToIndex(Shape)].IsValid();
 }
 
-bool FRemoteBombAbility::IsBombInstalled(const ERemoteBombShape Shape) const
+bool URemoteBombAbility::IsBombInstalled(const ERemoteBombShape Shape) const
 {
 	const ARemoteBomb* Bomb = BombArray[ToIndex(Shape)].Get();
 
 	return Bomb && !Bomb->IsHeld();
 }
 
-bool FRemoteBombAbility::GetSelectedShape(ERemoteBombShape& OutShape) const
+bool URemoteBombAbility::GetSelectedShape(ERemoteBombShape& OutShape) const
 {
 	if (!Character)
 	{
@@ -192,7 +197,7 @@ bool FRemoteBombAbility::GetSelectedShape(ERemoteBombShape& OutShape) const
 	return false;
 }
 
-void FRemoteBombAbility::SpawnBomb(const ERemoteBombShape Shape)
+void URemoteBombAbility::SpawnBomb(const ERemoteBombShape Shape)
 {
 	UWorld* World = Character ? Character->GetWorld() : nullptr;
 
@@ -239,7 +244,7 @@ void FRemoteBombAbility::SpawnBomb(const ERemoteBombShape Shape)
 	HeldBomb = NewBomb;
 }
 
-void FRemoteBombAbility::DetonateBomb(const ERemoteBombShape Shape)
+void URemoteBombAbility::DetonateBomb(const ERemoteBombShape Shape)
 {
 	const int32 Index = ToIndex(Shape);
 	ARemoteBomb* Bomb = BombArray[Index].Get();
@@ -266,7 +271,7 @@ void FRemoteBombAbility::DetonateBomb(const ERemoteBombShape Shape)
 	}
 }
 
-void FRemoteBombAbility::ApplyExplosion(ARemoteBomb* Bomb, const FVector& Origin, const float Radius) const
+void URemoteBombAbility::ApplyExplosion(ARemoteBomb* Bomb, const FVector& Origin, const float Radius) const
 {
 	UWorld* World = Character ? Character->GetWorld() : nullptr;
 
@@ -334,7 +339,7 @@ void FRemoteBombAbility::ApplyExplosion(ARemoteBomb* Bomb, const FVector& Origin
 	}
 }
 
-FVector FRemoteBombAbility::FindDropLocation(const ARemoteBomb* Bomb) const
+FVector URemoteBombAbility::FindDropLocation(const ARemoteBomb* Bomb) const
 {
 	const UWorld* World = Character ? Character->GetWorld() : nullptr;
 
@@ -370,7 +375,7 @@ FVector FRemoteBombAbility::FindDropLocation(const ARemoteBomb* Bomb) const
 	return Character->GetActorLocation() + Character->GetActorForwardVector() * DropDistance;
 }
 
-bool FRemoteBombAbility::CanPickUp(const ARemoteBomb* Bomb) const
+bool URemoteBombAbility::CanPickUp(const ARemoteBomb* Bomb) const
 {
 	if (!Character || !Bomb || !Character->GetWorld())
 	{
@@ -391,7 +396,7 @@ bool FRemoteBombAbility::CanPickUp(const ARemoteBomb* Bomb) const
 	return !Character->GetWorld()->LineTraceSingleByChannel(Hit, Character->GetPawnViewLocation(), Bomb->GetActorLocation(), ECC_Visibility, QueryParams) || Hit.GetActor() == Bomb;
 }
 
-void FRemoteBombAbility::PlaceHeldBomb(const bool bThrow)
+void URemoteBombAbility::PlaceHeldBomb(const bool bThrow)
 {
 	ARemoteBomb* Bomb = HeldBomb.Get();
 

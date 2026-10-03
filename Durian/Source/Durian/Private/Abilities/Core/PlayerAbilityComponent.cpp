@@ -25,12 +25,20 @@ void UPlayerAbilityComponent::BeginPlay()
 		return;
 	}
 
-	MagnesisAbility = MakeUnique<FMagnesisAbility>(Character);
-	StasisAbility = MakeUnique<FStasisAbility>(Character);
-	RemoteBombAbility = MakeUnique<FRemoteBombAbility>(Character, RemoteBombSphereClass, RemoteBombCubeClass);
-	CryonisAbility = MakeUnique<FCryonisAbility>(Character);
+	MagnesisAbility = NewObject<UMagnesisAbility>(this);
+	MagnesisAbility->Initialize(Character);
 
-	CurrentAbility = MagnesisAbility.Get();
+	StasisAbility = NewObject<UStasisAbility>(this);
+	StasisAbility->Initialize(Character);
+
+	RemoteBombAbility = NewObject<URemoteBombAbility>(this);
+	RemoteBombAbility->Initialize(Character);
+	RemoteBombAbility->SetBombClasses(RemoteBombSphereClass, RemoteBombCubeClass);
+
+	CryonisAbility = NewObject<UCryonisAbility>(this);
+	CryonisAbility->Initialize(Character);
+
+	CurrentAbility = MagnesisAbility;
 }
 
 void UPlayerAbilityComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -49,6 +57,7 @@ void UPlayerAbilityComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		RemoteBombAbility->AbortForEndPlay();
 	}
+
 	SetMagnesisHeldActor(nullptr);
 
 	Super::EndPlay(EndPlayReason);
@@ -86,44 +95,17 @@ void UPlayerAbilityComponent::SetAbility(const EAbilityType NewAbility)
 		return;
 	}
 
-	FAbility* PreviousAbility = CurrentAbility;
+	UAbility* PreviousAbility = CurrentAbility.Get();
 	const EAbilityType PreviousAbilityType = Character->GetCurrentAbilityType();
+
+	if (PreviousAbility && PreviousAbilityType != NewAbility)
+	{
+		PreviousAbility->OnDeselected();
+	}
 
 	Character->CurrentAbilityType = NewAbility;
 
-	switch (NewAbility)
-	{
-	case EAbilityType::Magnesis:
-		CurrentAbility = MagnesisAbility.Get();
-		break;
-	case EAbilityType::Cryonis:
-		CurrentAbility = CryonisAbility.Get();
-		break;
-	case EAbilityType::Stasis:
-		CurrentAbility = StasisAbility.Get();
-		break;
-	case EAbilityType::RemoteBombSphere:
-	case EAbilityType::RemoteBombCube:
-		CurrentAbility = RemoteBombAbility.Get();
-		break;
-	default:
-		CurrentAbility = nullptr;
-		UE_LOG(LogTemp, Log, TEXT("Not Supported in %s."), *UEnum::GetValueAsString(NewAbility));
-		break;
-	}
-
-	if (PreviousAbility == RemoteBombAbility.Get() && PreviousAbilityType != NewAbility)
-	{
-		RemoteBombAbility->HandleAbilityDeselected();
-	}
-	else if (PreviousAbility == StasisAbility.Get() && PreviousAbility != CurrentAbility)
-	{
-		StasisAbility->HandleAbilityDeselected();
-	}
-	else if (PreviousAbility && PreviousAbility != CurrentAbility)
-	{
-		PreviousAbility->HandleInput(EAbilityInput::Cancel);
-	}
+	CurrentAbility = GetAbility(NewAbility);
 
 	Character->OnAbilityChanged.Broadcast(NewAbility);
 }
@@ -144,72 +126,21 @@ void UPlayerAbilityComponent::HandleAttackHit(const FHitResult& Hit, const FVect
 	}
 }
 
-float UPlayerAbilityComponent::GetRemoteBombCooldown(const ERemoteBombShape Shape) const
+UAbility* UPlayerAbilityComponent::GetAbility(const EAbilityType AbilityType) const
 {
-	return RemoteBombAbility ? RemoteBombAbility->GetCooldownRemaining(Shape) : 0.0f;
-}
-
-float UPlayerAbilityComponent::GetRemoteBombSphereCooldown() const
-{
-	return GetRemoteBombCooldown(ERemoteBombShape::Sphere);
-}
-
-float UPlayerAbilityComponent::GetRemoteBombCubeCooldown() const
-{
-	return GetRemoteBombCooldown(ERemoteBombShape::Cube);
-}
-
-bool UPlayerAbilityComponent::HasRemoteBomb(const ERemoteBombShape Shape) const
-{
-	return RemoteBombAbility && RemoteBombAbility->HasBomb(Shape);
-}
-
-bool UPlayerAbilityComponent::HasRemoteBombSphere() const
-{
-	return HasRemoteBomb(ERemoteBombShape::Sphere);
-}
-
-bool UPlayerAbilityComponent::HasRemoteBombCube() const
-{
-	return HasRemoteBomb(ERemoteBombShape::Cube);
-}
-
-bool UPlayerAbilityComponent::IsRemoteBombInstalled(const ERemoteBombShape Shape) const
-{
-	return RemoteBombAbility && RemoteBombAbility->IsBombInstalled(Shape);
-}
-
-bool UPlayerAbilityComponent::IsRemoteBombSphereInstalled() const
-{
-	return IsRemoteBombInstalled(ERemoteBombShape::Sphere);
-}
-
-bool UPlayerAbilityComponent::IsRemoteBombCubeInstalled() const
-{
-	return IsRemoteBombInstalled(ERemoteBombShape::Cube);
-}
-
-bool UPlayerAbilityComponent::IsHoldingRemoteBomb() const
-{
-	return RemoteBombAbility && RemoteBombAbility->IsHoldingBomb();
-}
-
-float UPlayerAbilityComponent::GetStasisRemainingTime() const
-{
-	return StasisAbility ? StasisAbility->GetRemainingTime() : 0.0f;
-}
-
-float UPlayerAbilityComponent::GetStasisCooldownRemaining() const
-{
-	return StasisAbility ? StasisAbility->GetCooldownRemaining() : 0.0f;
-}
-
-FVector UPlayerAbilityComponent::GetStasisAccumulatedImpulse() const
-{
-	return StasisAbility ? StasisAbility->GetAccumulatedImpulse() : FVector::ZeroVector;
-}
-
-bool UPlayerAbilityComponent::IsStasisActive() const
-{
-	return StasisAbility && StasisAbility->IsStasisActive();
+	switch (AbilityType)
+	{
+	case EAbilityType::Magnesis:
+		return MagnesisAbility.Get();
+	case EAbilityType::Cryonis:
+		return CryonisAbility.Get();
+	case EAbilityType::Stasis:
+		return StasisAbility.Get();
+	case EAbilityType::RemoteBombSphere:
+	case EAbilityType::RemoteBombCube:
+		return RemoteBombAbility.Get();
+	default:
+		UE_LOG(LogTemp, Error, TEXT("Not Supported in %s."), *UEnum::GetValueAsString(AbilityType));
+		return nullptr;
+	}
 }

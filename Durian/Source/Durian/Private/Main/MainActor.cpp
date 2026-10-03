@@ -2,8 +2,8 @@
 
 
 #include "Main/MainActor.h"
-#include "Main/MainConfig.h"
-#include "Scenes/Core/KZSceneDefinition.h"
+#include "DataAssets/MainConfig.h"
+#include "DataAssets/KZSceneDefinition.h"
 #include "Scenes/Core/KzSceneSubsystem.h"
 
 // Sets default values

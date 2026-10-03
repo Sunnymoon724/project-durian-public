@@ -8,8 +8,7 @@
 #include "GameFramework/Character.h"
 
 class UPrimitiveComponent;
-class UAbilityEffectComponent;
-class UDamageableComponent;
+class UCameraPostProcessComponent;
 class UTitanClimbingComponent;
 class UPointLightComponent;
 class UAnimSequence;
@@ -28,6 +27,7 @@ public:
 	AKzPlayerCharacter();
 	virtual ~AKzPlayerCharacter() override;
 
+	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void Landed(const FHitResult& Hit) override;
@@ -36,12 +36,6 @@ public:
 protected:
 private:
 	friend class UPlayerAbilityComponent;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability VFX", meta = (AllowPrivateAccess = true))
-	TObjectPtr<UAbilityEffectComponent> AbilityEffect;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Damage", meta = (AllowPrivateAccess = true))
-	TObjectPtr<UDamageableComponent> Damageable;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Abilities", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UPlayerAbilityComponent> AbilityComponent;
@@ -123,7 +117,7 @@ public:
 
 	FAbilityChangedDelegate OnAbilityChanged;
 
-	UAbilityEffectComponent* GetAbilityEffect() const { return AbilityEffect; }
+	UCameraPostProcessComponent* GetCameraPostProcess() const;
 
 	EPlayerState GetCurrentState() const { return CurrentState; }
 	EAbilityType GetCurrentAbilityType() const { return CurrentAbilityType; }

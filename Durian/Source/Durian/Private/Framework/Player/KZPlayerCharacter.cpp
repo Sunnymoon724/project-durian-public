@@ -4,8 +4,7 @@
 #include "Framework/Animation/KZPlayerAnimInstance.h"
 #include "Framework/Movement/KZTitanClimbingComponent.h"
 
-#include "Abilities/Components/AbilityEffectComponent.h"
-#include "Abilities/Components/DamageableComponent.h"
+#include "Framework/Camera/CameraPostProcessComponent.h"
 #include "Abilities/Core/Ability.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
@@ -16,7 +15,6 @@
 #include "Engine/World.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PhysicsVolume.h"
-#include "Kismet/GameplayStatics.h"
 #include "TitanClimbing.h"
 #include "TitanClimbingComponent.h"
 
@@ -24,6 +22,7 @@ AKzPlayerCharacter::AKzPlayerCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
+	SetCanBeDamaged(false);
 
 	// Keep the character collision frame identical to the verified Soldier
 	// playground. Titan Climbing calculates its wall anchor from this capsule;
@@ -37,11 +36,6 @@ AKzPlayerCharacter::AKzPlayerCharacter()
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
 	GetCharacterMovement()->JumpZVelocity = 450.0f;
 	GetCharacterMovement()->AirControl = 0.35f;
-
-	AbilityEffect = CreateDefaultSubobject<UAbilityEffectComponent>(TEXT("AbilityEffect"));
-
-	Damageable = CreateDefaultSubobject<UDamageableComponent>(TEXT("Damageable"));
-	Damageable->SetDestroyOwnerOnDepleted(false);
 
 	AbilityComponent = CreateDefaultSubobject<UPlayerAbilityComponent>(TEXT("PlayerAbilityComponent"));
 	TitanClimbing = CreateDefaultSubobject<UKzTitanClimbingComponent>(TEXT("TitanClimbing"));
@@ -102,6 +96,17 @@ AKzPlayerCharacter::AKzPlayerCharacter()
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->MaxWalkSpeed = NormalWalkSpeed;
 
+}
+
+void AKzPlayerCharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	AbilityComponent = FindComponentByClass<UPlayerAbilityComponent>();
+	if (!AbilityComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Player is missing PlayerAbilityComponent."));
+	}
 }
 
 void AKzPlayerCharacter::BeginPlay()
@@ -287,11 +292,6 @@ void AKzPlayerCharacter::PerformUnarmedHit()
 		return;
 	}
 
-	if (AActor* HitActor = Hit.GetActor())
-	{
-		UGameplayStatics::ApplyPointDamage(HitActor, 100.0f, AttackDirection, Hit, Controller, this, nullptr);
-	}
-
 	if (AbilityComponent)
 	{
 		AbilityComponent->HandleAttackHit(Hit, AttackDirection);
@@ -304,6 +304,11 @@ void AKzPlayerCharacter::SetAbility(const EAbilityType NewAbility) const
 	{
 		AbilityComponent->SetAbility(NewAbility);
 	}
+}
+
+UCameraPostProcessComponent* AKzPlayerCharacter::GetCameraPostProcess() const
+{
+	return FindComponentByClass<UCameraPostProcessComponent>();
 }
 
 void AKzPlayerCharacter::SetPlayerState(const EPlayerState NewState)
@@ -370,7 +375,8 @@ void AKzPlayerCharacter::UpdateScanAndBombAnimation()
 		bBombThrowRequested = false;
 		return;
 	}
-	const bool bHoldingBomb = AbilityComponent && AbilityComponent->IsHoldingRemoteBomb();
+	const URemoteBombAbility* BombAbility = AbilityComponent ? Cast<URemoteBombAbility>(AbilityComponent->GetAbility(EAbilityType::RemoteBombSphere)) : nullptr;
+	const bool bHoldingBomb = BombAbility && BombAbility->IsHoldingBomb();
 	if (bHoldingBomb)
 	{
 		Stop(ActiveScanMontage);

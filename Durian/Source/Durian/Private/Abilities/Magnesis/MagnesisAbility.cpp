@@ -4,8 +4,8 @@
 #include "Abilities/Components/AbilityReactionComponent.h"
 #include "Abilities/Core/AbilityModeTypes.h"
 #include "CollisionShape.h"
+#include "DataAssets/GameConstantsDataAsset.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Constants/GameConstantsDataAsset.h"
 #include "Enums/PlayerEnums.h"
 #include "Engine/World.h"
 #include "Framework/Player/KzPlayerCharacter.h"
@@ -15,8 +15,10 @@
 #include "NiagaraComponent.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
 
-FMagnesisAbility::FMagnesisAbility(AKzPlayerCharacter* InCharacter) : FAbility(InCharacter)
+void UMagnesisAbility::Initialize(AKzPlayerCharacter* InCharacter)
 {
+	Super::Initialize(InCharacter);
+
 	const UGameConstantsDataAsset* Constants = UGameConstantsDataAsset::Get();
 
 	MagnesisDistance = Constants->MagnesisDefaultDistance;
@@ -35,13 +37,13 @@ FMagnesisAbility::FMagnesisAbility(AKzPlayerCharacter* InCharacter) : FAbility(I
 	}
 }
 
-void FMagnesisAbility::Tick(float DeltaTime)
+void UMagnesisAbility::Tick(float DeltaTime)
 {
 	if (!Character)
 	{
 		return;
 	}
-	
+
 	EPlayerState state = Character->GetCurrentState();
 
 	if ((state == EPlayerState::MagnesisTargeting || state == EPlayerState::MagnesisHolding) && Character->GetCharacterMovement() && Character->GetCharacterMovement()->IsFalling())
@@ -65,7 +67,7 @@ void FMagnesisAbility::Tick(float DeltaTime)
 	}
 }
 
-void FMagnesisAbility::HandleInput(const EAbilityInput Input, const float AxisValue)
+void UMagnesisAbility::HandleInput(const EAbilityInput Input, const float AxisValue)
 {
 	if (!Character)
 	{
@@ -114,7 +116,7 @@ void FMagnesisAbility::HandleInput(const EAbilityInput Input, const float AxisVa
 	}
 }
 
-void FMagnesisAbility::EnterTargetingMode()
+void UMagnesisAbility::EnterTargetingMode()
 {
 	if (!Character)
 	{
@@ -125,7 +127,7 @@ void FMagnesisAbility::EnterTargetingMode()
 
 }
 
-void FMagnesisAbility::UpdateTargeting()
+void UMagnesisAbility::UpdateTargeting()
 {
 	if (!UpdateScanActivation(EAbilityVisualMode::Magnesis, EAbilityType::Magnesis, true))
 	{
@@ -145,7 +147,7 @@ void FMagnesisAbility::UpdateTargeting()
 	ClearTargetedComponent();
 }
 
-void FMagnesisAbility::UpdateControl(const float DeltaTime)
+void UMagnesisAbility::UpdateControl(const float DeltaTime)
 {
 	UPhysicsHandleComponent* MagnesisPhysicsHandle = PhysicsHandle;
 
@@ -158,10 +160,13 @@ void FMagnesisAbility::UpdateControl(const float DeltaTime)
 
 	if (!MagnesisPhysicsHandle->GetGrabbedComponent())
 	{
+		RestoreHeldPawnCollision();
+
 		if (UPlayerAbilityComponent* AbilityComponent = Character->GetAbilityComponent())
 		{
 			AbilityComponent->SetMagnesisHeldActor(nullptr);
 		}
+
 		StopHoldBeam();
 		Character->SetPlayerState(EPlayerState::Normal);
 
@@ -188,12 +193,13 @@ void FMagnesisAbility::UpdateControl(const float DeltaTime)
 
 	// Move the physics-handle target gradually so the object follows with a soft lag.
 	CurrentHoldLocation = FMath::VInterpTo(CurrentHoldLocation, SafeTargetLocation, DeltaTime, UGameConstantsDataAsset::Get()->MagnesisFollowSpeed);
-	MagnesisPhysicsHandle->SetTargetLocation(CurrentHoldLocation);
-	UpdateHoldBeam();
 
+	MagnesisPhysicsHandle->SetTargetLocation(CurrentHoldLocation);
+
+	UpdateHoldBeam();
 }
 
-void FMagnesisAbility::SelectTarget()
+void UMagnesisAbility::SelectTarget()
 {
 	UPhysicsHandleComponent* MagnesisPhysicsHandle = PhysicsHandle;
 	UPrimitiveComponent* HitComponent = nullptr;
@@ -218,6 +224,11 @@ void FMagnesisAbility::SelectTarget()
 
 	if (MagnesisPhysicsHandle->GetGrabbedComponent())
 	{
+		UPrimitiveComponent* GrabbedComponent = MagnesisPhysicsHandle->GetGrabbedComponent();
+		HeldComponent = GrabbedComponent;
+		HeldPawnCollisionResponse = GrabbedComponent->GetCollisionResponseToChannel(ECC_Pawn);
+		GrabbedComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+
 		if (UPlayerAbilityComponent* AbilityComponent = Character->GetAbilityComponent())
 		{
 			AbilityComponent->SetMagnesisHeldActor(MagnesisPhysicsHandle->GetGrabbedComponent()->GetOwner());
@@ -225,10 +236,8 @@ void FMagnesisAbility::SelectTarget()
 
 		if (USkeletalMeshComponent* CharacterMesh = Character->GetMesh())
 		{
-			HoldBeam = FNiagaraEffectUtility::SpawnAttachedRelative(
-				CharacterMesh,
-				FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnesis/Niagara/NS_MagnesisHoldBeam.NS_MagnesisHoldBeam")),
-				TEXT("hand_r"), FVector::ZeroVector, FRotator::ZeroRotator, true, false);
+			HoldBeam = FNiagaraEffectUtility::SpawnAttachedRelative(CharacterMesh, FSoftObjectPath(TEXT("/Game/Resources/VFX/Magnesis/Niagara/NS_MagnesisHoldBeam.NS_MagnesisHoldBeam")), TEXT("hand_r"), FVector::ZeroVector, FRotator::ZeroRotator, true, false);
+
 			if (UNiagaraComponent* Beam = HoldBeam.Get())
 			{
 				// Follow the hand position while keeping the field's up axis in world space.
@@ -246,6 +255,7 @@ void FMagnesisAbility::SelectTarget()
 		MagnesisDistance = FMath::Clamp(FVector::DotProduct(HitLocation - HoldLocation, Character->GetController()->GetControlRotation().Vector()), UGameConstantsDataAsset::Get()->MagnesisMinDistance, UGameConstantsDataAsset::Get()->MagnesisMaxDistance);
 
 		Character->SetPlayerState(EPlayerState::MagnesisHolding);
+
 		UpdateHoldBeam();
 		if (UNiagaraComponent* Beam = HoldBeam.Get())
 		{
@@ -259,7 +269,7 @@ void FMagnesisAbility::SelectTarget()
 	}
 }
 
-void FMagnesisAbility::ExitTargetingMode()
+void UMagnesisAbility::ExitTargetingMode()
 {
 	if (!Character)
 	{
@@ -272,7 +282,7 @@ void FMagnesisAbility::ExitTargetingMode()
 	ClearAbilityVisionEffects();
 }
 
-bool FMagnesisAbility::TraceTarget(UPrimitiveComponent*& OutComponent, FVector& OutLocation) const
+bool UMagnesisAbility::TraceTarget(UPrimitiveComponent*& OutComponent, FVector& OutLocation) const
 {
 	OutComponent = nullptr;
 	OutLocation = FVector::ZeroVector;
@@ -294,13 +304,8 @@ bool FMagnesisAbility::TraceTarget(UPrimitiveComponent*& OutComponent, FVector& 
 	return true;
 }
 
-void FMagnesisAbility::Release()
+void UMagnesisAbility::Release()
 {
-	if (!Character)
-	{
-		return;
-	}
-
 	if (UPhysicsHandleComponent* MagnesisPhysicsHandle = PhysicsHandle)
 	{
 		if (MagnesisPhysicsHandle->GetGrabbedComponent())
@@ -308,12 +313,20 @@ void FMagnesisAbility::Release()
 			MagnesisPhysicsHandle->ReleaseComponent();
 		}
 	}
+
+	RestoreHeldPawnCollision();
+
+	if (!Character)
+	{
+		return;
+	}
+
 	if (UPlayerAbilityComponent* AbilityComponent = Character->GetAbilityComponent())
 	{
 		AbilityComponent->SetMagnesisHeldActor(nullptr);
 	}
-	StopHoldBeam();
 
+	StopHoldBeam();
 	ClearTargetedComponent();
 
 	CurrentHoldLocation = FVector::ZeroVector;
@@ -323,9 +336,20 @@ void FMagnesisAbility::Release()
 	ClearAbilityVisionEffects();
 }
 
-void FMagnesisAbility::UpdateHoldBeam()
+void UMagnesisAbility::RestoreHeldPawnCollision()
+{
+	if (UPrimitiveComponent* Component = HeldComponent.Get())
+	{
+		Component->SetCollisionResponseToChannel(ECC_Pawn, HeldPawnCollisionResponse);
+	}
+
+	HeldComponent.Reset();
+}
+
+void UMagnesisAbility::UpdateHoldBeam()
 {
 	const UPrimitiveComponent* GrabbedComponent = PhysicsHandle ? PhysicsHandle->GetGrabbedComponent() : nullptr;
+
 	if (HoldBeam.IsValid() && GrabbedComponent)
 	{
 		if (Character && Character->GetMesh())
@@ -338,17 +362,18 @@ void FMagnesisAbility::UpdateHoldBeam()
 	}
 }
 
-void FMagnesisAbility::StopHoldBeam()
+void UMagnesisAbility::StopHoldBeam()
 {
 	if (UNiagaraComponent* Beam = HoldBeam.Get())
 	{
 		Beam->DeactivateImmediate();
 		Beam->DestroyComponent();
 	}
+
 	HoldBeam.Reset();
 }
 
-void FMagnesisAbility::SetTargetedComponent(UPrimitiveComponent* NewTarget, const FVector& NewTargetLocation)
+void UMagnesisAbility::SetTargetedComponent(UPrimitiveComponent* NewTarget, const FVector& NewTargetLocation)
 {
 	if (TargetedComponent.IsValid() && TargetedComponent.Get() != NewTarget)
 	{
@@ -375,7 +400,7 @@ void FMagnesisAbility::SetTargetedComponent(UPrimitiveComponent* NewTarget, cons
 	}
 }
 
-void FMagnesisAbility::ClearTargetedComponent()
+void UMagnesisAbility::ClearTargetedComponent()
 {
 	if (TargetedComponent.IsValid())
 	{

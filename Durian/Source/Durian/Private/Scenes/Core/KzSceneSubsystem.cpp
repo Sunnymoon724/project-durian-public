@@ -1,6 +1,6 @@
 #include "Scenes/Core/KzSceneSubsystem.h"
 #include "Scenes/Core/KZScene.h"
-#include "Scenes/Core/KZSceneDefinition.h"
+#include "DataAssets/KZSceneDefinition.h"
 #include "Kismet/GameplayStatics.h"
 #include "UObject/UObjectGlobals.h"
 

@@ -1,28 +1,31 @@
 #pragma once
 
 #include "Abilities/Core/Ability.h"
+#include "StasisAbility.generated.h"
 
 class UPrimitiveComponent;
 class UStasisTargetComponent;
 class AActor;
 
-class FStasisAbility final : public FAbility
+UCLASS(BlueprintType)
+class DURIAN_API UStasisAbility final : public UAbility
 {
-public:
-	explicit FStasisAbility(AKzPlayerCharacter* InCharacter)
-		: FAbility(InCharacter)
-	{
-	}
+	GENERATED_BODY()
 
+public:
 	virtual void Tick(float DeltaTime) override;
 	void TickPersistent(float DeltaTime);
 	virtual void HandleInput(EAbilityInput Input, float AxisValue = 0.0f) override;
 	void HandleAttackHit(const FHitResult& Hit, const FVector& AttackDirection) const;
-	void HandleAbilityDeselected();
+	void OnDeselected() override;
 	void AbortForEndPlay();
+	UFUNCTION(BlueprintPure, Category = "Stasis")
 	bool IsStasisActive() const;
+	UFUNCTION(BlueprintPure, Category = "Stasis")
 	float GetRemainingTime() const { return RemainingTime; }
+	UFUNCTION(BlueprintPure, Category = "Stasis")
 	float GetCooldownRemaining() const;
+	UFUNCTION(BlueprintPure, Category = "Stasis")
 	FVector GetAccumulatedImpulse() const;
 
 private:

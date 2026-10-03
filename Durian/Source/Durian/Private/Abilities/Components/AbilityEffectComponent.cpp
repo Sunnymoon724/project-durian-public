@@ -1,27 +1,23 @@
 #include "Abilities/Components/AbilityEffectComponent.h"
 
 #include "Abilities/Core/AbilityModeSubsystem.h"
-#include "Abilities/Core/AbilityModeVisualProfile.h"
+#include "DataAssets/AbilityModeVisualProfile.h"
 #include "Abilities/Core/AbilityVisualModeUtility.h"
 #include "Utilities/NiagaraEffectUtility.h"
 #include "Camera/CameraComponent.h"
-#include "Camera/PlayerCameraManager.h"
-#include "Components/PrimitiveComponent.h"
 #include "Engine/GameInstance.h"
-#include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
 #include "NiagaraSystem.h"
 
+namespace
+{
+	const FName AbilityVisionMaterialName(TEXT("M_PP_AbilityModeWorldScan"));
+}
+
 UAbilityEffectComponent::UAbilityEffectComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
-
-	const TSoftObjectPtr<UMaterialInterface> AbilityModeWorldScanMaterial(FSoftObjectPath(TEXT("/Game/Resources/VFX/AbilityMode/PP/M_PP_AbilityModeWorldScan.M_PP_AbilityModeWorldScan")));
-	VisionMaterials.Add(EAbilityType::Magnesis, AbilityModeWorldScanMaterial);
-	VisionMaterials.Add(EAbilityType::Cryonis, AbilityModeWorldScanMaterial);
-	VisionMaterials.Add(EAbilityType::Stasis, AbilityModeWorldScanMaterial);
-
 }
 
 void UAbilityEffectComponent::BeginPlay()
@@ -29,79 +25,42 @@ void UAbilityEffectComponent::BeginPlay()
 	Super::BeginPlay();
 
 	CameraComponent = GetOwner() ? GetOwner()->FindComponentByClass<UCameraComponent>() : nullptr;
-	PlayerCameraManager = GetWorld() ? UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0) : nullptr;
-
-	if (!CameraComponent.IsValid() && !PlayerCameraManager.IsValid())
+	if (!CameraComponent.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AbilityEffectComponent: No camera or PlayerCameraManager for '%s'."), *GetNameSafe(GetOwner()));
+		UE_LOG(LogTemp, Warning, TEXT("AbilityEffectComponent: No camera for '%s'."), *GetNameSafe(GetOwner()));
 
 		return;
 	}
 
-	for (const TPair<EAbilityType, TSoftObjectPtr<UMaterialInterface>>& VisionMaterial : VisionMaterials)
+	for (FWeightedBlendable& Blendable : CameraComponent->PostProcessSettings.WeightedBlendables.Array)
 	{
-		if (UMaterialInstanceDynamic* MaterialInstance = GetOrCreateVisionMaterial(VisionMaterial.Key))
+		UMaterialInterface* Material = Cast<UMaterialInterface>(Blendable.Object);
+		if (!Material || EffectMaterials.Contains(Material->GetFName()))
 		{
-			VisionWeights.Add(VisionMaterial.Key, 0.0f);
-
-			SetBlendableWeight(MaterialInstance, 0.0f);
+			continue;
 		}
+
+		UMaterialInstanceDynamic* MaterialInstance = UMaterialInstanceDynamic::Create(Material, this);
+		EffectMaterials.Add(Material->GetFName(), MaterialInstance);
+		Blendable.Object = MaterialInstance;
 	}
-
-	for (const TPair<EAbilityType, TSoftObjectPtr<UMaterialInterface>>& HighlightMaterial : HighlightMaterials)
-	{
-		if (UMaterialInstanceDynamic* MaterialInstance = GetOrCreateHighlightMaterial(HighlightMaterial.Key))
-		{
-			HighlightWeights.Add(HighlightMaterial.Key, 0.0f);
-
-			SetBlendableWeight(MaterialInstance, 0.0f);
-		}
-	}
-
 }
 
 void UAbilityEffectComponent::SetVisionEnabled(const EAbilityType Ability, const bool bEnabled)
 {
-	if (!CameraComponent.IsValid())
+	const TObjectPtr<UMaterialInstanceDynamic>* MaterialInstance = EffectMaterials.Find(AbilityVisionMaterialName);
+	if (!MaterialInstance)
 	{
-		if (!PlayerCameraManager.IsValid())
-		{
-			return;
-		}
+		UE_LOG(LogTemp, Warning, TEXT("AbilityEffectComponent: Camera is missing %s."), *AbilityVisionMaterialName.ToString());
+		return;
 	}
 
 	if (bEnabled)
 	{
-		for (const TPair<EAbilityType, TObjectPtr<UMaterialInstanceDynamic>>& VisionMaterial : VisionMaterialInstances)
-		{
-			if (VisionMaterial.Key != Ability)
-			{
-				SetBlendableWeight(VisionMaterial.Value, 0.0f);
-			}
-		}
-
-		for (const TPair<EAbilityType, TObjectPtr<UMaterialInstanceDynamic>>& HighlightMaterial : HighlightMaterialInstances)
-		{
-			if (HighlightMaterial.Key != Ability)
-			{
-				SetBlendableWeight(HighlightMaterial.Value, 0.0f);
-			}
-		}
+		ApplyVisionProfile(*MaterialInstance, Ability);
 	}
 
-	if (UMaterialInstanceDynamic* MaterialInstance = GetOrCreateVisionMaterial(Ability))
-	{
-		ApplyVisionProfile(MaterialInstance, Ability);
-		VisionWeights.Add(Ability, bEnabled ? 1.0f : 0.0f);
-		SetBlendableWeight(MaterialInstance, bEnabled ? 1.0f : 0.0f);
-	}
-
-	if (UMaterialInstanceDynamic* MaterialInstance = GetOrCreateHighlightMaterial(Ability))
-	{
-		HighlightWeights.Add(Ability, bEnabled ? 1.0f : 0.0f);
-		SetBlendableWeight(MaterialInstance, bEnabled ? 1.0f : 0.0f);
-	}
-
+	SetEffectWeight(AbilityVisionMaterialName, bEnabled ? 1.0f : 0.0f);
 }
 
 void UAbilityEffectComponent::ApplyVisionProfile(UMaterialInstanceDynamic* MaterialInstance, const EAbilityType Ability) const
@@ -145,17 +104,7 @@ void UAbilityEffectComponent::ApplyVisionProfile(UMaterialInstanceDynamic* Mater
 
 void UAbilityEffectComponent::ClearVisionEffects()
 {
-	for (const TPair<EAbilityType, TObjectPtr<UMaterialInstanceDynamic>>& VisionMaterial : VisionMaterialInstances)
-	{
-		SetBlendableWeight(VisionMaterial.Value, 0.0f);
-		VisionWeights.Add(VisionMaterial.Key, 0.0f);
-	}
-
-	for (const TPair<EAbilityType, TObjectPtr<UMaterialInstanceDynamic>>& HighlightMaterial : HighlightMaterialInstances)
-	{
-		SetBlendableWeight(HighlightMaterial.Value, 0.0f);
-		HighlightWeights.Add(HighlightMaterial.Key, 0.0f);
-	}
+	SetEffectWeight(AbilityVisionMaterialName, 0.0f);
 }
 void UAbilityEffectComponent::PlayEnterPulse(EAbilityType Ability)
 {
@@ -169,71 +118,14 @@ void UAbilityEffectComponent::PlayEnterPulse(EAbilityType Ability)
 	FNiagaraEffectUtility::SpawnAtLocation(GetWorld(), *PulseAsset, GetOwner()->GetActorLocation(), GetOwner()->GetActorRotation());
 }
 
-UMaterialInstanceDynamic* UAbilityEffectComponent::GetOrCreateVisionMaterial(EAbilityType Ability)
+void UAbilityEffectComponent::SetEffectWeight(const FName MaterialName, const float Weight)
 {
-	if (const TObjectPtr<UMaterialInstanceDynamic>* ExistingMaterial = VisionMaterialInstances.Find(Ability))
+	if (CameraComponent.IsValid())
 	{
-		return *ExistingMaterial;
-	}
-
-	const TSoftObjectPtr<UMaterialInterface>* MaterialAsset = VisionMaterials.Find(Ability);
-
-	if (!MaterialAsset)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AbilityEffectComponent: No vision material configured for ability %d."), static_cast<int32>(Ability));
-
-		return nullptr;
-	}
-
-	UMaterialInterface* ParentMaterial = MaterialAsset->LoadSynchronous();
-
-	if (!ParentMaterial)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AbilityEffectComponent: Could not load vision material for ability %d."), static_cast<int32>(Ability));
-
-		return nullptr;
-	}
-
-	UMaterialInstanceDynamic* MaterialInstance = UMaterialInstanceDynamic::Create(ParentMaterial, this);
-	VisionMaterialInstances.Add(Ability, MaterialInstance);
-
-	return MaterialInstance;
-}
-
-UMaterialInstanceDynamic* UAbilityEffectComponent::GetOrCreateHighlightMaterial(EAbilityType Ability)
-{
-	if (const TObjectPtr<UMaterialInstanceDynamic>* ExistingMaterial = HighlightMaterialInstances.Find(Ability))
-	{
-		return *ExistingMaterial;
-	}
-
-	const TSoftObjectPtr<UMaterialInterface>* MaterialAsset = HighlightMaterials.Find(Ability);
-
-	if (!MaterialAsset)
-	{
-		return nullptr;
-	}
-
-	UMaterialInterface* ParentMaterial = MaterialAsset->LoadSynchronous();
-
-	if (!ParentMaterial)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AbilityEffectComponent: Could not load highlight material for ability %d."), static_cast<int32>(Ability));
-
-		return nullptr;
-	}
-
-	UMaterialInstanceDynamic* MaterialInstance = UMaterialInstanceDynamic::Create(ParentMaterial, this);
-	HighlightMaterialInstances.Add(Ability, MaterialInstance);
-
-	return MaterialInstance;
-}
-
-void UAbilityEffectComponent::SetBlendableWeight(UMaterialInstanceDynamic* MaterialInstance, const float Weight) const
-{
-	if (CameraComponent.IsValid() && MaterialInstance)
-	{
-		CameraComponent->AddOrUpdateBlendable(MaterialInstance, Weight);
+		if (const TObjectPtr<UMaterialInstanceDynamic>* Material = EffectMaterials.Find(MaterialName))
+		{
+			CameraComponent->AddOrUpdateBlendable(*Material, FMath::Clamp(Weight, 0.0f, 1.0f));
+		}
 	}
 }
 

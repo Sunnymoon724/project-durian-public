@@ -3,7 +3,7 @@
 #include "Abilities/Core/AbilityModeTypes.h"
 #include "Abilities/Cryonis/IcePillar.h"
 #include "Abilities/Cryonis/IcePlacementPreview.h"
-#include "Constants/GameConstantsDataAsset.h"
+#include "DataAssets/GameConstantsDataAsset.h"
 #include "Enums/PlayerEnums.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
@@ -15,7 +15,7 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-void FCryonisAbility::Tick(const float)
+void UCryonisAbility::Tick(const float)
 {
 	if (!Character)
 	{
@@ -37,12 +37,12 @@ void FCryonisAbility::Tick(const float)
 	UpdateTargeting();
 }
 
-float FCryonisAbility::GetSpawnCooldownRemaining() const
+float UCryonisAbility::GetSpawnCooldownRemaining() const
 {
 	return GetRemainingCooldown(SpawnCooldownEndTime);
 }
 
-void FCryonisAbility::HandleInput(const EAbilityInput Input, float)
+void UCryonisAbility::HandleInput(const EAbilityInput Input, float)
 {
 	if (!Character)
 	{
@@ -104,12 +104,12 @@ void FCryonisAbility::HandleInput(const EAbilityInput Input, float)
 	}
 }
 
-bool FCryonisAbility::IsIcePillarTarget(const AActor* Actor)
+bool UCryonisAbility::IsIcePillarTarget(const AActor* Actor)
 {
 	return Actor && (Actor->ActorHasTag(TEXT("IcePillar")) || Actor->IsA<AIcePillar>());
 }
 
-void FCryonisAbility::UpdateTargeting()
+void UCryonisAbility::UpdateTargeting()
 {
 	if (!UpdateScanActivation(EAbilityVisualMode::Cryonis, EAbilityType::Cryonis, true))
 	{
@@ -193,7 +193,7 @@ void FCryonisAbility::UpdateTargeting()
 	PlacementPreview->SetPreviewState(TargetLocation, true, bTargetValid);
 }
 
-void FCryonisAbility::SpawnIcePillar()
+void UCryonisAbility::SpawnIcePillar()
 {
 	if (!Character || !Character->GetWorld() || !TargetSurface.IsValid() || !bTargetValid)
 	{
@@ -241,7 +241,7 @@ void FCryonisAbility::SpawnIcePillar()
 	}
 }
 
-void FCryonisAbility::RemoveTargetedPillar()
+void UCryonisAbility::RemoveTargetedPillar()
 {
 	AIcePillar* Pillar = TargetPillar.Get();
 
@@ -256,7 +256,7 @@ void FCryonisAbility::RemoveTargetedPillar()
 	ClearTarget();
 }
 
-void FCryonisAbility::ExitTargetingMode()
+void UCryonisAbility::ExitTargetingMode()
 {
 	if (!Character)
 	{
@@ -276,7 +276,7 @@ void FCryonisAbility::ExitTargetingMode()
 	ClearAbilityVisionEffects();
 }
 
-void FCryonisAbility::ClearTarget()
+void UCryonisAbility::ClearTarget()
 {
 	UpdateAimedTarget(nullptr);
 
@@ -286,7 +286,7 @@ void FCryonisAbility::ClearTarget()
 	bTargetValid = false;
 }
 
-void FCryonisAbility::UpdateAimedTarget(AActor* NewTarget)
+void UCryonisAbility::UpdateAimedTarget(AActor* NewTarget)
 {
 	if (AimedTargetActor.Get() == NewTarget)
 	{
@@ -306,7 +306,7 @@ void FCryonisAbility::UpdateAimedTarget(AActor* NewTarget)
 	}
 }
 
-void FCryonisAbility::EnsurePreview()
+void UCryonisAbility::EnsurePreview()
 {
 	if (PlacementPreview.IsValid() || !Character || !Character->GetWorld())
 	{
@@ -317,12 +317,12 @@ void FCryonisAbility::EnsurePreview()
 	PlacementPreview = Character->GetWorld()->SpawnActor<AIcePlacementPreview>(PreviewClass ? PreviewClass : AIcePlacementPreview::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator);
 }
 
-bool FCryonisAbility::TraceTarget(FHitResult& OutHit) const
+bool UCryonisAbility::TraceTarget(FHitResult& OutHit) const
 {
 	return TraceAbilityTarget(EAbilityReactionType::CryonicTarget, UGameConstantsDataAsset::Get()->CryonisTargetRange, OutHit, bTargetAtFeet, PlacementPreview.Get());
 }
 
-bool FCryonisAbility::CanSpawnAt(const FVector& SpawnLocation, const AActor* SurfaceActor) const
+bool UCryonisAbility::CanSpawnAt(const FVector& SpawnLocation, const AActor* SurfaceActor) const
 {
 	if (!Character || !Character->GetWorld())
 	{
@@ -357,12 +357,12 @@ bool FCryonisAbility::CanSpawnAt(const FVector& SpawnLocation, const AActor* Sur
 	return !bHasOverlap;
 }
 
-FVector FCryonisAbility::GetSpawnLocation(const FHitResult& Hit)
+FVector UCryonisAbility::GetSpawnLocation(const FHitResult& Hit)
 {
 	return Hit.ImpactPoint + FVector(0.0f, 0.0f, UGameConstantsDataAsset::Get()->IcePillarHeight * 0.5f);
 }
 
-void FCryonisAbility::DestroyPillar(AIcePillar* Pillar, const bool bShatter)
+void UCryonisAbility::DestroyPillar(AIcePillar* Pillar, const bool bShatter)
 {
 	if (!IsValid(Pillar))
 	{

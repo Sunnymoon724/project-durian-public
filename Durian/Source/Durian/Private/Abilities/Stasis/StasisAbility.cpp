@@ -2,7 +2,7 @@
 #include "Abilities/Components/AbilityReactionComponent.h"
 #include "Abilities/Core/AbilityModeTypes.h"
 #include "Abilities/Stasis/StasisTargetComponent.h"
-#include "Constants/GameConstantsDataAsset.h"
+#include "DataAssets/GameConstantsDataAsset.h"
 #include "Enums/PlayerEnums.h"
 #include "Framework/Player/KzPlayerCharacter.h"
 #include "Components/PrimitiveComponent.h"
@@ -10,7 +10,7 @@
 #include "GameFramework/Actor.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-void FStasisAbility::Tick(float)
+void UStasisAbility::Tick(float)
 {
 	if (!Character)
 	{
@@ -30,7 +30,7 @@ void FStasisAbility::Tick(float)
 	}
 }
 
-void FStasisAbility::TickPersistent(float DeltaTime)
+void UStasisAbility::TickPersistent(float DeltaTime)
 {
 	if (!Character)
 	{
@@ -56,12 +56,12 @@ void FStasisAbility::TickPersistent(float DeltaTime)
 	}
 }
 
-float FStasisAbility::GetCooldownRemaining() const
+float UStasisAbility::GetCooldownRemaining() const
 {
 	return GetRemainingCooldown(CooldownEndTime);
 }
 
-void FStasisAbility::HandleInput(const EAbilityInput Input, float)
+void UStasisAbility::HandleInput(const EAbilityInput Input, float)
 {
 	if (!Character)
 	{
@@ -118,7 +118,7 @@ void FStasisAbility::HandleInput(const EAbilityInput Input, float)
 	}
 }
 
-void FStasisAbility::HandleAbilityDeselected()
+void UStasisAbility::OnDeselected()
 {
 	HandleInput(EAbilityInput::Cancel);
 
@@ -128,7 +128,7 @@ void FStasisAbility::HandleAbilityDeselected()
 	}
 }
 
-void FStasisAbility::HandleAttackHit(const FHitResult& Hit, const FVector& AttackDirection) const
+void UStasisAbility::HandleAttackHit(const FHitResult& Hit, const FVector& AttackDirection) const
 {
 	UStasisTargetComponent* Target = ActiveTarget.Get();
 
@@ -140,7 +140,7 @@ void FStasisAbility::HandleAttackHit(const FHitResult& Hit, const FVector& Attac
 	Target->AccumulateImpulse(AttackDirection.GetSafeNormal() * UGameConstantsDataAsset::Get()->StasisImpulsePerHit, UGameConstantsDataAsset::Get()->StasisMaxImpulse);
 }
 
-void FStasisAbility::UpdateTargeting()
+void UStasisAbility::UpdateTargeting()
 {
 	if (!UpdateScanActivation(EAbilityVisualMode::Stasis, EAbilityType::Stasis))
 	{
@@ -183,7 +183,7 @@ void FStasisAbility::UpdateTargeting()
 	}
 }
 
-void FStasisAbility::StartStasis()
+void UStasisAbility::StartStasis()
 {
 	if (IsStasisActive())
 	{
@@ -226,7 +226,7 @@ void FStasisAbility::StartStasis()
 	UE_LOG(LogTemp, Log, TEXT("Stasis started on %s"), *GetNameSafe(TargetActor));
 }
 
-void FStasisAbility::EndStasis(const bool bApplyImpulse, const bool bStartCooldown)
+void UStasisAbility::EndStasis(const bool bApplyImpulse, const bool bStartCooldown)
 {
 	if (UStasisTargetComponent* Target = ActiveTarget.Get())
 	{
@@ -247,7 +247,7 @@ void FStasisAbility::EndStasis(const bool bApplyImpulse, const bool bStartCooldo
 	}
 }
 
-void FStasisAbility::ClearTarget()
+void UStasisAbility::ClearTarget()
 {
 	if (AActor* Marker = AimingMarker.Get())
 	{
@@ -267,7 +267,7 @@ void FStasisAbility::ClearTarget()
 	TargetedComponent.Reset();
 }
 
-void FStasisAbility::AbortForEndPlay()
+void UStasisAbility::AbortForEndPlay()
 {
 	if (!Character)
 	{
@@ -285,21 +285,21 @@ void FStasisAbility::AbortForEndPlay()
 	}
 }
 
-bool FStasisAbility::IsStasisActive() const
+bool UStasisAbility::IsStasisActive() const
 {
 	const UStasisTargetComponent* Target = ActiveTarget.Get();
 
 	return Target && Target->IsStasisActive();
 }
 
-FVector FStasisAbility::GetAccumulatedImpulse() const
+FVector UStasisAbility::GetAccumulatedImpulse() const
 {
 	const UStasisTargetComponent* Target = ActiveTarget.Get();
 
 	return Target ? Target->GetAccumulatedImpulse() : FVector::ZeroVector;
 }
 
-bool FStasisAbility::TraceTarget(UPrimitiveComponent*& OutComponent) const
+bool UStasisAbility::TraceTarget(UPrimitiveComponent*& OutComponent) const
 {
 	FHitResult Hit;
 

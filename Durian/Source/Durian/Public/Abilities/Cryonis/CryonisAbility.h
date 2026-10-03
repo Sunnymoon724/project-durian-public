@@ -2,18 +2,21 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/Core/Ability.h"
+#include "CryonisAbility.generated.h"
 
 class AActor;
 class AIcePillar;
 class AIcePlacementPreview;
 
-class FCryonisAbility final : public FAbility
+UCLASS(BlueprintType)
+class DURIAN_API UCryonisAbility final : public UAbility
 {
-public:
-	explicit FCryonisAbility(AKzPlayerCharacter* InCharacter) : FAbility(InCharacter) { }
+	GENERATED_BODY()
 
+public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void HandleInput(EAbilityInput Input, float AxisValue = 0.0f) override;
+	UFUNCTION(BlueprintPure, Category = "Cryonis")
 	float GetSpawnCooldownRemaining() const;
 
 private:

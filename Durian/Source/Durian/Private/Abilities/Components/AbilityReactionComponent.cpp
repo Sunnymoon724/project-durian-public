@@ -1,7 +1,7 @@
 #include "Abilities/Components/AbilityReactionComponent.h"
 
 #include "Abilities/Core/AbilityModeSubsystem.h"
-#include "Abilities/Core/AbilityModeVisualProfile.h"
+#include "DataAssets/AbilityModeVisualProfile.h"
 #include "Abilities/Core/AbilityVisualModeUtility.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"

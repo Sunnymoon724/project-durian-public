@@ -2,20 +2,28 @@
 
 #include "Abilities/Core/Ability.h"
 #include "Abilities/RemoteBomb/RemoteBomb.h"
+#include "RemoteBombAbility.generated.h"
 
-class FRemoteBombAbility final : public FAbility
+UCLASS(BlueprintType)
+class DURIAN_API URemoteBombAbility final : public UAbility
 {
+	GENERATED_BODY()
+
 public:
-	FRemoteBombAbility(AKzPlayerCharacter* InCharacter, TSubclassOf<ARemoteBomb> InSphereClass, TSubclassOf<ARemoteBomb> InCubeClass) : FAbility(InCharacter), BombClassArray{ InSphereClass, InCubeClass } { }
+	void SetBombClasses(TSubclassOf<ARemoteBomb> InSphereClass, TSubclassOf<ARemoteBomb> InCubeClass);
 
 	void Tick(float DeltaTime) override;
 	void HandleInput(EAbilityInput Input, float AxisValue = 0.0f) override;
-	void HandleAbilityDeselected();
+	void OnDeselected() override;
 	void DropHeldBomb();
 	void AbortForEndPlay();
+	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
 	float GetCooldownRemaining(ERemoteBombShape Shape) const;
+	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
 	bool HasBomb(ERemoteBombShape Shape) const;
+	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
 	bool IsBombInstalled(ERemoteBombShape Shape) const;
+	UFUNCTION(BlueprintPure, Category = "Remote Bomb")
 	bool IsHoldingBomb() const { return HeldBomb.IsValid(); }
 
 private:

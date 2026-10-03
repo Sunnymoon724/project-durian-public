@@ -1,4 +1,5 @@
 #include "Abilities/Core/AbilityModeSubsystem.h"
+
 #include "Abilities/Core/AbilityModeListener.h"
 
 bool UAbilityModeSubsystem::RegisterAbilityModeListener(UObject* Listener)
@@ -41,43 +42,43 @@ void UAbilityModeSubsystem::UnregisterAbilityModeListener(UObject* Listener)
 	}
 }
 
-void UAbilityModeSubsystem::SetAbilityModeActive(const EAbilityVisualMode Mode, const bool bEnabled)
+void UAbilityModeSubsystem::SetAbilityModeActive(const EAbilityVisualMode VisualMode, const bool IsEnabled)
 {
-	if (Mode == EAbilityVisualMode::None)
+	if (VisualMode == EAbilityVisualMode::None)
 	{
 		return;
 	}
 
-	const bool bWasActive = ActiveModes.Contains(Mode);
+	const bool bWasActive = ActiveModes.Contains(VisualMode);
 
-	if (bWasActive == bEnabled)
+	if (bWasActive == IsEnabled)
 	{
 		return;
 	}
 
-	if (bEnabled)
+	if (IsEnabled)
 	{
-		ActiveModes.Add(Mode);
+		ActiveModes.Add(VisualMode);
 	}
 	else
 	{
-		ActiveModes.Remove(Mode);
+		ActiveModes.Remove(VisualMode);
 	}
 
 	RemoveInvalidListeners();
 
 	for (const TPair<TWeakObjectPtr<UObject>, TSet<EAbilityVisualMode>>& Entry : RegisteredListeners)
 	{
-		if (UObject* Listener = Entry.Key.Get(); Listener && Entry.Value.Contains(Mode))
+		if (UObject* Listener = Entry.Key.Get(); Listener && Entry.Value.Contains(VisualMode))
 		{
-			NotifyListener(Listener, Mode, bEnabled);
+			NotifyListener(Listener, VisualMode, IsEnabled);
 		}
 	}
 }
 
-bool UAbilityModeSubsystem::IsAbilityModeActive(const EAbilityVisualMode Mode) const
+bool UAbilityModeSubsystem::IsAbilityModeActive(const EAbilityVisualMode VisualMode) const
 {
-	return ActiveModes.Contains(Mode);
+	return ActiveModes.Contains(VisualMode);
 }
 
 void UAbilityModeSubsystem::SetModeScanDirection(const FVector2D& Direction)
@@ -94,12 +95,13 @@ void UAbilityModeSubsystem::Deinitialize()
 {
 	RegisteredListeners.Empty();
 	ActiveModes.Empty();
+
 	ModeScanDirection = FVector2D(1.0f, 0.0f);
 
 	Super::Deinitialize();
 }
 
-void UAbilityModeSubsystem::NotifyListener(UObject* Listener, const EAbilityVisualMode Mode, const bool bEnabled) const
+void UAbilityModeSubsystem::NotifyListener(UObject* Listener, const EAbilityVisualMode Mode, const bool bEnabled)
 {
 	IAbilityModeListener::Execute_OnAbilityModeChanged(Listener, Mode, bEnabled);
 }
